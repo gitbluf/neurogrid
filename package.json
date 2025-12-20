@@ -1,0 +1,44 @@
+{
+  "name": "@gitbluf/neurogrid",
+  "version": "0.1.0",
+  "description": "Neurogrid – OpenCode plugin providing a cyberpunk-themed AI agent orchestration system with specialized agents for planning, code review, reconnaissance, and execution.",
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "bun": "./src/index.ts",
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "prepublishOnly": "bun run build",
+    "clean": "rm -rf dist"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "dependencies": {
+    "@opencode-ai/plugin": "1.1.56"
+  },
+  "devDependencies": {
+    "bun-types": "latest",
+    "typescript": "^5.0.0"
+  },
+  "peerDependencies": {
+    "@opencode-ai/sdk": "*"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/gitbluf/local"
+  }
+}
