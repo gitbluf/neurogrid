@@ -4,6 +4,8 @@ This repository contains OpenCode subagents and commands. Agents are specialized
 
 Each `src/` component has its own `AGENTS.md` with step-by-step instructions for extending that subsystem. Read the component-specific guide before making changes.
 
+General GUIDELINE for Opencode plugin Development can be found in `src/PLUGIN_DEV_GUIDE.md`.
+
 ## Repository Overview
 
 This is a source code repository for OpenCode agents/commands. The primary workflows involve:
