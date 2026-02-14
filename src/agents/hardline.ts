@@ -198,7 +198,7 @@ export function createHardlineAgent(
   return {
     description:
       "hardline (HARDLINE) – a bash/shell command execution specialist. Runs scripts, builds, installs, diagnostics, and system operations. ⚠️ Requires explicit user approval before every command execution.",
-    mode: "all",
+    mode: "subagent",
     model: resolvedModel,
     temperature: overrides?.temperature ?? 0.1,
     tools,
