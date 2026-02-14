@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+NC='\033[0m'
+
+usage() {
+  printf "${YELLOW}Usage:${NC} %s <version>\n" "${0}"
+  printf "  Example: %s 0.2.0\n" "${0}"
+  printf "  Example: %s 1.0.0-rc.1\n" "${0}"
+}
+
+error() {
+  printf "${RED}Error:${NC} %s\n" "$1" >&2
+}
+
+info() {
+  printf "${YELLOW}%s${NC}\n" "$1"
+}
+
+success() {
+  printf "${GREEN}%s${NC}\n" "$1"
+}
+
+if [[ $# -ne 1 ]]; then
+  usage
+  error "A single semver version is required."
+  exit 1
+fi
+
+VERSION="$1"
+SEMVER_REGEX='^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z]+(\.[0-9A-Za-z]+)*)?$'
+
+if [[ ! "$VERSION" =~ $SEMVER_REGEX ]]; then
+  usage
+  error "Version must be valid semver (e.g. 1.0.0, 1.0.0-rc.1)."
+  exit 1
+fi
+
+if ! git diff --quiet || ! git diff --cached --quiet; then
+  error "Working tree is dirty. Commit or stash changes first."
+  exit 1
+fi
+
+info "Updating package.json version to ${VERSION}..."
+node -e "const fs=require('fs');const path='package.json';const data=JSON.parse(fs.readFileSync(path,'utf8'));data.version='${VERSION}';fs.writeFileSync(path,JSON.stringify(data,null,2)+'\n');"
+
+info "Committing version bump..."
+git add package.json
+git commit -m "release: v${VERSION}"
+
+info "Creating tag v${VERSION}..."
+git tag "v${VERSION}"
+
+info "Pushing commit and tag..."
+git push origin HEAD
+git push origin "v${VERSION}"
+
+success "Release v${VERSION} created and pushed."
