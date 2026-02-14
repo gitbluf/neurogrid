@@ -1,7 +1,6 @@
 #!/usr/bin/env bun
 
-import { existsSync } from "fs"
-import { appendFile } from "fs/promises"
+import { existsSync, appendFileSync } from "fs"
 
 const RED = "\x1b[0;31m"
 const GREEN = "\x1b[0;32m"
@@ -20,16 +19,15 @@ function success(msg: string): void {
   console.log(`${GREEN}${msg}${NC}`)
 }
 
-async function exec(cmd: string[]): Promise<void> {
-  const proc = Bun.spawn(cmd, {
+function exec(cmd: string[]): void {
+  const result = Bun.spawnSync(cmd, {
     stdout: "inherit",
     stderr: "inherit",
-    env: { ...process.env },
+    env: process.env,
   })
-  const code = await proc.exited
-  if (code !== 0) {
+  if (result.exitCode !== 0) {
     error(`Command failed: ${cmd.join(" ")}`)
-    process.exit(code)
+    process.exit(result.exitCode)
   }
 }
 
@@ -52,7 +50,7 @@ if (!token) {
 }
 
 info("Configuring npm registry auth...")
-await appendFile(".npmrc", `\n//npm.pkg.github.com/:_authToken=${token}\n`)
+appendFileSync(".npmrc", `\n//npm.pkg.github.com/:_authToken=${token}\n`)
 
 // 3. Determine publish tag from git ref
 const refName = process.env.GITHUB_REF_NAME
@@ -72,6 +70,6 @@ if (version.includes("-")) {
 info(`Publishing v${version} with tag '${tag}'...`)
 
 // 4. Publish
-await exec(["bun", "publish", "--access", "public", "--tag", tag, "--tolerate-republish"])
+exec(["bun", "publish", "--access", "public", "--tag", tag, "--tolerate-republish"])
 
 success(`Published @gitbluf/neurogrid@${version} (tag: ${tag})`)
