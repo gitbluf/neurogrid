@@ -20,6 +20,32 @@ Install in your OpenCode config and start using agents right away.
 
 That’s it—OpenCode will load the plugin on next run.
 
+## ⚙️ Model Configuration
+
+All agents inherit the system-wide model by default, and you can override the model (and other allowed settings) per agent.
+
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "plugin": ["@gitbluf/neurogrid"],
+  "model": "provider/default-model",
+  "agent": {
+    "cortex": {
+      "model": "provider/capable-model"
+    },
+    "dataweaver": {
+      "model": "provider/fast-model",
+      "temperature": 0.2
+    },
+    "hardline": {
+      "disable": true
+    }
+  }
+}
+```
+
+Model IDs depend on your configured provider (e.g. anthropic/claude-sonnet-4-20250514, openai/gpt-4o). Only `model`, `temperature`, `disable`, and `tools` can be overridden — the agent prompt and core behavior are managed by the plugin.
+
 ## 📦 What You Get
 
 - **6 specialized agents** (orchestrator, planner, reviewer, discovery, executor, command runner)
