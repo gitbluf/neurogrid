@@ -1,61 +1,82 @@
-#!/usr/bin/env bash
-set -euo pipefail
+#!/usr/bin/env bun
 
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[0;33m'
-NC='\033[0m'
+const RED = "\x1b[0;31m"
+const GREEN = "\x1b[0;32m"
+const YELLOW = "\x1b[0;33m"
+const NC = "\x1b[0m"
 
-usage() {
-  printf "${YELLOW}Usage:${NC} %s <version>\n" "${0}"
-  printf "  Example: %s 0.2.0\n" "${0}"
-  printf "  Example: %s 1.0.0-rc.1\n" "${0}"
+function usage(): void {
+  console.log(`${YELLOW}Usage:${NC} bun run release <version>`)
+  console.log("  Example: bun run release 0.2.0")
+  console.log("  Example: bun run release 1.0.0-rc.1")
 }
 
-error() {
-  printf "${RED}Error:${NC} %s\n" "$1" >&2
+function error(msg: string): void {
+  console.error(`${RED}Error:${NC} ${msg}`)
 }
 
-info() {
-  printf "${YELLOW}%s${NC}\n" "$1"
+function info(msg: string): void {
+  console.log(`${YELLOW}${msg}${NC}`)
 }
 
-success() {
-  printf "${GREEN}%s${NC}\n" "$1"
+function success(msg: string): void {
+  console.log(`${GREEN}${msg}${NC}`)
 }
 
-if [[ $# -ne 1 ]]; then
-  usage
-  error "A single semver version is required."
-  exit 1
-fi
+async function exec(cmd: string[]): Promise<void> {
+  const proc = Bun.spawn(cmd, { stdout: "inherit", stderr: "inherit" })
+  const code = await proc.exited
+  if (code !== 0) {
+    error(`Command failed: ${cmd.join(" ")}`)
+    process.exit(code)
+  }
+}
 
-VERSION="$1"
-SEMVER_REGEX='^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z]+(\.[0-9A-Za-z]+)*)?$'
+async function execQuiet(cmd: string[]): Promise<boolean> {
+  const proc = Bun.spawn(cmd, { stdout: "pipe", stderr: "pipe" })
+  const code = await proc.exited
+  return code === 0
+}
 
-if [[ ! "$VERSION" =~ $SEMVER_REGEX ]]; then
-  usage
-  error "Version must be valid semver (e.g. 1.0.0, 1.0.0-rc.1)."
-  exit 1
-fi
+const SEMVER_REGEX = /^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z]+(\.[0-9A-Za-z]+)*)?$/
 
-if ! git diff --quiet || ! git diff --cached --quiet; then
-  error "Working tree is dirty. Commit or stash changes first."
-  exit 1
-fi
+const version = process.argv[2]
 
-info "Updating package.json version to ${VERSION}..."
-node -e "const fs=require('fs');const path='package.json';const data=JSON.parse(fs.readFileSync(path,'utf8'));data.version='${VERSION}';fs.writeFileSync(path,JSON.stringify(data,null,2)+'\n');"
+if (!version) {
+  usage()
+  error("A single semver version is required.")
+  process.exit(1)
+}
 
-info "Committing version bump..."
-git add package.json
-git commit -m "release: v${VERSION}"
+if (!SEMVER_REGEX.test(version)) {
+  usage()
+  error("Version must be valid semver (e.g. 1.0.0, 1.0.0-rc.1).")
+  process.exit(1)
+}
 
-info "Creating tag v${VERSION}..."
-git tag "v${VERSION}"
+const workingClean = await execQuiet(["git", "diff", "--quiet"])
+const stagingClean = await execQuiet(["git", "diff", "--cached", "--quiet"])
 
-info "Pushing commit and tag..."
-git push origin HEAD
-git push origin "v${VERSION}"
+if (!workingClean || !stagingClean) {
+  error("Working tree is dirty. Commit or stash changes first.")
+  process.exit(1)
+}
 
-success "Release v${VERSION} created and pushed."
+info(`Updating package.json version to ${version}...`)
+const pkgPath = "package.json"
+const pkg = await Bun.file(pkgPath).json()
+pkg.version = version
+await Bun.write(pkgPath, JSON.stringify(pkg, null, 2) + "\n")
+
+info("Committing version bump...")
+await exec(["git", "add", "package.json"])
+await exec(["git", "commit", "-m", `release: v${version}`])
+
+info(`Creating tag v${version}...`)
+await exec(["git", "tag", `v${version}`])
+
+info("Pushing commit and tag...")
+await exec(["git", "push", "origin", "HEAD"])
+await exec(["git", "push", "origin", `v${version}`])
+
+success(`Release v${version} created and pushed.`)

@@ -23,7 +23,8 @@
     "build": "tsc",
     "prepublishOnly": "bun run build",
     "clean": "rm -rf dist",
-    "release": "./scripts/release"
+    "release": "bun ./scripts/release",
+    "publish": "bun ./scripts/publish"
   },
   "publishConfig": {
     "registry": "https://npm.pkg.github.com"
@@ -40,6 +41,6 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/gitbluf/local"
+    "url": "https://github.com/gitbluf/neurogrid"
   }
 }
