@@ -7,6 +7,8 @@ Plan-first Neurogrid agent orchestration for OpenCode.
 
 > Version: **0.1.0** · License: **AGPL-3.0** · Repo: https://github.com/gitbluf/neurogrid
 
+> ⚠️ **GitHub Packages auth required:** add an `.npmrc` in `~/.npmrc` or `.opencode/.npmrc` with `@gitbluf:registry=https://npm.pkg.github.com` and `//npm.pkg.github.com/:_authToken=YOUR_GITHUB_PAT` (PAT needs `read:packages`).
+
 ## ⚡ Quick Start
 
 Install in your OpenCode config and start using agents right away.
@@ -35,7 +37,7 @@ All agents inherit the system-wide model by default, and you can override the mo
     },
     "dataweaver": {
       "model": "provider/fast-model",
-      "temperature": 0.2
+      "temperature": 0.1
     },
     "hardline": {
       "disable": true
