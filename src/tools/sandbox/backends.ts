@@ -151,9 +151,9 @@ function buildSandboxEnv(userEnv: Record<string, string>): Record<string, string
 }
 
 /**
- * Truncate a raw Buffer to at most `maxBytes` bytes without cutting
- * a multi-byte UTF-8 character mid-sequence.
- * Returns the decoded string (already safe).
+ * Enforce OUTPUT_LIMIT_BYTES on sandbox output at the byte level,
+ * trimming without splitting a multi-byte UTF-8 sequence mid-character.
+ * This avoids corrupted text (U+FFFD replacement characters) sent to the LLM.
  */
 function truncateUtf8(buf: Buffer, maxBytes: number): string {
   if (buf.length <= maxBytes) {
@@ -193,6 +193,7 @@ async function runCommand(options: RunCommandOptions): Promise<SandboxResult> {
   let stderrBytes = 0
   let stdoutTruncated = false
   let stderrTruncated = false
+  let exitCode: number | null = null
 
   try {
     const child = spawn(command, args, {
@@ -223,7 +224,7 @@ async function runCommand(options: RunCommandOptions): Promise<SandboxResult> {
       }
     })
 
-    const exitCode = await Promise.race([
+    exitCode = await Promise.race([
       new Promise<number | null>((resolve) => {
         child.on("close", (code) => resolve(code))
         child.on("error", () => resolve(null))
@@ -232,8 +233,15 @@ async function runCommand(options: RunCommandOptions): Promise<SandboxResult> {
         const killTimer = setTimeout(() => {
           try {
             child.kill("SIGKILL")
-          } catch {
-            // process already gone
+          } catch (err) {
+            const code =
+              err instanceof Error && "code" in err ? (err as NodeJS.ErrnoException).code : undefined
+            if (code === "ESRCH") {
+              warnings.push("SIGKILL skipped: process already exited")
+            } else {
+              const msg = err instanceof Error ? err.message : String(err)
+              warnings.push(`SIGKILL failed: ${msg}`)
+            }
           }
           warnings.push("Process did not exit after abort signal; sent SIGKILL")
           resolve(null)
@@ -242,45 +250,27 @@ async function runCommand(options: RunCommandOptions): Promise<SandboxResult> {
         child.on("error", () => clearTimeout(killTimer))
       }),
     ])
-
-    clearTimeout(timeoutId)
-
-    const rawStdout = Buffer.concat(stdoutChunks)
-    const rawStderr = Buffer.concat(stderrChunks)
-    const stdout = truncateUtf8(rawStdout, OUTPUT_LIMIT_BYTES)
-    const stderr = truncateUtf8(rawStderr, OUTPUT_LIMIT_BYTES)
-
-    return {
-      exitCode,
-      stdout: formatOutput(stdout, rawStdout),
-      stderr: formatOutput(stderr, rawStderr),
-      sandboxBackend: options.backend,
-      profile: options.profile,
-      duration_ms: Date.now() - startedAt,
-      truncated: stdoutTruncated || stderrTruncated,
-      warnings,
-    }
   } catch (error) {
-    clearTimeout(timeoutId)
-
-    const rawStdout = Buffer.concat(stdoutChunks)
-    const rawStderr = Buffer.concat(stderrChunks)
-    const stdout = truncateUtf8(rawStdout, OUTPUT_LIMIT_BYTES)
-    const stderr = truncateUtf8(rawStderr, OUTPUT_LIMIT_BYTES)
-
     const msg = error instanceof Error ? error.message : String(error)
     warnings.push(`Execution error: ${msg}`)
+  } finally {
+    clearTimeout(timeoutId)
+  }
 
-    return {
-      exitCode: null,
-      stdout: formatOutput(stdout, rawStdout),
-      stderr: formatOutput(stderr, rawStderr),
-      sandboxBackend: options.backend,
-      profile: options.profile,
-      duration_ms: Date.now() - startedAt,
-      truncated: stdoutTruncated || stderrTruncated,
-      warnings,
-    }
+  const rawStdout = Buffer.concat(stdoutChunks)
+  const rawStderr = Buffer.concat(stderrChunks)
+  const stdout = truncateUtf8(rawStdout, OUTPUT_LIMIT_BYTES)
+  const stderr = truncateUtf8(rawStderr, OUTPUT_LIMIT_BYTES)
+
+  return {
+    exitCode,
+    stdout: formatOutput(stdout, rawStdout),
+    stderr: formatOutput(stderr, rawStderr),
+    sandboxBackend: options.backend,
+    profile: options.profile,
+    duration_ms: Date.now() - startedAt,
+    truncated: stdoutTruncated || stderrTruncated,
+    warnings,
   }
 }
 
