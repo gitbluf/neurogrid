@@ -1,9 +1,9 @@
 // src/agents/ghost.ts
-import type { AgentConfig } from "@opencode-ai/sdk"
-import { createBuiltinDefinition, mergeAgentTools } from "./overrides"
+import type { AgentConfig } from "@opencode-ai/sdk";
+import { createBuiltinDefinition, mergeAgentTools } from "./overrides";
 
 function buildGhostPrompt(): string {
-  return `<agent name="ghost" mode="subagent" role="plan-executor">
+	return `<agent name="ghost" mode="subagent" role="plan-executor">
   <meta>
     \`\`\`markdown
     # GHOST-K8 Subagent
@@ -94,56 +94,56 @@ function buildGhostPrompt(): string {
     - Do not add speculative ideas or new tasks beyond the plan.
     \`\`\`
   </response-style>
- </agent>`
+ </agent>`;
 }
 
 export function createGhostAgent(
-  model: string | undefined,
-  overrides?: {
-    temperature?: number
-    tools?: Partial<AgentConfig["tools"]>
-  },
+	model: string | undefined,
+	overrides?: {
+		temperature?: number;
+		tools?: Partial<AgentConfig["tools"]>;
+	},
 ): AgentConfig {
-  const prompt = buildGhostPrompt()
+	const prompt = buildGhostPrompt();
 
-  const tools = mergeAgentTools(
-    {
-      read: true,
-      glob: true,
-      grep: true,
-      write: true,
-      edit: true,
-      bash: false,
-      sandbox_exec: false,
-      task: true,
-      skill: true,
-      platform_agents: false,
-      platform_skills: true,
-      webfetch: false,
-      todowrite: false,
-      todoread: false,
-    },
-    overrides?.tools,
-  )
+	const tools = mergeAgentTools(
+		{
+			read: true,
+			glob: true,
+			grep: true,
+			write: true,
+			edit: true,
+			bash: false,
+			sandbox_exec: false,
+			task: true,
+			skill: true,
+			platform_agents: false,
+			platform_skills: true,
+			webfetch: false,
+			todowrite: false,
+			todoread: false,
+		},
+		overrides?.tools,
+	);
 
-  return {
-    description:
-      "ghost (GHOST-K8) – a subagent that strictly implements code according to plan-<request>.md and nothing else.",
-    mode: "subagent",
-    model,
-    temperature: overrides?.temperature ?? 0.1,
-    tools,
-    permission: {
-      edit: "allow",
-      bash: { "*": "deny" },
-      webfetch: "deny",
-    },
-    prompt,
-  }
+	return {
+		description:
+			"ghost (GHOST-K8) – a subagent that strictly implements code according to plan-<request>.md and nothing else.",
+		mode: "subagent",
+		model,
+		temperature: overrides?.temperature ?? 0.1,
+		tools,
+		permission: {
+			edit: "allow",
+			bash: { "*": "deny" },
+			webfetch: "deny",
+		},
+		prompt,
+	};
 }
 
 export const ghostDefinition = createBuiltinDefinition({
-  name: "ghost",
-  factory: ({ model, overrides }) =>
-    createGhostAgent(model ?? "github-copilot/gpt-5.2-codex", overrides),
-})
+	name: "ghost",
+	factory: ({ model, overrides }) =>
+		createGhostAgent(model ?? "github-copilot/gpt-5.2-codex", overrides),
+});

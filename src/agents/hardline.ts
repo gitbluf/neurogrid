@@ -1,9 +1,9 @@
 // src/agents/hardline.ts
-import type { AgentConfig } from "@opencode-ai/sdk"
-import { createBuiltinDefinition, mergeAgentTools } from "./overrides"
+import type { AgentConfig } from "@opencode-ai/sdk";
+import { createBuiltinDefinition, mergeAgentTools } from "./overrides";
 
 function buildHardlinePrompt(): string {
-  return `<agent name="hardline" mode="all" role="command-executor">
+	return `<agent name="hardline" mode="all" role="command-executor">
   <meta>
     \`\`\`markdown
     # HARDLINE Agent
@@ -123,56 +123,56 @@ function buildHardlinePrompt(): string {
     - Be concise. Structure responses as: **Command** → **Purpose** → **Output** → **Interpretation**.
     \`\`\`
   </constraints>
- </agent>`
+ </agent>`;
 }
 
 export function createHardlineAgent(
-  model: string | undefined,
-  overrides?: {
-    temperature?: number
-    tools?: Partial<AgentConfig["tools"]>
-  },
+	model: string | undefined,
+	overrides?: {
+		temperature?: number;
+		tools?: Partial<AgentConfig["tools"]>;
+	},
 ): AgentConfig {
-  const prompt = buildHardlinePrompt()
-  const resolvedModel = model ?? "github-copilot/claude-haiku-4.5"
+	const prompt = buildHardlinePrompt();
+	const resolvedModel = model ?? "github-copilot/claude-haiku-4.5";
 
-  const tools = mergeAgentTools(
-    {
-      bash: false,
-      sandbox_exec: true,
-      read: false,
-      glob: false,
-      grep: false,
-      write: false,
-      edit: false,
-      webfetch: false,
-      task: false,
-      skill: false,
-      platform_agents: false,
-      platform_skills: false,
-      todowrite: false,
-      todoread: false,
-    },
-    overrides?.tools,
-  )
+	const tools = mergeAgentTools(
+		{
+			bash: false,
+			sandbox_exec: true,
+			read: false,
+			glob: false,
+			grep: false,
+			write: false,
+			edit: false,
+			webfetch: false,
+			task: false,
+			skill: false,
+			platform_agents: false,
+			platform_skills: false,
+			todowrite: false,
+			todoread: false,
+		},
+		overrides?.tools,
+	);
 
-  return {
-    description:
-      "hardline (HARDLINE) – a sandboxed command execution specialist. Runs scripts, builds, installs, diagnostics, and system operations.",
-    mode: "subagent",
-    model: resolvedModel,
-    temperature: overrides?.temperature ?? 0.1,
-    tools,
-    permission: {
-      edit: "deny",
-      bash: "deny",
-      webfetch: "deny",
-    },
-    prompt,
-  }
+	return {
+		description:
+			"hardline (HARDLINE) – a sandboxed command execution specialist. Runs scripts, builds, installs, diagnostics, and system operations.",
+		mode: "subagent",
+		model: resolvedModel,
+		temperature: overrides?.temperature ?? 0.1,
+		tools,
+		permission: {
+			edit: "deny",
+			bash: "deny",
+			webfetch: "deny",
+		},
+		prompt,
+	};
 }
 
 export const hardlineDefinition = createBuiltinDefinition({
-  name: "hardline",
-  factory: ({ model, overrides }) => createHardlineAgent(model, overrides),
-})
+	name: "hardline",
+	factory: ({ model, overrides }) => createHardlineAgent(model, overrides),
+});

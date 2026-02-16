@@ -1,4 +1,4 @@
-import type { Hooks } from "@opencode-ai/plugin"
+import type { Hooks } from "@opencode-ai/plugin";
 
 /**
  * Intercept `bash` tool calls and redirect to `sandbox_exec`.
@@ -9,18 +9,18 @@ import type { Hooks } from "@opencode-ai/plugin"
  * on the very next attempt, avoiding a wasted permission-denied round-trip.
  */
 export function createToolBashRedirectHook(): NonNullable<
-  Hooks["tool.execute.before"]
+	Hooks["tool.execute.before"]
 > {
-  return async (input, _output) => {
-    if (input.tool !== "bash") return
+	return async (input, _output) => {
+		if (input.tool !== "bash") return;
 
-    throw new Error(
-      [
-        "⛔ The `bash` tool is not available. Use `sandbox_exec` instead.",
-        "",
-        "Example:",
-        '  sandbox_exec({ command: "ls -la" })',
-      ].join("\n"),
-    )
-  }
+		throw new Error(
+			[
+				"⛔ The `bash` tool is not available. Use `sandbox_exec` instead.",
+				"",
+				"Example:",
+				'  sandbox_exec({ command: "ls -la" })',
+			].join("\n"),
+		);
+	};
 }

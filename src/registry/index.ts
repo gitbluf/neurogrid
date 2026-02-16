@@ -1,1 +1,1 @@
-export * from "./session-plans"
+export * from "./session-plans";

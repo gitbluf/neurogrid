@@ -1,9 +1,9 @@
 // src/agents/blueprint.ts
-import type { AgentConfig } from "@opencode-ai/sdk"
-import { createBuiltinDefinition, mergeAgentTools } from "./overrides"
+import type { AgentConfig } from "@opencode-ai/sdk";
+import { createBuiltinDefinition, mergeAgentTools } from "./overrides";
 
 function buildBlueprintPrompt(): string {
-  return `<agent name="blueprint" mode="subagent" role="planner">
+	return `<agent name="blueprint" mode="subagent" role="planner">
   <meta>
     # BLUEPRINT-IX Subagent
 
@@ -197,63 +197,63 @@ function buildBlueprintPrompt(): string {
       - Performance and security notes (brief)
     - When multiple approaches exist, compare them briefly on performance and security axes.
   </response-style>
- </agent>`
+ </agent>`;
 }
 
 export function createBlueprintAgent(
-  model: string | undefined,
-  overrides?: {
-    temperature?: number
-    tools?: Partial<AgentConfig["tools"]>
-  },
+	model: string | undefined,
+	overrides?: {
+		temperature?: number;
+		tools?: Partial<AgentConfig["tools"]>;
+	},
 ): AgentConfig {
-  const prompt = buildBlueprintPrompt()
+	const prompt = buildBlueprintPrompt();
 
-  const tools = mergeAgentTools(
-    {
-      read: true,
-      write: true,
-      edit: true,
-      bash: false,
-      glob: true,
-      grep: true,
-      task: true,
-      skill: true,
-      platform_agents: false,
-      platform_skills: true,
-      webfetch: false,
-      todowrite: true,
-      todoread: true,
-    },
-    overrides?.tools,
-  )
+	const tools = mergeAgentTools(
+		{
+			read: true,
+			write: true,
+			edit: true,
+			bash: false,
+			glob: true,
+			grep: true,
+			task: true,
+			skill: true,
+			platform_agents: false,
+			platform_skills: true,
+			webfetch: false,
+			todowrite: true,
+			todoread: true,
+		},
+		overrides?.tools,
+	);
 
-  return {
-    description:
-      "blueprint (BLUEPRINT-IX) – a planner and plan author focused on drafting implementation plans and coordinating review. Always checks skills first, optimizes for performance (Big-O), and prioritizes security considerations.",
-    mode: "subagent",
-    model,
-    temperature: overrides?.temperature ?? 0.1,
-    tools,
-    permission: {
-      edit: {
-        ".ai/plan-*.md": "allow",
-        "*": "deny",
-      },
-      write: {
-        ".ai/plan-*.md": "allow",
-        "*": "deny",
-      },
-      bash: {
-        "*": "deny",
-      },
-      webfetch: "deny",
-    } as unknown as AgentConfig["permission"],
-    prompt,
-  }
+	return {
+		description:
+			"blueprint (BLUEPRINT-IX) – a planner and plan author focused on drafting implementation plans and coordinating review. Always checks skills first, optimizes for performance (Big-O), and prioritizes security considerations.",
+		mode: "subagent",
+		model,
+		temperature: overrides?.temperature ?? 0.1,
+		tools,
+		permission: {
+			edit: {
+				".ai/plan-*.md": "allow",
+				"*": "deny",
+			},
+			write: {
+				".ai/plan-*.md": "allow",
+				"*": "deny",
+			},
+			bash: {
+				"*": "deny",
+			},
+			webfetch: "deny",
+		} as unknown as AgentConfig["permission"],
+		prompt,
+	};
 }
 
 export const blueprintDefinition = createBuiltinDefinition({
-  name: "blueprint",
-  factory: ({ model, overrides }) => createBlueprintAgent(model, overrides),
-})
+	name: "blueprint",
+	factory: ({ model, overrides }) => createBlueprintAgent(model, overrides),
+});
