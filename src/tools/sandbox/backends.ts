@@ -87,7 +87,7 @@ async function executeBwrap(
     env: opts.env,
   })
 
-  bwrapArgs.push("--", "/bin/sh", "-c", opts.command)
+  bwrapArgs.push("--", "/usr/bin/env", "bash", "-c", opts.command)
 
   return runCommand({
     command: "bwrap",
