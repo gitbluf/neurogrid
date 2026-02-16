@@ -3,19 +3,7 @@ import { realpathSync } from "node:fs"
 import * as path from "node:path"
 import { detectBackend } from "./detect"
 import { executeSandboxed } from "./backends"
-import type { SandboxBackend } from "./detect"
-import type { SecurityProfile } from "./profiles"
-
-type SandboxResult = {
-  exitCode: number | null
-  stdout: string
-  stderr: string
-  sandboxBackend: SandboxBackend
-  profile: SecurityProfile
-  duration_ms: number
-  truncated: boolean
-  warnings: string[]
-}
+import { resolveProfile } from "./profiles"
 
 const DEFAULT_TIMEOUT = 30
 const MAX_TIMEOUT = 300
@@ -30,12 +18,6 @@ export function createSandboxExecTool(directory: string) {
         .min(1)
         .max(10_000)
         .describe("The shell command to execute inside the sandbox"),
-      profile: tool.schema
-        .enum(["default", "network-allow", "readonly"])
-        .optional()
-        .describe(
-          "Security profile to apply. 'default' denies network and restricts writes to project dir.",
-        ),
       timeout: tool.schema
         .number()
         .min(1)
@@ -53,7 +35,7 @@ export function createSandboxExecTool(directory: string) {
     },
     async execute(args) {
       try {
-        const profile = (args.profile ?? "default") as SecurityProfile
+        const profile = resolveProfile()
         const timeout = args.timeout ?? DEFAULT_TIMEOUT
         const backend = await detectBackend()
 

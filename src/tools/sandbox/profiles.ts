@@ -3,6 +3,34 @@ import { existsSync, readdirSync } from "node:fs"
 
 export type SecurityProfile = "default" | "network-allow" | "readonly"
 
+const VALID_PROFILES: ReadonlySet<string> = new Set<SecurityProfile>([
+  "default",
+  "network-allow",
+  "readonly",
+])
+
+/**
+ * Resolve the sandbox security profile from the environment.
+ *
+ * Reads `OPENCODE_SANDBOX_PROFILE`. Falls back to "default" if
+ * unset, empty, or invalid (with a stderr warning for invalid values).
+ */
+export function resolveProfile(): SecurityProfile {
+  const raw = process.env.OPENCODE_SANDBOX_PROFILE
+  if (!raw) {
+    return "default"
+  }
+  const trimmed = raw.trim()
+  if (VALID_PROFILES.has(trimmed)) {
+    return trimmed as SecurityProfile
+  }
+  console.warn(
+    `[sandbox] Invalid OPENCODE_SANDBOX_PROFILE="${raw}". ` +
+      `Valid values: ${[...VALID_PROFILES].join(", ")}. Falling back to "default".`,
+  )
+  return "default"
+}
+
 type ProfilePaths = {
   projectDir: string
   homeDir: string

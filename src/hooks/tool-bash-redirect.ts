@@ -18,13 +18,8 @@ export function createToolBashRedirectHook(): NonNullable<
       [
         "⛔ The `bash` tool is not available. Use `sandbox_exec` instead.",
         "",
-        "Available `sandbox_exec` profiles:",
-        '  • "default"        — No network, writes restricted to project directory. Use for builds, tests, git, file inspection.',
-        '  • "network-allow"  — Allows outbound network. Use for package installs, fetches. Requires user approval.',
-        '  • "readonly"       — No writes, no network. Safest option for pure inspection commands.',
-        "",
         "Example:",
-        '  sandbox_exec({ command: "ls -la", profile: "default" })',
+        '  sandbox_exec({ command: "ls -la" })',
       ].join("\n"),
     )
   }
