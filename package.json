@@ -37,7 +37,7 @@
     "typescript": "^5.0.0"
   },
   "peerDependencies": {
-    "@opencode-ai/sdk": "*"
+    "@opencode-ai/sdk": "1.1.65"
   },
   "repository": {
     "type": "git",

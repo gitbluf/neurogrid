@@ -14,6 +14,7 @@ import {
   createPlatformInfoTool,
   createPlatformCreateAgentTool,
   createPlatformCortexAgentTool,
+  createSandboxExecTool,
 } from "./tools"
 
 const PlatformPlugin: Plugin = async ({ client, directory }) => {
@@ -22,6 +23,7 @@ const PlatformPlugin: Plugin = async ({ client, directory }) => {
   const platformInfo = createPlatformInfoTool(client, directory)
   const platformCreateAgent = createPlatformCreateAgentTool(directory)
   const platformCortexAgent = createPlatformCortexAgentTool(client)
+  const sandboxExec = createSandboxExecTool(directory)
 
   return {
     tool: {
@@ -30,6 +32,7 @@ const PlatformPlugin: Plugin = async ({ client, directory }) => {
       platform_info: platformInfo,
       platform_createAgent: platformCreateAgent,
       platform_cortexAgent: platformCortexAgent,
+      sandbox_exec: sandboxExec,
     },
 
     // Simple config mutation following starter plugin pattern

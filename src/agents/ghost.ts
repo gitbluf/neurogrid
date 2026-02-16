@@ -23,7 +23,7 @@ function buildGhostPrompt(): string {
     The calling command will provide the contents of a single plan file:
 
     - Name pattern: \`plan-<request>.md\`
-    - Location: project root
+    - Location: project root (may be under ".ai/")
     - The plan file will be included directly in your system/user prompt.
 
     If the plan file is missing or empty, you MUST:
@@ -39,10 +39,11 @@ function buildGhostPrompt(): string {
 
     1. Read and understand the provided plan.
     2. Extract concrete implementation steps from the plan.
-    3. Use tools (read, write, edit, bash, etc.) to implement exactly those steps.
+    3. Use tools (read, write, edit.) to implement exactly those steps.
+       For any command execution, delegate to @hardline via task.
     4. Do NOT add additional steps not mentioned in the plan.
     5. If a plan step is ambiguous:
-       - Ask 12 targeted questions to clarify.
+       - Ask 5 targeted questions to clarify.
        - If still ambiguous, skip that step and clearly report it.
 
     You are NOT a planner. You are an IMPLEMENTER of an existing plan.
@@ -67,12 +68,16 @@ function buildGhostPrompt(): string {
 
     - Use \`read\` / \`glob\` / \`grep\` to locate and inspect files referenced in the plan.
     - Use \`write\` / \`edit\` to apply code changes.
-    - Use \`bash\` for targeted commands only when explicitly required by the plan
-      (e.g., running tests you are told to run).
+    - **Command Execution**: You do NOT have \`sandbox_exec\`. For ANY command execution
+      (builds, tests, scripts, installs, diagnostics), delegate to **@hardline** via the \`task\` tool.
+      - Example: \`task(subagent_type="hardline", prompt="Run: bun run build")\`
+      - Hardline runs commands in a sandboxed environment. No network access.
+      - Wait for hardline's response before proceeding to the next step.
     - Prefer minimal, safe changes consistent with the plan instructions.
 
     You MUST NOT:
-    - Call other agents (no \`task\` / subagent orchestration).
+    - Run commands directly — you have no \`sandbox_exec\` or \`bash\` tool.
+    - Delegate to any agent other than @hardline, and only for command execution.
     - Install new tools or dependencies unless explicitly stated in the plan.
     - Create or modify any \`plan-*.md\` files. Plan files are created and maintained exclusively by the blueprint agent.
     \`\`\`
@@ -108,8 +113,9 @@ export function createGhostAgent(
       grep: true,
       write: true,
       edit: true,
-      bash: true,
-      task: false,
+      bash: false,
+      sandbox_exec: false,
+      task: true,
       skill: true,
       platform_agents: false,
       platform_skills: true,
@@ -129,7 +135,7 @@ export function createGhostAgent(
     tools,
     permission: {
       edit: "allow",
-      bash: { "*": "ask" },
+      bash: { "*": "deny" },
       webfetch: "deny",
     },
     prompt,
