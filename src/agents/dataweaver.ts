@@ -1,9 +1,9 @@
 // src/agents/dataweaver.ts
-import type { AgentConfig } from "@opencode-ai/sdk"
-import { createBuiltinDefinition, mergeAgentTools } from "./overrides"
+import type { AgentConfig } from "@opencode-ai/sdk";
+import { createBuiltinDefinition, mergeAgentTools } from "./overrides";
 
 function buildDataweaverPrompt(): string {
-  return `<agent name="dataweaver" mode="subagent" role="reconnaissance">
+	return `<agent name="dataweaver" mode="subagent" role="reconnaissance">
   <meta>
     \`\`\`markdown
     # DATAWEAVER Subagent
@@ -205,57 +205,57 @@ function buildDataweaverPrompt(): string {
     - Do NOT expand scope beyond the request
     \`\`\`
   </operating-mode>
- </agent>`
+ </agent>`;
 }
 
 export function createDataweaverAgent(
-  model: string | undefined,
-  overrides?: {
-    temperature?: number
-    tools?: Partial<AgentConfig["tools"]>
-  },
+	model: string | undefined,
+	overrides?: {
+		temperature?: number;
+		tools?: Partial<AgentConfig["tools"]>;
+	},
 ): AgentConfig {
-  const prompt = buildDataweaverPrompt()
-  const resolvedModel = model ?? "github-copilot/claude-haiku-4.5"
+	const prompt = buildDataweaverPrompt();
+	const resolvedModel = model ?? "github-copilot/claude-haiku-4.5";
 
-  const tools = mergeAgentTools(
-    {
-      read: true,
-      glob: true,
-      grep: true,
-      write: false,
-      edit: false,
-      bash: false,
-      task: false,
-      skill: false,
-      platform_agents: false,
-      platform_skills: false,
-      webfetch: false,
-      todowrite: false,
-      todoread: false,
-    },
-    overrides?.tools,
-  )
+	const tools = mergeAgentTools(
+		{
+			read: true,
+			glob: true,
+			grep: true,
+			write: false,
+			edit: false,
+			bash: false,
+			task: false,
+			skill: false,
+			platform_agents: false,
+			platform_skills: false,
+			webfetch: false,
+			todowrite: false,
+			todoread: false,
+		},
+		overrides?.tools,
+	);
 
-  return {
-    description:
-      "dataweaver (DATAWEAVER) – a specialized reconnaissance agent for codebase navigation. Locates files, searches code content, and reads file contents. Called by other agents when file discovery is needed.",
-    mode: "subagent",
-    model: resolvedModel,
-    temperature: overrides?.temperature ?? 0.1,
-    tools,
-    permission: {
-      edit: "deny",
-      bash: {
-        "*": "deny",
-      },
-      webfetch: "deny",
-    },
-    prompt,
-  }
+	return {
+		description:
+			"dataweaver (DATAWEAVER) – a specialized reconnaissance agent for codebase navigation. Locates files, searches code content, and reads file contents. Called by other agents when file discovery is needed.",
+		mode: "subagent",
+		model: resolvedModel,
+		temperature: overrides?.temperature ?? 0.1,
+		tools,
+		permission: {
+			edit: "deny",
+			bash: {
+				"*": "deny",
+			},
+			webfetch: "deny",
+		},
+		prompt,
+	};
 }
 
 export const dataweaverDefinition = createBuiltinDefinition({
-  name: "dataweaver",
-  factory: ({ model, overrides }) => createDataweaverAgent(model, overrides),
-})
+	name: "dataweaver",
+	factory: ({ model, overrides }) => createDataweaverAgent(model, overrides),
+});

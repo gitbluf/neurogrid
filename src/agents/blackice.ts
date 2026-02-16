@@ -1,9 +1,9 @@
 // src/agents/blackice.ts
-import type { AgentConfig } from "@opencode-ai/sdk"
-import { createBuiltinDefinition, mergeAgentTools } from "./overrides"
+import type { AgentConfig } from "@opencode-ai/sdk";
+import { createBuiltinDefinition, mergeAgentTools } from "./overrides";
 
 function buildBlackicePrompt(): string {
-  return `<agent name="blackice" mode="subagent" role="code-reviewer">
+	return `<agent name="blackice" mode="subagent" role="code-reviewer">
   <meta>
     \`\`\`markdown
     # BLACKICE-7 Subagent
@@ -133,57 +133,57 @@ function buildBlackicePrompt(): string {
       - Any security-related findings or confirmations.
     \`\`\`
   </response-style>
- </agent>`
+ </agent>`;
 }
 
 export function createBlackiceAgent(
-  model: string | undefined,
-  overrides?: {
-    temperature?: number
-    tools?: Partial<AgentConfig["tools"]>
-  },
+	model: string | undefined,
+	overrides?: {
+		temperature?: number;
+		tools?: Partial<AgentConfig["tools"]>;
+	},
 ): AgentConfig {
-  const prompt = buildBlackicePrompt()
+	const prompt = buildBlackicePrompt();
 
-  const tools = mergeAgentTools(
-    {
-      read: true,
-      glob: true,
-      grep: true,
-      platform_agents: false,
-      platform_skills: true,
-      skill: true,
-      write: false,
-      edit: false,
-      bash: false,
-      webfetch: false,
-      task: false,
-      todowrite: false,
-      todoread: false,
-    },
-    overrides?.tools,
-  )
+	const tools = mergeAgentTools(
+		{
+			read: true,
+			glob: true,
+			grep: true,
+			platform_agents: false,
+			platform_skills: true,
+			skill: true,
+			write: false,
+			edit: false,
+			bash: false,
+			webfetch: false,
+			task: false,
+			todowrite: false,
+			todoread: false,
+		},
+		overrides?.tools,
+	);
 
-  return {
-    description:
-      "blackice (BLACKICE-7) – a subagent focused on code review for correctness, maintainability, and performance. Always uses skills first, then provides structured review feedback.",
-    mode: "subagent",
-    model,
-    temperature: overrides?.temperature ?? 0.2,
-    tools,
-    permission: {
-      edit: "deny",
-      bash: {
-        "*": "deny",
-      },
-      webfetch: "deny",
-    },
-    prompt,
-  }
+	return {
+		description:
+			"blackice (BLACKICE-7) – a subagent focused on code review for correctness, maintainability, and performance. Always uses skills first, then provides structured review feedback.",
+		mode: "subagent",
+		model,
+		temperature: overrides?.temperature ?? 0.2,
+		tools,
+		permission: {
+			edit: "deny",
+			bash: {
+				"*": "deny",
+			},
+			webfetch: "deny",
+		},
+		prompt,
+	};
 }
 
 export const blackiceDefinition = createBuiltinDefinition({
-  name: "blackice",
-  factory: ({ model, overrides }) =>
-    createBlackiceAgent(model ?? "github-copilot/claude-haiku-4.5", overrides),
-})
+	name: "blackice",
+	factory: ({ model, overrides }) =>
+		createBlackiceAgent(model ?? "github-copilot/claude-haiku-4.5", overrides),
+});

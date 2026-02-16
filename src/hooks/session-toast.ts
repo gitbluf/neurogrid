@@ -1,32 +1,32 @@
 import type {
-  createOpencodeClient,
-  Event,
-  UserMessage,
-  Part,
-} from "@opencode-ai/sdk"
+	createOpencodeClient,
+	Event,
+	UserMessage,
+	Part,
+} from "@opencode-ai/sdk";
 
 /**
  * Event hook type matching the plugin's Hooks["event"] signature.
  * Kept for backward compatibility.
  */
-export type EventHook = (input: { event: Event }) => Promise<void>
+export type EventHook = (input: { event: Event }) => Promise<void>;
 
 /**
  * Type for the "chat.message" hook that shows an agent-branded toast.
  */
 export type ChatMessageToastHook = (
-  input: {
-    sessionID: string
-    agent?: string
-    model?: { providerID: string; modelID: string }
-    messageID?: string
-    variant?: string
-  },
-  output: {
-    message: UserMessage
-    parts: Part[]
-  },
-) => Promise<void>
+	input: {
+		sessionID: string;
+		agent?: string;
+		model?: { providerID: string; modelID: string };
+		messageID?: string;
+		variant?: string;
+	},
+	output: {
+		message: UserMessage;
+		parts: Part[];
+	},
+) => Promise<void>;
 
 /**
  * Creates an event hook for session creation.
@@ -36,16 +36,16 @@ export type ChatMessageToastHook = (
  * which has access to the agent name.
  */
 export function createSessionToastHook(
-  _client: ReturnType<typeof createOpencodeClient>,
+	_client: ReturnType<typeof createOpencodeClient>,
 ): EventHook {
-  return async ({ event }) => {
-    if (event.type !== "session.created") return
-    // Toast moved to chat.message hook for dynamic agent name support.
-  }
+	return async ({ event }) => {
+		if (event.type !== "session.created") return;
+		// Toast moved to chat.message hook for dynamic agent name support.
+	};
 }
 
 /** Tracks sessions that have already shown the welcome toast. */
-const toastedSessions = new Set<string>()
+const toastedSessions = new Set<string>();
 
 /**
  * Creates a "chat.message" hook that shows a branded toast with the agent name
@@ -55,21 +55,21 @@ const toastedSessions = new Set<string>()
  * Falls back to a generic message when the agent name is unavailable.
  */
 export function createChatMessageToastHook(
-  client: ReturnType<typeof createOpencodeClient>,
+	client: ReturnType<typeof createOpencodeClient>,
 ): ChatMessageToastHook {
-  return async (input, _output) => {
-    if (toastedSessions.has(input.sessionID)) return
-    toastedSessions.add(input.sessionID)
+	return async (input, _output) => {
+		if (toastedSessions.has(input.sessionID)) return;
+		toastedSessions.add(input.sessionID);
 
-    const agentLabel = input.agent?.toUpperCase() ?? "UNKNOWN"
+		const agentLabel = input.agent?.toUpperCase() ?? "UNKNOWN";
 
-    await client.tui.showToast({
-      body: {
-        title: `⚡ KERNEL-92 // ${agentLabel}`,
-        message: `Neural link established. ${agentLabel} online.`,
-        variant: "info",
-        duration: 3000,
-      },
-    })
-  }
+		await client.tui.showToast({
+			body: {
+				title: `⚡ KERNEL-92 // ${agentLabel}`,
+				message: `Neural link established. ${agentLabel} online.`,
+				variant: "info",
+				duration: 3000,
+			},
+		});
+	};
 }

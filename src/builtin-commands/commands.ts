@@ -1,13 +1,13 @@
 // src/builtin-commands/commands.ts
-import type { BuiltinCommand } from "./types"
+import type { BuiltinCommand } from "./types";
 
 const synthCommand: BuiltinCommand = {
-  name: "synth",
-  description:
-    "Execute .ai/plan-<request>.md via @ghost agent. This is the ONLY supported way to invoke @ghost. Does nothing if the plan file does not exist.",
-  agent: "ghost",
-  subtask: true,
-  template: `You are handling a \`/synth\` command in plan-execution mode.
+	name: "synth",
+	description:
+		"Execute .ai/plan-<request>.md via @ghost agent. This is the ONLY supported way to invoke @ghost. Does nothing if the plan file does not exist.",
+	agent: "ghost",
+	subtask: true,
+	template: `You are handling a \`/synth\` command in plan-execution mode.
 
 The user's raw argument is:
 
@@ -62,37 +62,37 @@ When you respond:
 - Reference the files you changed.
 - Do not propose new tasks outside of the plan.
 `,
-}
+};
 
 const plansCommand: BuiltinCommand = {
-  name: "plans",
-  description:
-    "List all plans in .ai/ with their lifecycle status from the session-plan registry.",
-  template: "$ARGUMENTS",
-}
+	name: "plans",
+	description:
+		"List all plans in .ai/ with their lifecycle status from the session-plan registry.",
+	template: "$ARGUMENTS",
+};
 
 const cleanCommand: BuiltinCommand = {
-  name: "clean",
-  description:
-    "Remove all .md files from the .ai/ directory. Useful for clearing generated plans and artifacts.",
-  template: "$ARGUMENTS",
-}
+	name: "clean",
+	description:
+		"Remove all .md files from the .ai/ directory. Useful for clearing generated plans and artifacts.",
+	template: "$ARGUMENTS",
+};
 
 const commitCommand: BuiltinCommand = {
-  name: "commit",
-  description: "Create a git commit with AI-generated message.",
-  model: "github-copilot/claude-haiku-4.5",
-  template: "$ARGUMENTS",
-}
+	name: "commit",
+	description: "Create a git commit with AI-generated message.",
+	model: "github-copilot/claude-haiku-4.5",
+	template: "$ARGUMENTS",
+};
 
 // Agent required: /apply needs ghost for LLM-driven code edits from natural language descriptions.
 const applyCommand: BuiltinCommand = {
-  name: "apply",
-  description:
-    "Quick, precise code edit via @ghost — no plan file needed. Usage: /apply <what to change>",
-  agent: "ghost",
-  subtask: true,
-  template: `You are handling an \`/apply\` command in direct-edit mode.
+	name: "apply",
+	description:
+		"Quick, precise code edit via @ghost — no plan file needed. Usage: /apply <what to change>",
+	agent: "ghost",
+	subtask: true,
+	template: `You are handling an \`/apply\` command in direct-edit mode.
 
 **IMPORTANT:** This is NOT plan-execution mode. There is no plan file.
 You are receiving an inline edit request directly from the user.
@@ -119,8 +119,14 @@ $ARGUMENTS
    - Number of lines added/removed (approximate)
 </implementation_rules>
 `,
-}
+};
 
 export function createBuiltinCommands(): BuiltinCommand[] {
-  return [synthCommand, plansCommand, cleanCommand, commitCommand, applyCommand]
+	return [
+		synthCommand,
+		plansCommand,
+		cleanCommand,
+		commitCommand,
+		applyCommand,
+	];
 }

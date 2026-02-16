@@ -85,40 +85,21 @@ bun run build
 ```
 
 ### Lint
-No lint script is configured in this repo. If lint is added later, update this section.
-Placeholder (future-only example):
 ```bash
-# Future placeholder only
 bun run lint
 ```
 
-### Tests
-No test script is configured in this repo. If tests are added later, update this section.
-Placeholder (future-only examples):
+### Format
 ```bash
-# Future placeholder only
+bun run format
+```
+
+### Tests
+```bash
 bun test
-# Single-test placeholder (future-only; framework-dependent) examples
 bun test path/to/test
 bun test -t "test name"
 ```
-
-## Common Commands
-
-### Sync Agents
-After creating a new agent using `opencode create agent`, run:
-```bash
-./scripts/sync-agents
-```
-This moves all `.md` files from `.opencode/agent/` to `llm/agent/`.
-Note: `scripts/` is currently missing from this repository; either add these scripts or update the workflow to point at the correct locations.
-
-### Release Artifacts
-To validate and extract version from oc-v* tags:
-```bash
-./scripts/llm-release oc-v0.1.0-rc.0
-```
-Outputs the version (e.g., `v0.1.0-rc.0`). Used by GitHub Actions for OCI artifact creation.
 
 ## Code Style Guidelines
 

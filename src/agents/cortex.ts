@@ -1,77 +1,78 @@
 // src/agents/cortex.ts
-import type { AgentConfig } from "@opencode-ai/sdk"
-import type { AvailableAgent } from "./types"
-import { mergeAgentTools } from "./overrides"
-import { createBuiltinDefinition } from "./overrides"
+import type { AgentConfig } from "@opencode-ai/sdk";
+import type { AvailableAgent } from "./types";
+import { mergeAgentTools } from "./overrides";
+import { createBuiltinDefinition } from "./overrides";
 
-export type CortexAvailableAgent = AvailableAgent
+export type CortexAvailableAgent = AvailableAgent;
 
 /* -------------------------------------------------------------------------- */
 /* cortex prompt helpers                                                      */
 /* -------------------------------------------------------------------------- */
 
 function buildCortexAvailableAgentsSection(
-  availableAgents: AvailableAgent[],
+	availableAgents: AvailableAgent[],
 ): string {
-  if (!availableAgents.length) {
-    return `## Available Agents
+	if (!availableAgents.length) {
+		return `## Available Agents
         Use built-in agents: @blueprint, @blackice, @dataweaver, and @ghost (via /synth or /apply only).
-`
-  }
+`;
+	}
 
-  const lines: string[] = []
+	const lines: string[] = [];
 
-  lines.push("## Available Agents")
-  lines.push(
-    "Use this section to decide which subagent(s) to delegate to based on their description and mode.\n",
-  )
-  lines.push("| Agent | Mode | When to use |")
-  lines.push("|-------|------|-------------|")
+	lines.push("## Available Agents");
+	lines.push(
+		"Use this section to decide which subagent(s) to delegate to based on their description and mode.\n",
+	);
+	lines.push("| Agent | Mode | When to use |");
+	lines.push("|-------|------|-------------|");
 
-  for (const agent of availableAgents) {
-    const firstSentence =
-      agent.description.split(".")[0] || agent.description
-    lines.push(
-      `| @${agent.name} | ${agent.mode ?? "all"} | ${firstSentence} |`,
-    )
-  }
+	for (const agent of availableAgents) {
+		const firstSentence = agent.description.split(".")[0] || agent.description;
+		lines.push(
+			`| @${agent.name} | ${agent.mode ?? "all"} | ${firstSentence} |`,
+		);
+	}
 
-  lines.push(
-    "Prefer delegating to a specialized agent when its description clearly matches the user's request.\n",
-  )
+	lines.push(
+		"Prefer delegating to a specialized agent when its description clearly matches the user's request.\n",
+	);
 
-  return lines.join("\n")
+	return lines.join("\n");
 }
 
 function buildCortexSkillsSection(
-  skills: import("../skills/discovery").SkillInfo[],
+	skills: import("../skills/discovery").SkillInfo[],
 ): string {
-  if (!skills.length) {
-    return ""
-  }
+	if (!skills.length) {
+		return "";
+	}
 
-  const lines: string[] = []
-  lines.push("## Available Skills")
-  lines.push("Use these skills via the native `skill` tool before manual work when they match the user's request.\n")
-  lines.push("| Skill | Description | Location |")
-  lines.push("|--------|-------------|----------|")
+	const lines: string[] = [];
+	lines.push("## Available Skills");
+	lines.push(
+		"Use these skills via the native `skill` tool before manual work when they match the user's request.\n",
+	);
+	lines.push("| Skill | Description | Location |");
+	lines.push("|--------|-------------|----------|");
 
-  for (const skill of skills) {
-    const desc = skill.description ?? "(no description)"
-    lines.push(`| ${skill.name} | ${desc} | ${skill.location} |`)
-  }
+	for (const skill of skills) {
+		const desc = skill.description ?? "(no description)";
+		lines.push(`| ${skill.name} | ${desc} | ${skill.location} |`);
+	}
 
-  return lines.join("\n")
+	return lines.join("\n");
 }
 
 function buildCortexOrchestratorPrompt(
-  availableAgents: AvailableAgent[],
-  skills: import("../skills/discovery").SkillInfo[],
+	availableAgents: AvailableAgent[],
+	skills: import("../skills/discovery").SkillInfo[],
 ): string {
-  const agentsSection = buildCortexAvailableAgentsSection(availableAgents)
-  const skillsSection = buildCortexSkillsSection(skills)
+	const agentsSection = buildCortexAvailableAgentsSection(availableAgents);
+	const skillsSection = buildCortexSkillsSection(skills);
 
-  return `# KERNEL-92//CORTEX Orchestrator
+	return `# KERNEL-92//CORTEX Orchestrator
 <role>
 You are **cortex** (KERNEL-92//CORTEX), the central dispatch system. Your sole purpose is to analyze user requests and route them to the most appropriate specialized agent(s).
 
@@ -404,7 +405,7 @@ I need more information to help you:
 
 If specific file path is already known. Pass it.
 \`\`\`
-`
+`;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -412,52 +413,52 @@ If specific file path is already known. Pass it.
 /* -------------------------------------------------------------------------- */
 
 export function createCortexOrchestratorAgent(
-  model: string = "github-copilot/claude-opus-4.6",
-  availableAgents: AvailableAgent[] = [],
-  skills: import("../skills/discovery").SkillInfo[] = [],
-  overrides?: {
-    temperature?: number
-    tools?: Partial<AgentConfig["tools"]>
-  },
+	model: string = "github-copilot/claude-opus-4.6",
+	availableAgents: AvailableAgent[] = [],
+	skills: import("../skills/discovery").SkillInfo[] = [],
+	overrides?: {
+		temperature?: number;
+		tools?: Partial<AgentConfig["tools"]>;
+	},
 ): AgentConfig {
-  const prompt = buildCortexOrchestratorPrompt(availableAgents, skills)
+	const prompt = buildCortexOrchestratorPrompt(availableAgents, skills);
 
-  const tools = mergeAgentTools(
-    {
-      platform_agents: true,
-      platform_skills: true,
-      read: true,
-      glob: true,
-      grep: true,
-      task: true,
-      skill: true,
-      write: false,
-      edit: false,
-      bash: false,
-      webfetch: false,
-      todowrite: true,
-      todoread: true,
-    },
-    overrides?.tools,
-  )
+	const tools = mergeAgentTools(
+		{
+			platform_agents: true,
+			platform_skills: true,
+			read: true,
+			glob: true,
+			grep: true,
+			task: true,
+			skill: true,
+			write: false,
+			edit: false,
+			bash: false,
+			webfetch: false,
+			todowrite: true,
+			todoread: true,
+		},
+		overrides?.tools,
+	);
 
-  return {
-    description:
-      "cortex (KERNEL-92//CORTEX) – a built-in primary orchestrator agent that analyzes user requests and routes them to the most appropriate specialized agent(s). It never executes tasks itself and always delegates to subagents.",
-    mode: "primary",
-    model,
-    temperature: overrides?.temperature ?? 0.1,
-    color: "#FF5733",
-    tools,
-    permission: {
-      edit: "deny",
-      bash: {
-        "*": "deny",
-      },
-      webfetch: "deny",
-    },
-    prompt,
-  }
+	return {
+		description:
+			"cortex (KERNEL-92//CORTEX) – a built-in primary orchestrator agent that analyzes user requests and routes them to the most appropriate specialized agent(s). It never executes tasks itself and always delegates to subagents.",
+		mode: "primary",
+		model,
+		temperature: overrides?.temperature ?? 0.1,
+		color: "#FF5733",
+		tools,
+		permission: {
+			edit: "deny",
+			bash: {
+				"*": "deny",
+			},
+			webfetch: "deny",
+		},
+		prompt,
+	};
 }
 
 /* -------------------------------------------------------------------------- */
@@ -465,14 +466,14 @@ export function createCortexOrchestratorAgent(
 /* -------------------------------------------------------------------------- */
 
 export const cortexDefinition = createBuiltinDefinition({
-  name: "cortex",
-  needsAvailableAgents: "excludeSelf",
-  needsSkills: true,
-  factory: ({ model, availableAgents, skills, overrides }) =>
-    createCortexOrchestratorAgent(
-      model ?? "github-copilot/claude-opus-4.6",
-      availableAgents,
-      skills,
-      overrides,
-    ),
-})
+	name: "cortex",
+	needsAvailableAgents: "excludeSelf",
+	needsSkills: true,
+	factory: ({ model, availableAgents, skills, overrides }) =>
+		createCortexOrchestratorAgent(
+			model ?? "github-copilot/claude-opus-4.6",
+			availableAgents,
+			skills,
+			overrides,
+		),
+});

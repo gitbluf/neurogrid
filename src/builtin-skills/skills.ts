@@ -1,11 +1,11 @@
 // src/builtin-skills/skills.ts
-import type { BuiltinSkill } from "./types"
+import type { BuiltinSkill } from "./types";
 
 const complexityAnalyzerSkill: BuiltinSkill = {
-  name: "complexity-analyzer",
-  description:
-    "Analyze time and space complexity (Big-O) of code and suggest more efficient alternatives.",
-  template: `# Complexity Analyzer Skill
+	name: "complexity-analyzer",
+	description:
+		"Analyze time and space complexity (Big-O) of code and suggest more efficient alternatives.",
+	template: `# Complexity Analyzer Skill
 
 You are a specialist in algorithmic complexity and performance.
 Your primary responsibilities are:
@@ -45,13 +45,13 @@ Respond with a concise, structured review:
   - Recommended algorithm/data structure changes.
   - Notes on tradeoffs (readability, implementation complexity).
 `,
-}
+};
 
 const securityAuditSkill: BuiltinSkill = {
-  name: "security-audit",
-  description:
-    "Review code for security issues: input validation, injection risks, authz/authn, secret handling, and error reporting.",
-  template: `# Security Audit Skill
+	name: "security-audit",
+	description:
+		"Review code for security issues: input validation, injection risks, authz/authn, secret handling, and error reporting.",
+	template: `# Security Audit Skill
 
 You are a security-focused reviewer.
 Your primary responsibilities are:
@@ -101,13 +101,13 @@ Respond with a structured report:
 - **Positive Notes** (optional):
   - Mention any good security practices present in the code.
 `,
-}
+};
 
 const gitCommitSkill: BuiltinSkill = {
-  name: "git-commit-flow",
-  description:
-    "Guide for staging, splitting, and creating high-quality git commits with explicit bash commands.",
-  template: `# Git Commit Flow Skill
+	name: "git-commit-flow",
+	description:
+		"Guide for staging, splitting, and creating high-quality git commits with explicit bash commands.",
+	template: `# Git Commit Flow Skill
 
 You are a git commit coach. Your job is to help the user:
 - Stage changes correctly.
@@ -279,8 +279,8 @@ When using this skill, respond with:
 - A list of shell commands in the order they should be run.
 - Notes about any risky operations (amend, rebase, force-push).
 `,
-}
+};
 
 export function createBuiltinSkills(): BuiltinSkill[] {
-  return [complexityAnalyzerSkill, securityAuditSkill, gitCommitSkill]
+	return [complexityAnalyzerSkill, securityAuditSkill, gitCommitSkill];
 }
