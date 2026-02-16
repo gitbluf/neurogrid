@@ -22,6 +22,16 @@ Install in your OpenCode config and start using agents right away.
 
 That’s it—OpenCode will load the plugin on next run.
 
+## 🚧 Planned Features
+
+These features are under active development and not yet available.
+
+| Feature | Status | Description |
+| --- | --- | --- |
+| **Sandboxing** | 🔜 | Running each agent task in a sandboxed/controlled environment for isolation and safety. |
+| **Automatic Git Worktrees** | 🔜 | Creating isolated git worktrees per ghost implementation task, so each `/synth`/`/apply` execution works on its own branch without conflicts. |
+| **Dispatch Mechanism** | 🔜 | Plan and implement multiple plans with a single command. Depends on git worktrees and sandboxing features. |
+
 ## ⚙️ Model Configuration
 
 All agents inherit the system-wide model by default, and you can override the model (and other allowed settings) per agent.
