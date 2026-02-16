@@ -15,7 +15,7 @@ const ENV_DENY_PATTERNS = [
   ".env.*.local",
 ]
 
-const ALLOWED_BASE_ENV_VARS = [
+export const ALLOWED_BASE_ENV_VARS = [
   "PATH",
   "HOME",
   "USER",

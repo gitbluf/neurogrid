@@ -1,10 +1,10 @@
 import { tool } from "@opencode-ai/plugin"
 import { realpathSync } from "node:fs"
 import * as path from "node:path"
-import { detectBackend } from "./sandbox-detect"
-import { executeSandboxed } from "./sandbox-backends"
-import type { SandboxBackend } from "./sandbox-detect"
-import type { SecurityProfile } from "./sandbox-profiles"
+import { detectBackend } from "./detect"
+import { executeSandboxed } from "./backends"
+import type { SandboxBackend } from "./detect"
+import type { SecurityProfile } from "./profiles"
 
 type SandboxResult = {
   exitCode: number | null
