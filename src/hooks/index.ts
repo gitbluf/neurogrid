@@ -6,6 +6,7 @@ import { createCommandSynthHook } from "./command-synth"
 import { createCommandApplyHook } from "./command-apply"
 import { createSessionToastHook, createChatMessageToastHook } from "./session-toast"
 import { createToolPlanRegisterHook } from "./tool-plan-register"
+import { createToolBashRedirectHook } from "./tool-bash-redirect"
 
 /**
  * Compose all "command.execute.before" handlers into a single dispatcher.
@@ -32,7 +33,16 @@ export function createCommandExecuteBeforeHook(
 }
 
 export function createToolExecuteBeforeHook(directory: string) {
-  return createToolPlanRegisterHook(directory)
+  const planRegisterHook = createToolPlanRegisterHook(directory)
+  const bashRedirectHook = createToolBashRedirectHook()
+
+  return async (
+    input: { tool: string; sessionID: string; callID: string },
+    output: { args: unknown },
+  ) => {
+    await bashRedirectHook(input, output)
+    await planRegisterHook(input, output)
+  }
 }
 
 export type { CommandExecuteBeforeHook } from "./types"

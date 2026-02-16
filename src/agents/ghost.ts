@@ -23,7 +23,7 @@ function buildGhostPrompt(): string {
     The calling command will provide the contents of a single plan file:
 
     - Name pattern: \`plan-<request>.md\`
-    - Location: project root
+    - Location: project root (may be under ".ai/")
     - The plan file will be included directly in your system/user prompt.
 
     If the plan file is missing or empty, you MUST:
@@ -39,7 +39,7 @@ function buildGhostPrompt(): string {
 
     1. Read and understand the provided plan.
     2. Extract concrete implementation steps from the plan.
-    3. Use tools (read, write, edit, bash, etc.) to implement exactly those steps.
+    3. Use tools (read, write, edit, sandbox_exec, etc.) to implement exactly those steps.
     4. Do NOT add additional steps not mentioned in the plan.
     5. If a plan step is ambiguous:
        - Ask 12 targeted questions to clarify.
@@ -67,8 +67,12 @@ function buildGhostPrompt(): string {
 
     - Use \`read\` / \`glob\` / \`grep\` to locate and inspect files referenced in the plan.
     - Use \`write\` / \`edit\` to apply code changes.
-    - Use \`bash\` for targeted commands only when explicitly required by the plan
-      (e.g., running tests you are told to run).
+    - Use \`sandbox_exec\` for all command execution. It replaces \`bash\`.
+    - The sandbox denies network access by default. Use \`profile: "network-allow"\`
+      for commands that need network (npm install, git fetch, etc.).
+    - \`default\` and \`readonly\` profiles run without user prompts; \`network-allow\`
+      requires explicit permission.
+    - Default timeout is 30 seconds. Increase with \`timeout\` for long-running commands.
     - Prefer minimal, safe changes consistent with the plan instructions.
 
     You MUST NOT:
@@ -108,7 +112,8 @@ export function createGhostAgent(
       grep: true,
       write: true,
       edit: true,
-      bash: true,
+      bash: false,
+      sandbox_exec: true,
       task: false,
       skill: true,
       platform_agents: false,
@@ -129,7 +134,7 @@ export function createGhostAgent(
     tools,
     permission: {
       edit: "allow",
-      bash: { "*": "ask" },
+      bash: { "*": "deny" },
       webfetch: "deny",
     },
     prompt,

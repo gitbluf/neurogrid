@@ -114,8 +114,6 @@ _Source: `packages/plugin/src/index.ts` - PluginInput type definition and `packa
 - `installation.updated` - Installation updated
 - `ide.installed` - IDE extension installed
 
-Sources: `packages/sdk/go/event.go`
-
 ## Plugin Hooks
 
 Plugins can implement various hooks to integrate with Opencode:

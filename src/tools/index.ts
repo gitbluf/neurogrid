@@ -5,6 +5,7 @@ import * as fs from "node:fs/promises"
 import type { CortexAvailableAgent } from "../agents"
 import { createCortexOrchestratorAgent } from "../agents"
 import { discoverSkills, type SkillInfo } from "../skills/discovery"
+import { createSandboxExecTool } from "./sandbox"
  
 type AgentInfo = {
   id: string
@@ -272,3 +273,5 @@ export function createPlatformCortexAgentTool(client: any) {
     },
   })
 }
+
+export { createSandboxExecTool }

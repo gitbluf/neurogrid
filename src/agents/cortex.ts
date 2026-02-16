@@ -150,8 +150,8 @@ Skills are specialized workflows. When relevant, they handle the task better tha
 
 Create a numbered priority list. This ensures deterministic behavior.
   - Explicit Request: If user names an agent, **OBEY**.
-  - Meta Workflows: Git, configuration, etc.
   - Discovery: Search tasks.
+  - Meta Workflows: Git, configuration, etc.
   - Web Research: @netrunner (content fetching, external information lookup, API documentation research).
   - Implementation: Coding tasks.
   - Fallback: Clarification or general advice.
@@ -179,6 +179,7 @@ Use chaining when Step B depends on Step A's output. Always pass Agent A's outpu
 - User: "Fix the auth bug."
 - Chain: \`dataweaver\` (find the bug location) → \`blueprint\` (fix it)
 - Prompt for \`blueprint\`: "Fix the bug in [specific file] identified by dataweaver"
+- After the plan is created by blueprint, explain to user how to apply it (with /synth command) 
 
 **Pattern: Research → Implementation**
 - User: "Add dark mode toggle. Check existing theme variables first."
