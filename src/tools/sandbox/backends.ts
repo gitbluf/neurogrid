@@ -61,7 +61,7 @@ async function executeSandboxExec(
     homeDir: process.env.HOME ?? opts.projectDir,
   })
 
-  const args = ["-p", profileText, "/bin/sh", "-c", opts.command]
+  const args = ["-p", profileText, "/usr/bin/env", "bash", "-c", opts.command]
 
   return runCommand({
     command: "sandbox-exec",
