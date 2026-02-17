@@ -76,30 +76,44 @@ src
 | `src/skills/` | `src/skills/AGENTS.md` | Adding a disk-based skill or extending discovery |
 | `src/tools/` | `src/tools/AGENTS.md` | Adding a new platform tool |
 
-## Build / Lint / Test
+## Mandatory Checks
+
+**Every code change MUST pass all three checks before it can be committed or submitted for review. No exceptions.**
+
+Run all checks in this order after every change:
+
+```bash
+bun run lint     # Must pass with 0 warnings and 0 errors
+bun run build    # Must compile with no new errors
+bun test         # Must pass with 0 failures
+```
+
+If any check fails, fix the issue before proceeding. Do not commit, push, or submit a PR with failing checks.
 
 ### Build
 ```bash
-bun install
-bun run build
+bun install        # Install/update dependencies
+bun run build      # Compile TypeScript (tsc)
 ```
 
 ### Lint
 ```bash
-bun run lint
+bun run lint       # Run Biome linter — 0 warnings, 0 errors required
 ```
 
 ### Format
 ```bash
-bun run format
+bun run format     # Auto-format with Biome (--write)
 ```
 
 ### Tests
 ```bash
-bun test
-bun test path/to/test
-bun test -t "test name"
+bun test                  # Run full test suite
+bun test path/to/test     # Run a specific test file
+bun test -t "test name"   # Run a specific test by name
 ```
+
+Tests live in `__tests__/` directories adjacent to the source modules they cover. When adding or modifying source code, add or update the corresponding tests.
 
 ## Code Style Guidelines
 
@@ -134,3 +148,4 @@ Focus on WHY from end-user perspective, not WHAT. Be specific about user-facing 
 - Use imperative mood for commit messages
 - Minimize unnecessary comments in code
 - Maintain consistent formatting within file types
+

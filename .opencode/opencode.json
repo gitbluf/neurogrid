@@ -4,8 +4,6 @@
 	"agent": {
 		"plan": { "disable": true },
 		"build": { "disable": true },
-		"explore": { "disable": true },
-		"software-engineer": { "disable": true },
-		"commander": { "disable": true }
+		"explore": { "disable": true }
 	}
 }

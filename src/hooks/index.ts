@@ -4,10 +4,6 @@ import { createCommandCleanHook } from "./command-clean";
 import { createCommandPlansHook } from "./command-plans";
 import { createCommandSynthHook } from "./command-synth";
 import { createCommandApplyHook } from "./command-apply";
-import {
-	createSessionToastHook,
-	createChatMessageToastHook,
-} from "./session-toast";
 import { createToolPlanRegisterHook } from "./tool-plan-register";
 import { createToolBashRedirectHook } from "./tool-bash-redirect";
 

@@ -2,10 +2,13 @@
 import { tool } from "@opencode-ai/plugin";
 import * as path from "node:path";
 import * as fs from "node:fs/promises";
+import type { createOpencodeClient } from "@opencode-ai/sdk";
 import type { CortexAvailableAgent } from "../agents";
 import { createCortexOrchestratorAgent } from "../agents";
-import { discoverSkills, type SkillInfo } from "../skills/discovery";
+import { discoverSkills } from "../skills/discovery";
 import { createSandboxExecTool } from "./sandbox";
+
+type OpencodeClient = ReturnType<typeof createOpencodeClient>;
 
 type AgentInfo = {
 	id: string;
@@ -48,13 +51,13 @@ function renderAgentFrontmatter(args: {
 	return lines.join("\n");
 }
 
-export function createPlatformAgentsTool(client: any) {
+export function createPlatformAgentsTool(client: OpencodeClient) {
 	return tool({
 		description: "List all available opencode agents for this project",
 		args: {},
 		async execute() {
 			const result = await client.app.agents();
-			const agentsRaw = (result as any).data ?? result;
+			const agentsRaw = (result as { data?: unknown }).data ?? result;
 
 			if (!Array.isArray(agentsRaw)) {
 				return JSON.stringify(
@@ -67,12 +70,14 @@ export function createPlatformAgentsTool(client: any) {
 				);
 			}
 
-			const agents: AgentInfo[] = agentsRaw.map((agent: any) => ({
-				id: agent.id ?? agent.name ?? "",
-				name: agent.name,
-				description: agent.description,
-				mode: agent.mode,
-			}));
+			const agents: AgentInfo[] = agentsRaw.map(
+				(agent: Record<string, unknown>) => ({
+					id: (agent.id as string) ?? (agent.name as string) ?? "",
+					name: agent.name as string | undefined,
+					description: agent.description as string | undefined,
+					mode: agent.mode as string | undefined,
+				}),
+			);
 
 			return JSON.stringify({ agents }, null, 2);
 		},
@@ -103,14 +108,18 @@ export function createPlatformSkillsTool(directory: string) {
 	});
 }
 
-export function createPlatformInfoTool(client: any, directory: string) {
+export function createPlatformInfoTool(
+	client: OpencodeClient,
+	directory: string,
+) {
 	return tool({
 		description:
 			"Summarize the opencode platform setup: agents, skills, and where to define them",
 		args: {},
 		async execute() {
 			const agentsResult = await client.app.agents();
-			const agentsRaw = (agentsResult as any).data ?? agentsResult;
+			const agentsRaw =
+				(agentsResult as { data?: unknown }).data ?? agentsResult;
 			const agentCount = Array.isArray(agentsRaw) ? agentsRaw.length : 0;
 
 			const skills = await discoverSkills(directory);
@@ -202,7 +211,7 @@ export function createPlatformCreateAgentTool(directory: string) {
 
 			const body =
 				args.prompt && args.prompt.trim().length > 0
-					? args.prompt.trim() + "\n"
+					? `${args.prompt.trim()}\n`
 					: `You are the \`${args.name}\` agent.
 
 Follow your description and mode:
@@ -231,7 +240,7 @@ Ask for clarification when requirements are ambiguous.
 	});
 }
 
-export function createPlatformCortexAgentTool(client: any) {
+export function createPlatformCortexAgentTool(client: OpencodeClient) {
 	return tool({
 		description:
 			"Get the cortex orchestrator agent configuration with dynamically discovered available agents",
@@ -243,13 +252,13 @@ export function createPlatformCortexAgentTool(client: any) {
 		},
 		async execute(args) {
 			const result = await client.app.agents();
-			const agentsRaw = (result as any).data ?? result;
+			const agentsRaw = (result as { data?: unknown }).data ?? result;
 
 			const availableAgents: CortexAvailableAgent[] = Array.isArray(agentsRaw)
-				? agentsRaw.map((agent: any) => ({
-						name: agent.name ?? agent.id ?? "",
-						description: agent.description ?? "",
-						mode: agent.mode,
+				? agentsRaw.map((agent: Record<string, unknown>) => ({
+						name: (agent.name as string) ?? (agent.id as string) ?? "",
+						description: (agent.description as string) ?? "",
+						mode: agent.mode as string | undefined,
 					}))
 				: [];
 
