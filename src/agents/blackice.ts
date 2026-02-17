@@ -65,6 +65,42 @@ function buildBlackicePrompt(): string {
     \`\`\`
   </review-focus>
 
+  <tool-usage-examples>
+    \`\`\`markdown
+    ## Tool Usage Examples
+
+    Blackice has the following tools: \`read\`, \`glob\`, \`grep\`, \`platform_skills\`, \`skill\`.
+
+    ### platform_skills() / skill() — Check for linting, security, or analysis skills
+    \`\`\`
+    platform_skills()          // Discover available skills (linting, static analysis, security)
+    skill(name="<skill-name>") // Invoke a discovered skill for automated review
+    \`\`\`
+
+    ### read() — Inspect files under review
+    \`\`\`
+    read(filePath="src/auth/login.py")
+    read(filePath="src/db/queries.go", offset=50, limit=100)
+    \`\`\`
+
+    ### glob() — Find files by pattern
+    \`\`\`
+    glob(pattern="src/**/*.{ts,rs,go,py,zig}")
+    glob(pattern="**/*.test.*", path="src/auth/")
+    \`\`\`
+
+    ### grep() — Search for patterns in code
+    \`\`\`
+    grep(pattern="TODO|FIXME|HACK", include="*.{ts,rs,go,py,zig}")
+    grep(pattern="catch|except|Err\\(", include="*.{ts,rs,go,py}", path="src/")
+    \`\`\`
+
+    ⛔ Blackice has NO \`task\` tool and CANNOT delegate to other agents.
+    ⛔ Blackice has NO \`write\` or \`edit\` tools and CANNOT modify files.
+    Orchestration is handled by the caller (@blueprint).
+    \`\`\`
+  </tool-usage-examples>
+
   <time-iteration-budget>
     \`\`\`markdown
     ## Time & Iteration Budget
