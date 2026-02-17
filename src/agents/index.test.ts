@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import { builtinAgentDefinitions, registerBuiltinAgents } from "../index";
+import { builtinAgentDefinitions, registerBuiltinAgents } from "./index";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";

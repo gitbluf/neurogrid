@@ -3,7 +3,7 @@ import {
 	resolveBuiltinAgentOverrides,
 	mergeAgentTools,
 	createBuiltinDefinition,
-} from "../overrides";
+} from "./overrides";
 import type { AgentConfig } from "@opencode-ai/sdk";
 
 describe("resolveBuiltinAgentOverrides", () => {

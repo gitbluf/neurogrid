@@ -1,5 +1,5 @@
 import { describe, it, expect } from "bun:test";
-import { createBuiltinSkills } from "../skills";
+import { createBuiltinSkills } from "./skills";
 
 describe("createBuiltinSkills", () => {
 	it("returns the expected number of skills", () => {

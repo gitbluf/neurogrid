@@ -113,7 +113,7 @@ bun test path/to/test     # Run a specific test file
 bun test -t "test name"   # Run a specific test by name
 ```
 
-Tests live in `__tests__/` directories adjacent to the source modules they cover. When adding or modifying source code, add or update the corresponding tests.
+Tests are colocated with source files using the naming convention `<module>.test.ts` (e.g., `session-plans.ts` → `session-plans.test.ts`). When adding or modifying source code, add or update the corresponding test file in the same directory.
 
 ## Code Style Guidelines
 

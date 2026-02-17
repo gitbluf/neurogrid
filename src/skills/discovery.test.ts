@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { mkdtemp, rm, mkdir, writeFile, symlink } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { discoverSkills } from "../discovery";
+import { discoverSkills } from "./discovery";
 
 describe("discoverSkills", () => {
 	let dir: string;

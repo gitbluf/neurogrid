@@ -5,7 +5,7 @@ import {
 	buildSandboxExecProfile,
 	buildBwrapArgs,
 	ALLOWED_BASE_ENV_VARS,
-} from "../profiles";
+} from "./profiles";
 
 describe("resolveProfile", () => {
 	let savedProfile: string | undefined;

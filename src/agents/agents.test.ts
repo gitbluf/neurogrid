@@ -1,10 +1,10 @@
 import { describe, it, expect } from "bun:test";
-import { createCortexOrchestratorAgent } from "../cortex";
-import { createBlueprintAgent } from "../blueprint";
-import { createBlackiceAgent } from "../blackice";
-import { createGhostAgent } from "../ghost";
-import { createDataweaverAgent } from "../dataweaver";
-import { createHardlineAgent } from "../hardline";
+import { createCortexOrchestratorAgent } from "./cortex";
+import { createBlueprintAgent } from "./blueprint";
+import { createBlackiceAgent } from "./blackice";
+import { createGhostAgent } from "./ghost";
+import { createDataweaverAgent } from "./dataweaver";
+import { createHardlineAgent } from "./hardline";
 
 describe("createCortexOrchestratorAgent", () => {
 	it("returns valid AgentConfig", () => {

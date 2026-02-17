@@ -2,8 +2,8 @@ import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { mkdtemp, rm, readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { createToolPlanRegisterHook } from "../tool-plan-register";
-import { createToolBashRedirectHook } from "../tool-bash-redirect";
+import { createToolPlanRegisterHook } from "./tool-plan-register";
+import { createToolBashRedirectHook } from "./tool-bash-redirect";
 
 describe("createToolPlanRegisterHook", () => {
 	let dir: string;

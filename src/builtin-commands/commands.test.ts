@@ -1,5 +1,5 @@
 import { describe, it, expect } from "bun:test";
-import { createBuiltinCommands } from "../commands";
+import { createBuiltinCommands } from "./commands";
 
 describe("createBuiltinCommands", () => {
 	it("returns the expected number of commands", () => {

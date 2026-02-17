@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { mkdtemp, rm, mkdir, writeFile, readdir } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { createCommandCleanHook } from "../command-clean";
+import { createCommandCleanHook } from "./command-clean";
 import type { Part } from "@opencode-ai/sdk";
 
 describe("createCommandCleanHook", () => {

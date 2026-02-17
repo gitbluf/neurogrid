@@ -1,5 +1,5 @@
 import { describe, it, expect } from "bun:test";
-import { createCommandApplyHook } from "../command-apply";
+import { createCommandApplyHook } from "./command-apply";
 import type { Part } from "@opencode-ai/sdk";
 
 describe("createCommandApplyHook", () => {

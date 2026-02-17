@@ -1,5 +1,5 @@
 import { describe, it, expect } from "bun:test";
-import { registerBuiltinCommands } from "../register";
+import { registerBuiltinCommands } from "./register";
 
 describe("registerBuiltinCommands", () => {
 	it("registers all builtin commands into empty config", async () => {

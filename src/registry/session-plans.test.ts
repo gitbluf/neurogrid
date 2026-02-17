@@ -10,7 +10,7 @@ import {
 	updatePlanStatus,
 	listPlans,
 	findClosestPlan,
-} from "../session-plans";
+} from "./session-plans";
 
 describe("session-plans registry", () => {
 	let dir: string;
