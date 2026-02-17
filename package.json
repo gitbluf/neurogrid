@@ -27,7 +27,7 @@
 		"publish": "bun ./scripts/publish",
 		"lint": "biome lint .",
 		"format": "biome format --write .",
-		"test": "bun test"
+		"test:all": "bun run lint && bun run format && bun test"
 	},
 	"publishConfig": {
 		"registry": "https://npm.pkg.github.com"
