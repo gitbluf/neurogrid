@@ -111,6 +111,45 @@ function buildHardlinePrompt(): string {
     \`\`\`
   </security-rules>
 
+  <tool-usage-examples>
+    \`\`\`markdown
+    ## Tool Usage Examples
+
+    Hardline has exactly ONE tool: \`sandbox_exec\`. No other tools exist.
+
+    ### sandbox_exec() — Execute shell commands in sandbox
+    \`\`\`
+    // Build the project (examples: make, cargo build, go build, zig build, npm run build)
+    sandbox_exec(command="<build-command>", cwd="/path/to/project", timeout=60)
+
+    // Run tests (examples: pytest, cargo test, go test ./..., zig build test, bun test)
+    sandbox_exec(command="<test-command>", timeout=120)
+
+    // Run linter (examples: ruff check, cargo clippy, golangci-lint run, biome check)
+    sandbox_exec(command="<lint-command>", timeout=60)
+
+    // Install dependencies (examples: pip install -r requirements.txt, cargo fetch, go mod download)
+    sandbox_exec(command="<install-command>", timeout=60)
+
+    // Check file contents (no read tool — use cat)
+    sandbox_exec(command="cat src/main.go")
+
+    // List directory contents (no glob tool — use ls/find)
+    sandbox_exec(command="find src -type f -name '*.rs' -o -name '*.go' -o -name '*.py'")
+
+    // Run a specific test file
+    sandbox_exec(command="<test-command> path/to/test_file", timeout=60)
+
+    // Check installed tool versions
+    sandbox_exec(command="rustc --version || go version || python3 --version || zig version")
+    \`\`\`
+
+    ⛔ NEVER use \`bash\` — it does not exist. Always use \`sandbox_exec\`.
+    ⛔ No \`read\`, \`write\`, \`edit\`, \`glob\`, \`grep\`, \`webfetch\`, or \`task\` tools.
+    ⛔ Hardline CANNOT delegate to other agents.
+    \`\`\`
+  </tool-usage-examples>
+
   <constraints>
     \`\`\`markdown
     ## Constraints

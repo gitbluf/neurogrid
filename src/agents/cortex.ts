@@ -1,8 +1,7 @@
 // src/agents/cortex.ts
 import type { AgentConfig } from "@opencode-ai/sdk";
+import { createBuiltinDefinition, mergeAgentTools } from "./overrides";
 import type { AvailableAgent } from "./types";
-import { mergeAgentTools } from "./overrides";
-import { createBuiltinDefinition } from "./overrides";
 
 export type CortexAvailableAgent = AvailableAgent;
 
@@ -139,7 +138,7 @@ Skills are specialized workflows. When relevant, they handle the task better tha
 
 **If a user asks to implement a plan:**
 - Tell them to run \`/synth <request>\`
-- Do NOT call \`task(subagent_type="ghost", ...)\`
+- Do NOT call \`task(category="ghost", ...)\` or any variant targeting ghost
 - Do NOT attempt to work around this by any other means
 
 **If a user asks for a quick, small code edit:**
@@ -305,7 +304,7 @@ Use this standard format for all routing responses.
 
 ### Delegation
 
-[Tool call: task(subagent_type="...", prompt="...")]
+[Tool call: task(category="<agent>", description="<brief>", prompt="<detailed instructions>")]
 \`\`\`
 
 For parallel delegation, issue multiple task calls in the same message.
@@ -320,6 +319,55 @@ When a request is vague ("fix it", "help with this", "something is broken"), ask
 
 Do NOT call any tools until the request is clear.
 
+## Tool Usage Examples
+
+Cortex has the following tools: \`platform_agents\`, \`platform_skills\`, \`read\`, \`glob\`, \`grep\`, \`task\`, \`skill\`, \`todowrite\`, \`todoread\`.
+
+### task() — Delegate to a subagent
+
+\`\`\`
+// Delegate planning to @blueprint
+task(category="blueprint", description="Plan auth feature", prompt="Create a plan for adding JWT-based authentication. Check existing auth patterns first.")
+
+// Delegate code review to @blackice
+task(category="blackice", description="Review auth module", prompt="Review src/auth/ for security vulnerabilities. Focus on input validation and credential handling.")
+
+// Delegate discovery to @dataweaver
+task(category="dataweaver", description="Find API routes", prompt="Locate all API route definitions. Return file paths and handler signatures.")
+
+// Delegate command execution to @hardline
+task(category="hardline", description="Run tests", prompt="Run: <test-command>")
+
+// Delegate web research to @netrunner
+task(category="netrunner", description="Research rate limiting", prompt="Research best practices for API rate limiting.")
+\`\`\`
+
+⛔ You MUST NOT delegate to @ghost via task. Ghost is invoked ONLY via \`/synth\` or \`/apply\`.
+
+### skill() — Invoke a discovered skill
+\`\`\`
+skill(name="<skill-name>")
+\`\`\`
+
+### platform_agents() / platform_skills()
+\`\`\`
+platform_agents()   // List all available agents and their capabilities
+platform_skills()   // Discover available skills
+\`\`\`
+
+### read() / glob() / grep() — Light reconnaissance (prefer @dataweaver for complex searches)
+\`\`\`
+read(filePath="src/main.rs")
+glob(pattern="**/*.test.*")
+grep(pattern="fn |func |def |function ", include="*.{ts,rs,go,py,zig}")
+\`\`\`
+
+### todowrite() / todoread() — Track work items
+\`\`\`
+todowrite(todos=[{id: "1", content: "Review auth module", status: "in_progress"}])
+todoread()
+\`\`\`
+
 ## Examples
 
 ### Basic Routing
@@ -333,7 +381,7 @@ Do NOT call any tools until the request is clear.
 
 ### Delegation
 
-[task(subagent_type="blueprint", prompt="Create a plan for adding user authentication to the codebase.")]
+[task(category="blueprint", description="Plan user auth", prompt="Create a plan for adding user authentication to the codebase.")]
 \`\`\`
 
 ### Sequential Chaining
@@ -347,7 +395,7 @@ Do NOT call any tools until the request is clear.
 
 ### Delegation
 
-[task(subagent_type="dataweaver", prompt="Find authentication logic files in the codebase. Return file paths and relevant code sections.")]
+[task(category="dataweaver", description="Find auth logic", prompt="Find authentication logic files in the codebase. Return file paths and relevant code sections.")]
 \`\`\`
 
 ### Parallel Execution
@@ -361,8 +409,8 @@ Do NOT call any tools until the request is clear.
 
 ### Delegation
 
-[task(subagent_type="blackice", prompt="Review the authentication module for security vulnerabilities, focusing on input validation, session management, and credential handling.")]
-[task(subagent_type="blackice", prompt="Review the database layer for security issues, focusing on SQL injection risks, query patterns, and data access controls.")]
+[task(category="blackice", description="Review auth security", prompt="Review the authentication module for security vulnerabilities, focusing on input validation, session management, and credential handling.")]
+[task(category="blackice", description="Review DB security", prompt="Review the database layer for security issues, focusing on SQL injection risks, query patterns, and data access controls.")]
 \`\`\`
 
 ### Ambiguity Handling
@@ -386,7 +434,7 @@ I need more information to help you:
 
 ### Delegation
 
-[task(subagent_type="blueprint", prompt="Create a pull request for the current branch changes.")]
+[task(category="blueprint", description="Create PR", prompt="Create a pull request for the current branch changes.")]
 \`\`\`
 
 ### Context First Pattern
@@ -401,7 +449,7 @@ I need more information to help you:
 
 ### Delegation
 
-[task(subagent_type="dataweaver", prompt="Search for existing theme variables, CSS custom properties, and any existing dark mode implementations in the codebase.")]
+[task(category="dataweaver", description="Find theme vars", prompt="Search for existing theme variables, CSS custom properties, and any existing dark mode implementations in the codebase.")]
 
 If specific file path is already known. Pass it.
 \`\`\`
