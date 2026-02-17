@@ -6,7 +6,7 @@ export async function registerBuiltinCommands(
 	config: Record<string, unknown>,
 ): Promise<void> {
 	const existingCommands =
-		(config.command as Record<string, any> | undefined) ?? {};
+		(config.command as Record<string, unknown> | undefined) ?? {};
 
 	const builtinCommands: BuiltinCommand[] = createBuiltinCommands();
 
@@ -23,5 +23,5 @@ export async function registerBuiltinCommands(
 		};
 	}
 
-	(config as { command?: Record<string, any> }).command = existingCommands;
+	(config as { command?: Record<string, unknown> }).command = existingCommands;
 }

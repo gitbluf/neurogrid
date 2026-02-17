@@ -237,7 +237,7 @@ function buildSandboxExecSensitiveReadDenies(homeDir: string): string[] {
 }
 
 function escapeSchemePath(input: string): string {
-	return input.replace(/\\/g, "\\\\").replace(/\"/g, '\\"');
+	return input.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
 }
 
 function escapeRegex(input: string): string {

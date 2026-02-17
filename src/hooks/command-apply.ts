@@ -29,7 +29,8 @@ export function createCommandApplyHook(
 
 		output.parts.push(
 			createTextPart(
-				"[APPLY-MODE] This is a direct-edit command, not a plan execution.\n\n" +
+				`[APPLY-MODE] Working directory: ${directory}\n\n` +
+					"[APPLY-MODE] This is a direct-edit command, not a plan execution.\n\n" +
 					"## Constraints\n\n" +
 					"- Make ONLY the change described below. Nothing else.\n" +
 					"- Keep changes minimal and surgical.\n" +
