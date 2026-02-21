@@ -25,6 +25,7 @@
 		"release": "bun ./scripts/release",
 		"ci:tag": "./scripts/auto-tag",
 		"ci:publish": "./scripts/publish",
+		"ci:dependabot-lockfile": "./scripts/dependabot-lockfile",
 		"lint": "biome lint .",
 		"format": "biome format --write .",
 		"test:all": "bun run lint && bun run format && bun test"
