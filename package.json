@@ -1,6 +1,6 @@
 {
 	"name": "@gitbluf/neurogrid",
-	"version": "0.1.0-beta.0",
+	"version": "0.1.0-alpha.0",
 	"description": "Neurogrid – OpenCode plugin providing AI agent orchestration system with specialized agents for planning, code review, reconnaissance, and execution.",
 	"license": "AGPL-3.0-only",
 	"type": "module",
@@ -21,10 +21,10 @@
 	],
 	"scripts": {
 		"build": "tsc",
-		"prepublishOnly": "bun run build",
 		"clean": "rm -rf dist",
 		"release": "bun ./scripts/release",
-		"publish": "bun ./scripts/publish",
+		"ci:tag": "./scripts/auto-tag",
+		"ci:publish": "./scripts/publish",
 		"lint": "biome lint .",
 		"format": "biome format --write .",
 		"test:all": "bun run lint && bun run format && bun test"

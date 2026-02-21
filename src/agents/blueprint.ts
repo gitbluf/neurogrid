@@ -329,6 +329,7 @@ export function createBlueprintAgent(
 			skill: true,
 			platform_agents: false,
 			platform_skills: true,
+			sandbox_exec: false,
 			webfetch: false,
 			todowrite: true,
 			todoread: true,
