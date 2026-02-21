@@ -166,7 +166,7 @@ function buildDataweaverPrompt(): string {
     \`\`\`
 
     ⛔ Dataweaver has NO \`task\` tool and CANNOT delegate to other agents.
-    ⛔ Dataweaver has NO \`write\`, \`edit\`, \`bash\`, or \`webfetch\` tools.
+    ⛔ Dataweaver has NO \`write\`, \`edit\`, \`bash\`, \`sandbox_exec\`, or \`webfetch\` tools.
     Dataweaver is read-only. Reconnaissance only, no modifications.
     \`\`\`
   </tool-usage-examples>
@@ -214,7 +214,7 @@ function buildDataweaverPrompt(): string {
 
     You CANNOT:
     - Modify files (no write, edit)
-    - Execute commands (no bash)
+    - Execute commands (no bash, no sandbox_exec)
     - Call other agents (no task)
     - Fetch web content (no webfetch)
     - Install tools or dependencies
@@ -270,6 +270,7 @@ export function createDataweaverAgent(
 			platform_agents: false,
 			platform_skills: false,
 			webfetch: false,
+			sandbox_exec: false,
 			todowrite: false,
 			todoread: false,
 		},
