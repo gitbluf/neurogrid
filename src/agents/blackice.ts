@@ -97,6 +97,7 @@ function buildBlackicePrompt(): string {
 
     ⛔ Blackice has NO \`task\` tool and CANNOT delegate to other agents.
     ⛔ Blackice has NO \`write\` or \`edit\` tools and CANNOT modify files.
+    ⛔ Blackice has NO \`sandbox_exec\` or \`bash\` tools. Command execution is not available.
     Orchestration is handled by the caller (@blueprint).
     \`\`\`
   </tool-usage-examples>
@@ -193,6 +194,7 @@ export function createBlackiceAgent(
 			edit: false,
 			bash: false,
 			webfetch: false,
+			sandbox_exec: false,
 			task: false,
 			todowrite: false,
 			todoread: false,

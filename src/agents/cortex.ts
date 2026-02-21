@@ -484,6 +484,7 @@ export function createCortexOrchestratorAgent(
 			edit: false,
 			bash: false,
 			webfetch: false,
+			sandbox_exec: false,
 			todowrite: true,
 			todoread: true,
 		},

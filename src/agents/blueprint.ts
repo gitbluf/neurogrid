@@ -211,6 +211,7 @@ function buildBlueprintPrompt(): string {
     \`\`\`
 
     ⛔ Blueprint MUST NOT call @ghost, @hardline, or any other agent via task.
+    ⛔ Blueprint does NOT have \`sandbox_exec\` or \`bash\`. Command execution is not available.
 
     ### write() — Create or overwrite plan files (ONLY in .ai/)
     \`\`\`
