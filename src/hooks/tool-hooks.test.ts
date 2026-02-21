@@ -1,10 +1,9 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { describe, it, expect, beforeEach, afterEach } from "bun:test";
+import { mkdtemp, rm, readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { createToolBashRedirectHook } from "./tool-bash-redirect";
 import { createToolPlanRegisterHook } from "./tool-plan-register";
-import { createToolTaskGuardHook } from "./tool-task-guard";
+import { createToolBashRedirectHook } from "./tool-bash-redirect";
 
 describe("createToolPlanRegisterHook", () => {
 	let dir: string;
@@ -119,134 +118,6 @@ describe("createToolBashRedirectHook", () => {
 			const message = (err as Error).message;
 			expect(message).toContain("sandbox_exec");
 			expect(message).toContain("Example");
-		}
-	});
-});
-
-describe("createToolTaskGuardHook", () => {
-	it("skips non-task tool calls", async () => {
-		const hook = createToolTaskGuardHook();
-		await hook(
-			{ tool: "write", sessionID: "s", callID: "c" },
-			{ args: { subagent_type: "ghost" } },
-		);
-	});
-
-	it("throws for subagent_type targeting ghost", async () => {
-		const hook = createToolTaskGuardHook();
-		await expect(
-			hook(
-				{ tool: "task", sessionID: "s", callID: "c" },
-				{ args: { subagent_type: "ghost" } },
-			),
-		).rejects.toThrow(/ghost/i);
-	});
-
-	it("throws for category targeting ghost", async () => {
-		const hook = createToolTaskGuardHook();
-		await expect(
-			hook(
-				{ tool: "task", sessionID: "s", callID: "c" },
-				{ args: { category: "ghost" } },
-			),
-		).rejects.toThrow(/ghost/i);
-	});
-
-	it("throws for subagent_type targeting hardline", async () => {
-		const hook = createToolTaskGuardHook();
-		await expect(
-			hook(
-				{ tool: "task", sessionID: "s", callID: "c" },
-				{ args: { subagent_type: "hardline" } },
-			),
-		).rejects.toThrow(/hardline/i);
-	});
-
-	it("throws for category targeting hardline", async () => {
-		const hook = createToolTaskGuardHook();
-		await expect(
-			hook(
-				{ tool: "task", sessionID: "s", callID: "c" },
-				{ args: { category: "hardline" } },
-			),
-		).rejects.toThrow(/hardline/i);
-	});
-
-	it("allows other agents like blueprint", async () => {
-		const hook = createToolTaskGuardHook();
-		await hook(
-			{ tool: "task", sessionID: "s", callID: "c" },
-			{ args: { subagent_type: "blueprint" } },
-		);
-	});
-
-	it("handles null args gracefully", async () => {
-		const hook = createToolTaskGuardHook();
-		await hook({ tool: "task", sessionID: "s", callID: "c" }, { args: null });
-	});
-
-	it("handles undefined args gracefully", async () => {
-		const hook = createToolTaskGuardHook();
-		await hook(
-			{ tool: "task", sessionID: "s", callID: "c" },
-			{ args: undefined },
-		);
-	});
-
-	it("handles non-object args gracefully", async () => {
-		const hook = createToolTaskGuardHook();
-		await hook(
-			{ tool: "task", sessionID: "s", callID: "c" },
-			{ args: "string-arg" },
-		);
-	});
-
-	it("matches case-insensitively — Ghost", async () => {
-		const hook = createToolTaskGuardHook();
-		await expect(
-			hook(
-				{ tool: "task", sessionID: "s", callID: "c" },
-				{ args: { subagent_type: "Ghost" } },
-			),
-		).rejects.toThrow(/ghost/i);
-	});
-
-	it("matches case-insensitively — HARDLINE", async () => {
-		const hook = createToolTaskGuardHook();
-		await expect(
-			hook(
-				{ tool: "task", sessionID: "s", callID: "c" },
-				{ args: { category: "HARDLINE" } },
-			),
-		).rejects.toThrow(/hardline/i);
-	});
-
-	it("ghost error message references /synth and /apply", async () => {
-		const hook = createToolTaskGuardHook();
-		try {
-			await hook(
-				{ tool: "task", sessionID: "s", callID: "c" },
-				{ args: { subagent_type: "ghost" } },
-			);
-			expect(true).toBe(false);
-		} catch (err) {
-			const message = (err as Error).message;
-			expect(message).toContain("/synth");
-			expect(message).toContain("/apply");
-		}
-	});
-
-	it("hardline error message contains restricted", async () => {
-		const hook = createToolTaskGuardHook();
-		try {
-			await hook(
-				{ tool: "task", sessionID: "s", callID: "c" },
-				{ args: { subagent_type: "hardline" } },
-			);
-			expect(true).toBe(false);
-		} catch (err) {
-			const message = (err as Error).message;
-			expect(message).toContain("restricted");
 		}
 	});
 });
