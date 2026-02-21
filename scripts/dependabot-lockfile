@@ -1,0 +1,31 @@
+#!/usr/bin/env bun
+
+function run(cmd: string[]): void {
+	const result = Bun.spawnSync(cmd, { stdout: "inherit", stderr: "inherit" })
+	if (result.exitCode !== 0) {
+		console.error(`Command failed: ${cmd.join(" ")}`)
+		process.exit(result.exitCode ?? 1)
+	}
+}
+
+// Regenerate bun.lockb without running lifecycle scripts
+run(["bun", "install", "--ignore-scripts"])
+
+// Check if lockfile changed
+const diff = Bun.spawnSync(["git", "diff", "--quiet", "--", "bun.lockb"], {
+	stdout: "pipe",
+	stderr: "pipe",
+})
+
+if (diff.exitCode === 0) {
+	console.log("No lockfile changes.")
+	process.exit(0)
+}
+
+console.log("Lockfile changed, committing update...")
+run(["git", "config", "user.name", "dependabot[bot]"])
+run(["git", "config", "user.email", "dependabot[bot]@users.noreply.github.com"])
+run(["git", "add", "bun.lockb"])
+run(["git", "commit", "-m", "chore: update bun.lockb"])
+run(["git", "push"])
+console.log("Lockfile update pushed.")
