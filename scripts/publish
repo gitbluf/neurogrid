@@ -1,75 +1,32 @@
 #!/usr/bin/env bun
 
-import { existsSync, appendFileSync } from "fs"
+import { appendFileSync } from "fs"
 
-const RED = "\x1b[0;31m"
-const GREEN = "\x1b[0;32m"
-const YELLOW = "\x1b[0;33m"
-const NC = "\x1b[0m"
-
-function error(msg: string): void {
-  console.error(`${RED}Error:${NC} ${msg}`)
-}
-
-function info(msg: string): void {
-  console.log(`${YELLOW}${msg}${NC}`)
-}
-
-function success(msg: string): void {
-  console.log(`${GREEN}${msg}${NC}`)
-}
-
-function exec(cmd: string[]): void {
-  const result = Bun.spawnSync(cmd, {
-    stdout: "inherit",
-    stderr: "inherit",
-    env: process.env,
-  })
-  if (result.exitCode !== 0) {
-    error(`Command failed: ${cmd.join(" ")}`)
-    process.exit(result.exitCode)
-  }
-}
-
-// 1. Verify build artifacts
-info("Verifying build artifacts...")
-const requiredArtifacts = ["dist/index.js", "dist/index.d.ts"]
-for (const artifact of requiredArtifacts) {
-  if (!existsSync(artifact)) {
-    error(`${artifact} not found. Run 'bun run build' first.`)
-    process.exit(1)
-  }
-}
-success("Build artifacts verified.")
-
-// 2. Configure registry auth
-const token = process.env.NPM_CONFIG_TOKEN
-if (!token) {
-  error("NPM_CONFIG_TOKEN is not set. This script is intended for CI.")
-  process.exit(1)
-}
-
-info("Configuring npm registry auth...")
-appendFileSync(".npmrc", `\n//npm.pkg.github.com/:_authToken=${token}\n`)
-
-// 3. Determine publish tag from git ref
 const refName = process.env.GITHUB_REF_NAME
 if (!refName) {
-  error("GITHUB_REF_NAME is not set. This script is intended for CI.")
-  process.exit(1)
+	console.error("GITHUB_REF_NAME is not set")
+	process.exit(1)
+}
+
+const token = process.env.NPM_CONFIG_TOKEN
+if (!token) {
+	console.error("NPM_CONFIG_TOKEN is not set")
+	process.exit(1)
 }
 
 const version = refName.replace(/^v/, "")
 let tag = "latest"
-
 if (version.includes("-")) {
-  const prerelease = version.split("-")[1]
-  tag = prerelease.split(".")[0]
+	tag = version.split("-")[1].split(".")[0]
 }
 
-info(`Publishing v${version} with tag '${tag}'...`)
+console.log(`Publishing v${version} with tag '${tag}'`)
 
-// 4. Publish
-exec(["bun", "publish", "--access", "public", "--tag", tag, "--tolerate-republish"])
+appendFileSync(".npmrc", `\n//npm.pkg.github.com/:_authToken=${token}\n`)
 
-success(`Published @gitbluf/neurogrid@${version} (tag: ${tag})`)
+const result = Bun.spawnSync(
+	["bun", "publish", "--access", "public", "--tag", tag, "--tolerate-republish"],
+	{ stdout: "inherit", stderr: "inherit" },
+)
+
+process.exit(result.exitCode ?? 1)

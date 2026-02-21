@@ -25,6 +25,6 @@ jobs:
         run: bun run build
 
       - name: Publish
-        run: bun run publish
+        run: bun run ci:publish
         env:
           NPM_CONFIG_TOKEN: ${{ secrets.GITHUB_TOKEN }}
