@@ -121,6 +121,30 @@ $ARGUMENTS
 `,
 };
 
+// Agent required: /dispatch needs cortex to call the platform_swarm_dispatch tool.
+const dispatchCommand: BuiltinCommand = {
+	name: "dispatch",
+	description:
+		"Dispatch multiple plans in parallel via swarm agents. Usage: /dispatch <plan1> <plan2> [plan3 ...]",
+	agent: "cortex",
+	subtask: true,
+	template: `You are handling a \`/dispatch\` command for parallel swarm execution.
+
+The user wants to dispatch these plans in parallel: $ARGUMENTS
+
+The hook has validated all plan files and prepared the dispatch payload.
+Check the context/parts for the "[DISPATCH]" marker containing the plans JSON.
+
+## Behavior
+
+1. Find the \`[DISPATCH]\` context part with the resolved plans JSON payload.
+2. Call the \`platform_swarm_dispatch\` tool with the plans JSON from that payload.
+3. Report the results back to the user.
+
+If the hook injected an error or usage message instead, display that to the user — do NOT call the tool.
+`,
+};
+
 export function createBuiltinCommands(): BuiltinCommand[] {
 	return [
 		synthCommand,
@@ -128,5 +152,6 @@ export function createBuiltinCommands(): BuiltinCommand[] {
 		cleanCommand,
 		commitCommand,
 		applyCommand,
+		dispatchCommand,
 	];
 }

@@ -5,7 +5,7 @@
 Plan-first Neurogrid agent orchestration for OpenCode.
 **@gitbluf/neurogrid** ships a full, safety-focused agent system with built-in commands, skills, and platform tools—ready to use out of the box.
 
-> Version: **0.1.0-alpha.4** · License: **AGPL-3.0** · Repo: https://github.com/gitbluf/neurogrid
+> Version: **0.2.0** · License: **AGPL-3.0** · Repo: https://github.com/gitbluf/neurogrid
 
 > ⚠️ **GitHub Packages auth required:** add an `.npmrc` in `~/.npmrc` or `.opencode/.npmrc` with `@gitbluf:registry=https://npm.pkg.github.com` and `//npm.pkg.github.com/:_authToken=YOUR_GITHUB_PAT` (PAT needs `read:packages`).
 
@@ -57,7 +57,7 @@ Model IDs depend on your configured provider (e.g. anthropic/claude-sonnet-4-202
 ## 📦 What You Get
 
 - **6 specialized agents** (orchestrator, planner, reviewer, discovery, executor, command runner)
-- **3 built-in commands** (`/synth`, `/apply`, `/clean`)
+- **4 built-in commands** (`/synth`, `/apply`, `/dispatch`, `/clean`)
 - **3 built-in skills** (complexity, security, git commit flow)
 - **Platform tools** for agent/skill discovery, configuration, and swarm dispatch
 
@@ -107,6 +107,12 @@ Or check status:
 
 Each task gets an isolated branch (`neurogrid/swarm-<taskId>-<ts>`). After completion, review diffs and merge manually.
 
+Or use the slash command directly:
+
+```
+/dispatch auth-module db-layer api-routes
+```
+
 **Safety:** A guard hook blocks destructive commands (`rm -rf`, `git push --force`, `DROP TABLE`) and secret file reads (`.env`, `.pem`, `.key`). An audit hook logs all write/edit operations to `.ai/swarm-audit.log`.
 
 ## 🧭 How It Works
@@ -131,6 +137,7 @@ Each task gets an isolated branch (`neurogrid/swarm-<taskId>-<ts>`). After compl
 | **`/plans`** | List all plans and their lifecycle status | ❌ |
 | **`/clean`** | Remove all `.md` files from `.ai/` | ❌ |
 | **`/commit`** | Create a git commit with AI-generated message | ❌ |
+| **`/dispatch <plan1> <plan2> ...`** | Dispatch multiple plans in parallel via swarm | ❌ |
 
 ### `/synth` vs `/apply`
 

@@ -1,6 +1,7 @@
 import type { createOpencodeClient } from "@opencode-ai/sdk";
 import { createCommandApplyHook } from "./command-apply";
 import { createCommandCleanHook } from "./command-clean";
+import { createCommandDispatchHook } from "./command-dispatch";
 import { createCommandPlansHook } from "./command-plans";
 import { createCommandSynthHook } from "./command-synth";
 import { createToolBashRedirectHook } from "./tool-bash-redirect";
@@ -23,6 +24,7 @@ export function createCommandExecuteBeforeHook(
 		createCommandSynthHook(directory),
 		createCommandPlansHook(directory, client),
 		createCommandApplyHook(directory),
+		createCommandDispatchHook(directory),
 	];
 
 	return async (input, output) => {
