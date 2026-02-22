@@ -1,13 +1,13 @@
 // src/agents/index.ts
-import type { BuiltinAgentDefinition } from "./types";
-import { cortexDefinition } from "./cortex";
-import { blueprintDefinition } from "./blueprint";
+
+import { getAllSkills } from "../skills/discovery";
 import { blackiceDefinition } from "./blackice";
-import { ghostDefinition } from "./ghost";
+import { blueprintDefinition } from "./blueprint";
+import { cortexDefinition } from "./cortex";
 import { dataweaverDefinition } from "./dataweaver";
+import { ghostDefinition } from "./ghost";
 import { hardlineDefinition } from "./hardline";
-import { discoverSkills } from "../skills/discovery";
-import { createBuiltinSkills } from "../builtin-skills";
+import type { BuiltinAgentDefinition } from "./types";
 
 export type BuiltinAgentName =
 	| "cortex"
@@ -80,15 +80,7 @@ export async function registerBuiltinAgents(
 	const existingAgents =
 		(config.agent as Record<string, unknown> | undefined) ?? {};
 
-	const discoveredSkills = await discoverSkills(directory);
-	const builtinSkills = createBuiltinSkills().map((skill) => ({
-		name: skill.name,
-		description: skill.description,
-		location: "project" as const,
-		path: `[builtin]://${skill.name}`,
-	}));
-
-	const skills = [...discoveredSkills, ...builtinSkills];
+	const skills = await getAllSkills(directory);
 
 	for (const def of builtinAgentDefinitions) {
 		const agentConfig = def.create(config, existingAgents, skills);
@@ -108,7 +100,7 @@ export async function registerBuiltinAgents(
 	}
 }
 
-// Re-export types and utilities
-export type { BuiltinAgentDefinition } from "./types";
 export type { CortexAvailableAgent } from "./cortex";
 export { createCortexOrchestratorAgent } from "./cortex";
+// Re-export types and utilities
+export type { BuiltinAgentDefinition } from "./types";

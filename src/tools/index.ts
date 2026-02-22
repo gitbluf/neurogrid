@@ -1,11 +1,12 @@
 // src/tools/index.ts
-import { tool } from "@opencode-ai/plugin";
-import * as path from "node:path";
+
 import * as fs from "node:fs/promises";
+import * as path from "node:path";
+import { tool } from "@opencode-ai/plugin";
 import type { createOpencodeClient } from "@opencode-ai/sdk";
 import type { CortexAvailableAgent } from "../agents";
 import { createCortexOrchestratorAgent } from "../agents";
-import { discoverSkills } from "../skills/discovery";
+import { getAllSkills } from "../skills/discovery";
 import { createSandboxExecTool } from "./sandbox";
 
 type OpencodeClient = ReturnType<typeof createOpencodeClient>;
@@ -90,7 +91,7 @@ export function createPlatformSkillsTool(directory: string) {
 			"Discover agent skills from SKILL.md files in project and global config",
 		args: {},
 		async execute() {
-			const skills = await discoverSkills(directory);
+			const skills = await getAllSkills(directory);
 
 			return JSON.stringify(
 				{
@@ -122,7 +123,7 @@ export function createPlatformInfoTool(
 				(agentsResult as { data?: unknown }).data ?? agentsResult;
 			const agentCount = Array.isArray(agentsRaw) ? agentsRaw.length : 0;
 
-			const skills = await discoverSkills(directory);
+			const skills = await getAllSkills(directory);
 
 			const summary = `# OpenCode Platform Overview
 

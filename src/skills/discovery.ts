@@ -1,6 +1,8 @@
 // src/skills/discovery.ts
-import * as path from "node:path";
+
 import * as fs from "node:fs/promises";
+import * as path from "node:path";
+import { createBuiltinSkills } from "../builtin-skills";
 
 export type SkillInfo = {
 	name: string;
@@ -94,4 +96,15 @@ export async function discoverSkills(
 	}
 
 	return unique;
+}
+
+export async function getAllSkills(projectRoot: string): Promise<SkillInfo[]> {
+	const discoveredSkills = await discoverSkills(projectRoot);
+	const builtinSkills = createBuiltinSkills().map((skill) => ({
+		name: skill.name,
+		description: skill.description,
+		location: "project" as const,
+		path: `[builtin]://${skill.name}`,
+	}));
+	return [...discoveredSkills, ...builtinSkills];
 }
