@@ -4,3 +4,4 @@ plan-*.md
 
 # Session-plan registry (plugin-generated)
 .ai/.session-plans.json
+.ai/*
