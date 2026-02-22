@@ -5,7 +5,7 @@
 Plan-first Neurogrid agent orchestration for OpenCode.
 **@gitbluf/neurogrid** ships a full, safety-focused agent system with built-in commands, skills, and platform tools—ready to use out of the box.
 
-> Version: **0.2.0** · License: **AGPL-3.0** · Repo: https://github.com/gitbluf/neurogrid
+> Version: **0.1.0-alpha.4** · License: **AGPL-3.0** · Repo: https://github.com/gitbluf/neurogrid
 
 > ⚠️ **GitHub Packages auth required:** add an `.npmrc` in `~/.npmrc` or `.opencode/.npmrc` with `@gitbluf:registry=https://npm.pkg.github.com` and `//npm.pkg.github.com/:_authToken=YOUR_GITHUB_PAT` (PAT needs `read:packages`).
 
