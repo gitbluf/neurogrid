@@ -1,11 +1,12 @@
-import type { CommandExecuteBeforeHook } from "./types";
 import type { createOpencodeClient } from "@opencode-ai/sdk";
+import { createCommandApplyHook } from "./command-apply";
 import { createCommandCleanHook } from "./command-clean";
 import { createCommandPlansHook } from "./command-plans";
 import { createCommandSynthHook } from "./command-synth";
-import { createCommandApplyHook } from "./command-apply";
-import { createToolPlanRegisterHook } from "./tool-plan-register";
 import { createToolBashRedirectHook } from "./tool-bash-redirect";
+import { createToolPlanRegisterHook } from "./tool-plan-register";
+import { createToolSwarmGuardHook } from "./tool-swarm-guard";
+import type { CommandExecuteBeforeHook } from "./types";
 
 /**
  * Compose all "command.execute.before" handlers into a single dispatcher.
@@ -34,25 +35,28 @@ export function createCommandExecuteBeforeHook(
 export function createToolExecuteBeforeHook(directory: string) {
 	const planRegisterHook = createToolPlanRegisterHook(directory);
 	const bashRedirectHook = createToolBashRedirectHook();
+	const swarmGuardHook = createToolSwarmGuardHook();
 
 	return async (
 		input: { tool: string; sessionID: string; callID: string },
 		output: { args: unknown },
 	) => {
 		await bashRedirectHook(input, output);
+		await swarmGuardHook(input, output);
 		await planRegisterHook(input, output);
 	};
 }
 
-export type { CommandExecuteBeforeHook } from "./types";
+export { createCommandCleanHook } from "./command-clean";
+export type { ChatMessageToastHook, EventHook } from "./session-toast";
+export {
+	createChatMessageToastHook,
+	createSessionToastHook,
+} from "./session-toast";
+export { createToolSwarmAuditHook } from "./tool-swarm-audit";
 export type {
+	CommandExecuteBeforeHook,
 	CommandExecuteBeforeInput,
 	CommandExecuteBeforeOutput,
 } from "./types";
 export { createTextPart } from "./types";
-export { createCommandCleanHook } from "./command-clean";
-export {
-	createSessionToastHook,
-	createChatMessageToastHook,
-} from "./session-toast";
-export type { EventHook, ChatMessageToastHook } from "./session-toast";
