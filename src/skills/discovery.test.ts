@@ -1,8 +1,8 @@
-import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import { mkdtemp, rm, mkdir, writeFile, symlink } from "node:fs/promises";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { mkdir, mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { discoverSkills } from "./discovery";
+import { discoverSkills, getAllSkills } from "./discovery";
 
 describe("discoverSkills", () => {
 	let dir: string;
@@ -186,5 +186,58 @@ describe("discoverSkills", () => {
 			expect(skills[0]?.name).toBe("file-linked-skill");
 			expect(skills[0]?.description).toBe("Symlinked file skill");
 		});
+	});
+});
+
+describe("getAllSkills", () => {
+	let dir: string;
+
+	beforeEach(async () => {
+		dir = await mkdtemp(join(tmpdir(), "skills-all-test-"));
+	});
+
+	afterEach(async () => {
+		await rm(dir, { recursive: true, force: true });
+	});
+
+	it("includes builtin skills when no disk skills exist", async () => {
+		const skills = await getAllSkills(dir);
+		const names = skills.map((skill) => skill.name);
+		expect(names).toEqual(
+			expect.arrayContaining([
+				"complexity-analyzer",
+				"security-audit",
+				"git-commit-flow",
+			]),
+		);
+	});
+
+	it("merges disk-discovered and builtin skills", async () => {
+		const skillDir = join(dir, ".opencode", "skill", "disk-skill");
+		await mkdir(skillDir, { recursive: true });
+		await writeFile(join(skillDir, "SKILL.md"), "# Disk Skill", "utf8");
+
+		const skills = await getAllSkills(dir);
+		const names = skills.map((skill) => skill.name);
+		expect(names).toEqual(
+			expect.arrayContaining([
+				"disk-skill",
+				"complexity-analyzer",
+				"security-audit",
+				"git-commit-flow",
+			]),
+		);
+	});
+
+	it("builtin skills have project location and builtin path", async () => {
+		const skills = await getAllSkills(dir);
+		const builtinSkills = skills.filter((skill) =>
+			skill.path.startsWith("[builtin]://"),
+		);
+		expect(builtinSkills.length).toBeGreaterThanOrEqual(3);
+		for (const skill of builtinSkills) {
+			expect(skill.location).toBe("project");
+			expect(skill.path.startsWith("[builtin]://")).toBe(true);
+		}
 	});
 });
