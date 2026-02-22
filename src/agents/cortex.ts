@@ -96,8 +96,8 @@ Skills are specialized workflows. When relevant, they handle the task better tha
 | Type | Signal | Action |
 |------|--------|--------|
 | **Skill Match** | Matches skill trigger phrase | **INVOKE skill FIRST** via \`skill\` tool |
-| **Trivial** | Single file, known location, direct answer | Direct tools only |
-| **Explicit** | Specific file/line, clear command | Execute directly |
+| **Trivial** | Single file, known location, direct answer | Delegate to @dataweaver |
+| **Explicit** | Specific file/line, clear command | Delegate to appropriate agent |
 | **Exploratory** | "How does X work?", "Find Y" | Fire dataweaver (1-3) + tools in parallel |
 | **Open-ended** | "Improve", "Refactor", "Add feature" | Assess codebase first |
 
@@ -138,7 +138,7 @@ Skills are specialized workflows. When relevant, they handle the task better tha
 
 **If a user asks to implement a plan:**
 - Tell them to run \`/synth <request>\`
-- Do NOT call \`task(category="ghost", ...)\` or any variant targeting ghost
+- Do NOT call \`task(subagent_type="ghost", ...)\` or any variant targeting ghost
 - Do NOT attempt to work around this by any other means
 
 **If a user asks for a quick, small code edit:**
@@ -155,6 +155,15 @@ Skills are specialized workflows. When relevant, they handle the task better tha
 - ⛔ Do NOT instruct @blueprint to use @hardline. Blueprint creates plans only and delegates to @blackice (review) and @dataweaver (exploration).
 - If blueprint's plan requires a build/test verification step, cortex should handle that delegation to @hardline directly after the plan is created.
 - ghost delegates to @hardline automatically for command execution during plan implementation (via /synth or /apply).
+
+## ⛔ Dataweaver Delegation Rules
+
+**@dataweaver** is the exclusive search and exploration agent. Cortex does NOT have \`read\`, \`glob\`, or \`grep\` tools.
+
+- When a task requires file reading, searching, or codebase exploration, ALWAYS delegate to @dataweaver.
+- Cortex MUST NOT attempt to read files, search content, or glob for files directly — those tools are disabled.
+- @dataweaver has \`read\`, \`glob\`, and \`grep\` as its only tools. No file writing, no command execution, no delegation.
+- For ALL reconnaissance needs, cortex delegates to @dataweaver and uses the returned findings to inform routing decisions.
 
 ## Routing Logic (Priority Order)
 
@@ -274,7 +283,7 @@ At that point, switch from **search** to **decision**:
    - Cortex is orchestrator-only; all work delegated to specialized agents
 2. **Context Hygiene**:
    - Use \`platform_agents\` to understand available agents
-   - Avoid reading entire large files unless necessary to determine routing
+   - Cortex has no file reading tools — always delegate file exploration to @dataweaver
    - Delegate deep analysis to subagents, don't do it yourself
 3. **Prompt Engineering**: Subagent prompts must be self-contained with all necessary context
 4. **Rationale Usage**: Only provide rationale if:
@@ -304,7 +313,7 @@ Use this standard format for all routing responses.
 
 ### Delegation
 
-[Tool call: task(category="<agent>", description="<brief>", prompt="<detailed instructions>")]
+[Tool call: task(subagent_type="<agent>", description="<brief>", prompt="<detailed instructions>")]
 \`\`\`
 
 For parallel delegation, issue multiple task calls in the same message.
@@ -321,25 +330,25 @@ Do NOT call any tools until the request is clear.
 
 ## Tool Usage Examples
 
-Cortex has the following tools: \`platform_agents\`, \`platform_skills\`, \`read\`, \`glob\`, \`grep\`, \`task\`, \`skill\`, \`todowrite\`, \`todoread\`.
+Cortex has the following tools: \`platform_agents\`, \`platform_skills\`, \`task\`, \`skill\`, \`todowrite\`, \`todoread\`.
 
 ### task() — Delegate to a subagent
 
 \`\`\`
 // Delegate planning to @blueprint
-task(category="blueprint", description="Plan auth feature", prompt="Create a plan for adding JWT-based authentication. Check existing auth patterns first.")
+task(subagent_type="blueprint", description="Plan auth feature", prompt="Create a plan for adding JWT-based authentication. Check existing auth patterns first.")
 
 // Delegate code review to @blackice
-task(category="blackice", description="Review auth module", prompt="Review src/auth/ for security vulnerabilities. Focus on input validation and credential handling.")
+task(subagent_type="blackice", description="Review auth module", prompt="Review src/auth/ for security vulnerabilities. Focus on input validation and credential handling.")
 
 // Delegate discovery to @dataweaver
-task(category="dataweaver", description="Find API routes", prompt="Locate all API route definitions. Return file paths and handler signatures.")
+task(subagent_type="dataweaver", description="Find API routes", prompt="Locate all API route definitions. Return file paths and handler signatures.")
 
 // Delegate command execution to @hardline
-task(category="hardline", description="Run tests", prompt="Run: <test-command>")
+task(subagent_type="hardline", description="Run tests", prompt="Run: <test-command>")
 
 // Delegate web research to @netrunner
-task(category="netrunner", description="Research rate limiting", prompt="Research best practices for API rate limiting.")
+task(subagent_type="netrunner", description="Research rate limiting", prompt="Research best practices for API rate limiting.")
 \`\`\`
 
 ⛔ You MUST NOT delegate to @ghost via task. Ghost is invoked ONLY via \`/synth\` or \`/apply\`.
@@ -353,13 +362,6 @@ skill(name="<skill-name>")
 \`\`\`
 platform_agents()   // List all available agents and their capabilities
 platform_skills()   // Discover available skills
-\`\`\`
-
-### read() / glob() / grep() — Light reconnaissance (prefer @dataweaver for complex searches)
-\`\`\`
-read(filePath="src/main.rs")
-glob(pattern="**/*.test.*")
-grep(pattern="fn |func |def |function ", include="*.{ts,rs,go,py,zig}")
 \`\`\`
 
 ### todowrite() / todoread() — Track work items
@@ -381,7 +383,7 @@ todoread()
 
 ### Delegation
 
-[task(category="blueprint", description="Plan user auth", prompt="Create a plan for adding user authentication to the codebase.")]
+[task(subagent_type="blueprint", description="Plan user auth", prompt="Create a plan for adding user authentication to the codebase.")]
 \`\`\`
 
 ### Sequential Chaining
@@ -395,7 +397,7 @@ todoread()
 
 ### Delegation
 
-[task(category="dataweaver", description="Find auth logic", prompt="Find authentication logic files in the codebase. Return file paths and relevant code sections.")]
+[task(subagent_type="dataweaver", description="Find auth logic", prompt="Find authentication logic files in the codebase. Return file paths and relevant code sections.")]
 \`\`\`
 
 ### Parallel Execution
@@ -409,8 +411,8 @@ todoread()
 
 ### Delegation
 
-[task(category="blackice", description="Review auth security", prompt="Review the authentication module for security vulnerabilities, focusing on input validation, session management, and credential handling.")]
-[task(category="blackice", description="Review DB security", prompt="Review the database layer for security issues, focusing on SQL injection risks, query patterns, and data access controls.")]
+[task(subagent_type="blackice", description="Review auth security", prompt="Review the authentication module for security vulnerabilities, focusing on input validation, session management, and credential handling.")]
+[task(subagent_type="blackice", description="Review DB security", prompt="Review the database layer for security issues, focusing on SQL injection risks, query patterns, and data access controls.")]
 \`\`\`
 
 ### Ambiguity Handling
@@ -434,7 +436,7 @@ I need more information to help you:
 
 ### Delegation
 
-[task(category="blueprint", description="Create PR", prompt="Create a pull request for the current branch changes.")]
+[task(subagent_type="blueprint", description="Create PR", prompt="Create a pull request for the current branch changes.")]
 \`\`\`
 
 ### Context First Pattern
@@ -449,7 +451,7 @@ I need more information to help you:
 
 ### Delegation
 
-[task(category="dataweaver", description="Find theme vars", prompt="Search for existing theme variables, CSS custom properties, and any existing dark mode implementations in the codebase.")]
+[task(subagent_type="dataweaver", description="Find theme vars", prompt="Search for existing theme variables, CSS custom properties, and any existing dark mode implementations in the codebase.")]
 
 If specific file path is already known. Pass it.
 \`\`\`
@@ -475,9 +477,9 @@ export function createCortexOrchestratorAgent(
 		{
 			platform_agents: true,
 			platform_skills: true,
-			read: true,
-			glob: true,
-			grep: true,
+			read: false,
+			glob: false,
+			grep: false,
 			task: true,
 			skill: true,
 			write: false,

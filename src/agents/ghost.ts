@@ -64,7 +64,7 @@ function buildGhostPrompt(): string {
     \`\`\`
     ### Step <N>: <ACTION_VERB> — \`<target>\`
     - **Op**: create | modify | delete | exec
-    - **Tool**: write | edit | read | task→hardline
+    - **Tool**: write | edit | read | task(subagent_type="hardline", ...)
     - **Target**: \`path/to/file\` or shell command
     - **Search** (modify only): code block to locate
     - **Replace** (modify only): code block to substitute
@@ -75,6 +75,8 @@ function buildGhostPrompt(): string {
     - **Why**: rationale
     \`\`\`
 
+    > **Note**: The **Tool** field maps to the **Op** field — see Tool Mapping below for exact correspondence. \`read\` is used only for prerequisite checks, not for \`exec\` ops.
+
     ### Tool Mapping
 
     Map each step's Op field to the correct tool:
@@ -83,7 +85,7 @@ function buildGhostPrompt(): string {
     | \`create\` | \`write\` | Write new file with Content block |
     | \`modify\` | \`edit\` | Use Search block to find code, replace with Replace block |
     | \`delete\` | \`write\` | Remove file (write empty) |
-| \`exec\` | \`task(category="hardline", ...)\` | Delegate command to @hardline and report result |
+| \`exec\` | \`task(subagent_type="hardline", ...)\` | Delegate command to @hardline and report result |
 
     - For \`modify\` ops: the **Search** block is the primary anchor for locating code. Never rely on line numbers alone.
     - For \`exec\` ops: delegate to @hardline via \`task\` and wait for the result before proceeding.
@@ -112,7 +114,7 @@ function buildGhostPrompt(): string {
        - **Op: create** → use \`write\` tool with the **Content** block
        - **Op: modify** → use \`edit\` tool: find code matching **Search** block, replace with **Replace** block
        - **Op: delete** → use \`write\` to remove the file
-       - **Op: exec** → delegate to @hardline via \`task(category="hardline", description="Run command", prompt="Run: <Command>")\` and report pass/fail
+     - **Op: exec** → delegate to @hardline via \`task(subagent_type="hardline", description="Run command", prompt="Run: <Command>")\` and report pass/fail
     9. For \`modify\` ops: use the **Search** block as the primary code anchor. Do NOT rely on line numbers.
     10. Do NOT add steps not in the plan. Do NOT skip steps unless blocked by a failed dependency.
     11. If a step is ambiguous, ask up to 3 targeted questions. If still unclear, skip and report.
@@ -146,7 +148,7 @@ function buildGhostPrompt(): string {
     - Use \`write\` / \`edit\` to apply code changes.
     - **Command Execution**: You do NOT have \`sandbox_exec\`. For ANY command execution
       (builds, tests, scripts, installs, diagnostics), delegate to **@hardline** via the \`task\` tool.
-      - Example: \`task(category="hardline", description="Run build", prompt="Run: <build-command>")\`
+    - Example: \`task(subagent_type="hardline", description="Run build", prompt="Run: <build-command>")\`
       - Hardline runs commands in a sandboxed environment. No network access.
       - Wait for hardline's response before proceeding to the next step.
     - Prefer minimal, safe changes consistent with the plan instructions.
@@ -169,16 +171,16 @@ function buildGhostPrompt(): string {
 
     \`\`\`
     // Run a build command (examples: make, cargo build, go build, zig build, npm run build)
-    task(category="hardline", description="Run build", prompt="Run: <build-command>")
+    task(subagent_type="hardline", description="Run build", prompt="Run: <build-command>")
 
     // Run tests (examples: pytest, cargo test, go test ./..., zig build test, bun test)
-    task(category="hardline", description="Run tests", prompt="Run: <test-command>")
+    task(subagent_type="hardline", description="Run tests", prompt="Run: <test-command>")
 
     // Run lint (examples: ruff check, clippy, golangci-lint run, biome check)
-    task(category="hardline", description="Run lint", prompt="Run: <lint-command>")
+    task(subagent_type="hardline", description="Run lint", prompt="Run: <lint-command>")
 
     // Install dependencies (examples: pip install -r requirements.txt, cargo fetch, go mod download)
-    task(category="hardline", description="Install deps", prompt="Run: <install-command>")
+    task(subagent_type="hardline", description="Install deps", prompt="Run: <install-command>")
     \`\`\`
 
     ⛔ Ghost MUST NOT delegate to any agent other than @hardline, and only for command execution.
