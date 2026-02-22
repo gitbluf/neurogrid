@@ -5,7 +5,7 @@
 Plan-first Neurogrid agent orchestration for OpenCode.
 **@gitbluf/neurogrid** ships a full, safety-focused agent system with built-in commands, skills, and platform tools—ready to use out of the box.
 
-> Version: **0.1.0** · License: **AGPL-3.0** · Repo: https://github.com/gitbluf/neurogrid
+> Version: **0.2.0** · License: **AGPL-3.0** · Repo: https://github.com/gitbluf/neurogrid
 
 > ⚠️ **GitHub Packages auth required:** add an `.npmrc` in `~/.npmrc` or `.opencode/.npmrc` with `@gitbluf:registry=https://npm.pkg.github.com` and `//npm.pkg.github.com/:_authToken=YOUR_GITHUB_PAT` (PAT needs `read:packages`).
 
@@ -24,13 +24,9 @@ That’s it—OpenCode will load the plugin on next run.
 
 ## 🚧 Planned Features
 
-These features are under active development and not yet available.
-
 | Feature | Status | Description |
 | --- | --- | --- |
 | **Sandboxing** | 🔜 | Running each agent task in a sandboxed/controlled environment for isolation and safety. |
-| **Automatic Git Worktrees** | 🔜 | Creating isolated git worktrees per ghost implementation task, so each `/synth`/`/apply` execution works on its own branch without conflicts. |
-| **Dispatch Mechanism** | 🔜 | Plan and implement multiple plans with a single command. Depends on git worktrees and sandboxing features. |
 
 ## ⚙️ Model Configuration
 
@@ -63,7 +59,7 @@ Model IDs depend on your configured provider (e.g. anthropic/claude-sonnet-4-202
 - **6 specialized agents** (orchestrator, planner, reviewer, discovery, executor, command runner)
 - **3 built-in commands** (`/synth`, `/apply`, `/clean`)
 - **3 built-in skills** (complexity, security, git commit flow)
-- **Platform tools** for agent/skill discovery and configuration
+- **Platform tools** for agent/skill discovery, configuration, and swarm dispatch
 
 ## 🤖 Agents (At a Glance)
 
@@ -88,6 +84,30 @@ cortex (primary orchestrator)
 ├── @ghost (execution via /synth and /apply)
 └── @hardline (command execution ⚠️ requires approval)
 ```
+
+## 🐝 Swarm Dispatch
+
+Run multiple plans in parallel — each in its own git worktree and GHOST session.
+
+```
+cortex → platform_swarm_dispatch
+         ├── worktree/auth-module  → GHOST session 1
+         ├── worktree/db-layer     → GHOST session 2
+         └── worktree/api-routes   → GHOST session 3
+         → aggregated report + merge instructions
+```
+
+Ask CORTEX to dispatch plans:
+
+> "Dispatch these plans in parallel: plan-auth.md, plan-db.md, plan-api.md"
+
+Or check status:
+
+> "Show swarm status"
+
+Each task gets an isolated branch (`neurogrid/swarm-<taskId>-<ts>`). After completion, review diffs and merge manually.
+
+**Safety:** A guard hook blocks destructive commands (`rm -rf`, `git push --force`, `DROP TABLE`) and secret file reads (`.env`, `.pem`, `.key`). An audit hook logs all write/edit operations to `.ai/swarm-audit.log`.
 
 ## 🧭 How It Works
 
@@ -134,6 +154,8 @@ cortex (primary orchestrator)
 - `platform_info` — Summarize platform setup
 - `platform_createAgent` — Create/update agent definitions
 - `platform_cortexAgent` — Get the fully configured cortex orchestrator
+- `platform_swarm_dispatch` — Dispatch parallel GHOST sessions across git worktrees
+- `platform_swarm_status` — Show current swarm run status
 
 ## 📥 Installation Options
 
