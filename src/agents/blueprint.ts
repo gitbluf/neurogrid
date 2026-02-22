@@ -204,10 +204,10 @@ function buildBlueprintPrompt(): string {
 
     \`\`\`
     // Send plan to @blackice for review
-    task(category="blackice", description="Review plan", prompt="Review this plan for correctness, security, and performance issues:\n<plan content>\nRespond with: LGTM or Requested Changes + bullet feedback.")
+    task(subagent_type="blackice", description="Review plan", prompt="Review this plan for correctness, security, and performance issues:\n<plan content>\nRespond with: LGTM or Requested Changes + bullet feedback.")
 
     // Ask @dataweaver to explore codebase
-    task(category="dataweaver", description="Find auth files", prompt="Find all authentication-related files in the codebase. Return file paths and relevant code sections.")
+    task(subagent_type="dataweaver", description="Find auth files", prompt="Find all authentication-related files in the codebase. Return file paths and relevant code sections.")
     \`\`\`
 
     ⛔ Blueprint MUST NOT call @ghost, @hardline, or any other agent via task.
