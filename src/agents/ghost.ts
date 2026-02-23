@@ -249,7 +249,6 @@ export function createGhostAgent(
 			write: true,
 			edit: true,
 			bash: false,
-			sandbox_exec: false,
 			task: true,
 			skill: true,
 			platform_agents: false,
@@ -269,10 +268,16 @@ export function createGhostAgent(
 		temperature: overrides?.temperature ?? 0.1,
 		tools,
 		permission: {
+			read: "allow",
+			write: "allow",
 			edit: "allow",
+			glob: "allow",
+			grep: "allow",
 			bash: { "*": "deny" },
 			webfetch: "deny",
-		},
+			task: "allow",
+			skill: "allow",
+		} as unknown as AgentConfig["permission"],
 		prompt,
 	};
 }

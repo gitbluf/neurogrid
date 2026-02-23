@@ -270,7 +270,6 @@ export function createDataweaverAgent(
 			platform_agents: false,
 			platform_skills: false,
 			webfetch: false,
-			sandbox_exec: false,
 			todowrite: false,
 			todoread: false,
 		},
@@ -285,12 +284,18 @@ export function createDataweaverAgent(
 		temperature: overrides?.temperature ?? 0.1,
 		tools,
 		permission: {
+			read: "allow",
+			glob: "allow",
+			grep: "allow",
+			write: "deny",
 			edit: "deny",
+			skill: "deny",
 			bash: {
 				"*": "deny",
 			},
 			webfetch: "deny",
-		},
+			task: "deny",
+		} as unknown as AgentConfig["permission"],
 		prompt,
 	};
 }

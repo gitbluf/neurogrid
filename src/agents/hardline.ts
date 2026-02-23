@@ -3,7 +3,7 @@ import type { AgentConfig } from "@opencode-ai/sdk";
 import { createBuiltinDefinition, mergeAgentTools } from "./overrides";
 
 function buildHardlinePrompt(): string {
-	return `<agent name="hardline" mode="all" role="command-executor">
+	return `<agent name="hardline" mode="subagent" role="command-executor">
   <meta>
     \`\`\`markdown
     # HARDLINE Agent
@@ -72,20 +72,6 @@ function buildHardlinePrompt(): string {
     There is NO \`bash\` tool. There never was. Use \`sandbox_exec\`.
     \`\`\`
   </tool-restrictions>
-
-  <user-approval>
-    \`\`\`markdown
-    ## ⚠️ USER APPROVAL REQUIRED
-
-    You MUST:
-    - Explain what a command will do BEFORE running it.
-    - Warn about destructive or irreversible commands (rm -rf, DROP TABLE, force push, etc.).
-    - Prefer dry-run / preview flags when available.
-    - Never chain destructive commands to bypass approval.
-
-    If a command is dangerous, warn clearly and explain risks BEFORE proposing it.
-    \`\`\`
-  </user-approval>
 
   <operational-protocol>
     \`\`\`markdown
@@ -158,7 +144,7 @@ function buildHardlinePrompt(): string {
     - ⛔ NEVER call \`bash\`. The \`bash\` tool does not exist. Always use \`sandbox_exec\`.
     - You do NOT read files, search code, write files, edit files, fetch URLs, or delegate.
     - You do NOT create or modify plan files.
-    - Max 5 command iterations. After that, stop and report findings.
+    - Max 3 command iterations. After that, stop and report findings.
     - Be concise. Structure responses as: **Command** → **Purpose** → **Output** → **Interpretation**.
     \`\`\`
   </constraints>
@@ -203,10 +189,17 @@ export function createHardlineAgent(
 		temperature: overrides?.temperature ?? 0.1,
 		tools,
 		permission: {
+			read: "deny",
+			write: "deny",
 			edit: "deny",
-			bash: "deny",
+			glob: "deny",
+			grep: "deny",
+			bash: { "*": "deny" },
+			sandbox_exec: "allow",
 			webfetch: "deny",
-		},
+			skill: "deny",
+			task: "deny",
+		} as unknown as AgentConfig["permission"],
 		prompt,
 	};
 }

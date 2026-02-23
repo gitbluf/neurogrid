@@ -194,7 +194,6 @@ export function createBlackiceAgent(
 			edit: false,
 			bash: false,
 			webfetch: false,
-			sandbox_exec: false,
 			task: false,
 			todowrite: false,
 			todoread: false,
@@ -210,12 +209,18 @@ export function createBlackiceAgent(
 		temperature: overrides?.temperature ?? 0.2,
 		tools,
 		permission: {
+			read: "allow",
+			glob: "allow",
+			grep: "allow",
+			write: "deny",
 			edit: "deny",
 			bash: {
 				"*": "deny",
 			},
 			webfetch: "deny",
-		},
+			task: "deny",
+			skill: "allow",
+		} as unknown as AgentConfig["permission"],
 		prompt,
 	};
 }

@@ -330,7 +330,6 @@ export function createBlueprintAgent(
 			skill: true,
 			platform_agents: false,
 			platform_skills: true,
-			sandbox_exec: false,
 			webfetch: false,
 			todowrite: true,
 			todoread: true,
@@ -346,6 +345,7 @@ export function createBlueprintAgent(
 		temperature: overrides?.temperature ?? 0.1,
 		tools,
 		permission: {
+			read: "allow",
 			edit: {
 				".ai/plan-*.md": "allow",
 				"*": "deny",
@@ -354,10 +354,16 @@ export function createBlueprintAgent(
 				".ai/plan-*.md": "allow",
 				"*": "deny",
 			},
+			glob: "allow",
+			grep: "allow",
 			bash: {
 				"*": "deny",
 			},
 			webfetch: "deny",
+			task: "allow",
+			skill: "allow",
+			todowrite: "allow",
+			todoread: "allow",
 		} as unknown as AgentConfig["permission"],
 		prompt,
 	};
