@@ -2,7 +2,7 @@
 
 export { buildMergeInstructions, dispatchSwarm } from "./dispatch";
 export { checkBranchDivergence } from "./git";
-export { extractGhostOutput } from "./messages";
+export { extractGhostOutput, extractLatestMessage } from "./messages";
 export { formatDispatchReport, formatSwarmOverview } from "./monitor";
 export { waitForSessionIdle } from "./poll";
 export { executeSwarmSandboxed } from "./sandbox";
@@ -28,5 +28,6 @@ export type {
 	SwarmSandboxConfig,
 	SwarmSessionRegistry,
 	SwarmTask,
+	TaskStateChangeCallback,
 } from "./types";
 export { createWorktree, listSwarmWorktrees, pruneWorktrees } from "./worktree";

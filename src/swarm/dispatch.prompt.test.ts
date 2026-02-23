@@ -123,4 +123,102 @@ describe("dispatchSwarm prompt behavior", () => {
 			gitSpy.mockRestore();
 		}
 	});
+
+	it("records queued/starting/running/streaming states", async () => {
+		const taskId = "status-task";
+		const planFile = ".ai/plan-status.md";
+		await writeFile(join(dir, planFile), "# plan", "utf8");
+
+		const worktreeSpy = spyOn(
+			worktreeModule,
+			"createWorktree",
+		).mockImplementation(async (options) => {
+			await mkdir("/tmp/neurogrid-swarm/status", { recursive: true });
+			return {
+				id: taskId,
+				path: "/tmp/neurogrid-swarm/status",
+				branch: "neurogrid/swarm-status-1",
+				planFile: options.planFile,
+				baseBranch: "main",
+				sandbox: {
+					backend: "none",
+					profile: "default",
+					projectDir: "/tmp/neurogrid-swarm/status",
+					enforced: false,
+				},
+				remove: async () => {},
+			};
+		});
+		const shimSpy = spyOn(shimModule, "installSandboxShim").mockResolvedValue(
+			"/tmp/neurogrid-swarm/status/.neurogrid-sandbox.sh",
+		);
+		const pollSpy = spyOn(pollModule, "waitForSessionIdle").mockImplementation(
+			async (_client, _sessionId, options) => {
+				await options?.onLatestMessage?.("streaming message");
+				return { status: "idle" };
+			},
+		);
+		const messagesSpy = spyOn(
+			messagesModule,
+			"extractGhostOutput",
+		).mockResolvedValue({
+			status: "complete",
+			files_modified: ["src/app.ts"],
+			summary: "ok",
+		});
+		const gitSpy = spyOn(gitModule, "checkBranchDivergence").mockResolvedValue({
+			commits: 1,
+			hasChanges: true,
+		});
+
+		const client = {
+			session: {
+				create: async () => ({ id: "session-status" }),
+				prompt: async () => ({ ok: true }),
+				status: async () => ({ "session-status": { status: "idle" } }),
+				abort: async () => ({}),
+				messages: async () => [],
+			},
+			tui: {
+				showToast: async () => {},
+			},
+		} as unknown as OpencodeClient;
+
+		const mock$: ShellRunner = (_s: TemplateStringsArray, ..._v: unknown[]) =>
+			Promise.resolve({ text: () => "commit" });
+
+		const tasks: SwarmTask[] = [{ taskId, planFile }];
+		const seen: string[] = [];
+		const states: string[] = [];
+		try {
+			await dispatchSwarm(tasks, {
+				client,
+				directory: dir,
+				$: mock$,
+				parentSessionId: "parent",
+				polling: { captureLatestMessage: true },
+				onTaskStateChange: (record) => {
+					seen.push(record.taskId);
+					states.push(record.status);
+				},
+			});
+
+			expect(seen).toContain(taskId);
+			expect(states).toEqual(
+				expect.arrayContaining([
+					"queued",
+					"starting",
+					"running",
+					"streaming",
+					"done",
+				]),
+			);
+		} finally {
+			worktreeSpy.mockRestore();
+			shimSpy.mockRestore();
+			pollSpy.mockRestore();
+			messagesSpy.mockRestore();
+			gitSpy.mockRestore();
+		}
+	});
 });

@@ -18,6 +18,9 @@ export function formatSwarmOverview(records: SwarmRunRecord[]): string {
 		failed: records.filter((r) => r.status === "failed").length,
 		running: records.filter((r) => r.status === "running").length,
 		pending: records.filter((r) => r.status === "pending").length,
+		queued: records.filter((r) => r.status === "queued").length,
+		starting: records.filter((r) => r.status === "starting").length,
+		streaming: records.filter((r) => r.status === "streaming").length,
 	};
 
 	const totalDurationMs = records.reduce(
@@ -36,6 +39,9 @@ export function formatSwarmOverview(records: SwarmRunRecord[]): string {
 	lines.push(`| ❌ Failed | ${byStatus.failed} |`);
 	lines.push(`| 🔄 Running | ${byStatus.running} |`);
 	lines.push(`| ⏳ Pending | ${byStatus.pending} |`);
+	lines.push(`| ⏳ Queued | ${byStatus.queued} |`);
+	lines.push(`| 🟡 Starting | ${byStatus.starting} |`);
+	lines.push(`| 💬 Streaming | ${byStatus.streaming} |`);
 	lines.push(`| **Total** | **${records.length}** |`);
 
 	if (totalDurationMs > 0) {

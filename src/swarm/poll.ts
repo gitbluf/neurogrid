@@ -1,5 +1,6 @@
 // src/swarm/poll.ts
 
+import { extractLatestMessage } from "./messages";
 import type { OpencodeClient, PollingOptions, PollResult } from "./types";
 
 const DEFAULT_INTERVAL_MS = 2000;
@@ -33,6 +34,7 @@ export async function waitForSessionIdle(
 	const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
 	const deadline = Date.now() + timeoutMs;
 	let undefinedReads = 0;
+	let lastEmittedMessage: string | undefined;
 
 	while (Date.now() < deadline) {
 		try {
@@ -60,6 +62,14 @@ export async function waitForSessionIdle(
 				}
 			} else {
 				undefinedReads = 0;
+			}
+
+			if (options.captureLatestMessage) {
+				const latest = await extractLatestMessage(client, sessionId);
+				if (latest.message && latest.message !== lastEmittedMessage) {
+					lastEmittedMessage = latest.message;
+					options.onLatestMessage?.(latest.message);
+				}
 			}
 
 			if (status === "idle") {

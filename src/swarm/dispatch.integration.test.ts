@@ -162,4 +162,74 @@ describe("dispatchSwarm integration", () => {
 			shimSpy.mockRestore();
 		}
 	});
+
+	it("emits onTaskStateChange during polling", async () => {
+		const taskId = "stream-task";
+		const planFile = ".ai/plan-stream.md";
+		await writeFile(join(dir, planFile), "# plan", "utf8");
+
+		const worktreeSpy = spyOn(
+			worktreeModule,
+			"createWorktree",
+		).mockImplementation(async (options) => {
+			await mkdir("/tmp/neurogrid-swarm/stream", { recursive: true });
+			return {
+				id: taskId,
+				path: "/tmp/neurogrid-swarm/stream",
+				branch: "neurogrid/swarm-stream-1",
+				planFile: options.planFile,
+				baseBranch: "main",
+				sandbox: {
+					backend: "none",
+					profile: "default",
+					projectDir: "/tmp/neurogrid-swarm/stream",
+					enforced: false,
+				},
+				remove: async () => {},
+			};
+		});
+		const shimSpy = spyOn(shimModule, "installSandboxShim").mockResolvedValue(
+			"/tmp/neurogrid-swarm/stream/.neurogrid-sandbox.sh",
+		);
+
+		const client = {
+			session: {
+				create: async () => ({ id: "session-stream" }),
+				prompt: async () => ({ ok: true }),
+				status: async () => ({ "session-stream": { status: "busy" } }),
+				abort: async () => ({}),
+				messages: async () => [],
+			},
+			tui: {
+				showToast: async () => {},
+			},
+		} as unknown as OpencodeClient;
+
+		const mock$: ShellRunner = (_s: TemplateStringsArray, ..._v: unknown[]) =>
+			Promise.resolve({ text: () => "main" });
+
+		const tasks: SwarmTask[] = [{ taskId, planFile }];
+		const seen: string[] = [];
+		try {
+			await dispatchSwarm(tasks, {
+				client,
+				directory: dir,
+				$: mock$,
+				parentSessionId: "parent",
+				polling: {
+					intervalMs: 0,
+					timeoutMs: 1,
+					captureLatestMessage: true,
+				},
+				onTaskStateChange: (record) => {
+					seen.push(record.status);
+				},
+			});
+
+			expect(seen.length).toBeGreaterThan(0);
+		} finally {
+			worktreeSpy.mockRestore();
+			shimSpy.mockRestore();
+		}
+	});
 });

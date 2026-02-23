@@ -35,6 +35,49 @@ describe("formatSwarmOverview", () => {
 		expect(output).toContain("⚪ No Changes");
 		expect(output).toContain("⏰ Timeout");
 	});
+
+	it("counts queued, starting, and streaming", () => {
+		const records: SwarmRunRecord[] = [
+			{
+				taskId: "q",
+				sessionId: "s1",
+				branch: "b1",
+				worktreePath: "/tmp/neurogrid-swarm/q",
+				planFile: ".ai/plan-q.md",
+				status: "queued",
+				sandboxBackend: "sandbox-exec",
+				sandboxProfile: "default",
+				sandboxEnforced: true,
+			},
+			{
+				taskId: "s",
+				sessionId: "s2",
+				branch: "b2",
+				worktreePath: "/tmp/neurogrid-swarm/s",
+				planFile: ".ai/plan-s.md",
+				status: "starting",
+				sandboxBackend: "sandbox-exec",
+				sandboxProfile: "default",
+				sandboxEnforced: true,
+			},
+			{
+				taskId: "t",
+				sessionId: "s3",
+				branch: "b3",
+				worktreePath: "/tmp/neurogrid-swarm/t",
+				planFile: ".ai/plan-t.md",
+				status: "streaming",
+				sandboxBackend: "sandbox-exec",
+				sandboxProfile: "default",
+				sandboxEnforced: true,
+			},
+		];
+
+		const output = formatSwarmOverview(records);
+		expect(output).toContain("Queued");
+		expect(output).toContain("Starting");
+		expect(output).toContain("Streaming");
+	});
 });
 
 describe("formatDispatchReport", () => {

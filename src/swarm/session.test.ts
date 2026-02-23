@@ -334,6 +334,49 @@ describe("swarm session registry", () => {
 			expect(output).toContain("…");
 		});
 
+		it("renders queued, starting, and streaming icons", () => {
+			const records: SwarmRunRecord[] = [
+				{
+					taskId: "queued",
+					sessionId: "session-queued",
+					branch: "neurogrid/swarm-queued-1",
+					worktreePath: "/tmp/neurogrid-swarm/queued",
+					planFile: ".ai/plan-queued.md",
+					status: "queued",
+					sandboxBackend: "sandbox-exec",
+					sandboxProfile: "default",
+					sandboxEnforced: true,
+				},
+				{
+					taskId: "starting",
+					sessionId: "session-starting",
+					branch: "neurogrid/swarm-starting-1",
+					worktreePath: "/tmp/neurogrid-swarm/starting",
+					planFile: ".ai/plan-starting.md",
+					status: "starting",
+					sandboxBackend: "sandbox-exec",
+					sandboxProfile: "default",
+					sandboxEnforced: true,
+				},
+				{
+					taskId: "streaming",
+					sessionId: "session-streaming",
+					branch: "neurogrid/swarm-streaming-1",
+					worktreePath: "/tmp/neurogrid-swarm/streaming",
+					planFile: ".ai/plan-streaming.md",
+					status: "streaming",
+					sandboxBackend: "sandbox-exec",
+					sandboxProfile: "default",
+					sandboxEnforced: true,
+				},
+			];
+
+			const output = formatSwarmStatus(records);
+			expect(output).toContain("⏳ queued");
+			expect(output).toContain("🟡 starting");
+			expect(output).toContain("💬 streaming");
+		});
+
 		it("returns markdown table for records", () => {
 			const records: SwarmRunRecord[] = [
 				{

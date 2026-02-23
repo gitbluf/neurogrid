@@ -41,9 +41,19 @@ export interface SwarmRunRecord {
 	branch: string;
 	worktreePath: string;
 	planFile: string;
-	status: "pending" | "running" | "done" | "failed" | "no-changes" | "timeout";
+	status:
+		| "pending"
+		| "queued"
+		| "starting"
+		| "streaming"
+		| "running"
+		| "done"
+		| "failed"
+		| "no-changes"
+		| "timeout";
 	result?: string;
 	error?: string;
+	lastMessage?: string;
 	sandboxBackend?: string;
 	sandboxProfile?: string;
 	sandboxEnforced?: boolean;
@@ -106,6 +116,10 @@ export interface PollingOptions {
 	intervalMs?: number;
 	/** Total timeout in ms (default: 300000 = 5 min) */
 	timeoutMs?: number;
+	/** Fetch and emit latest assistant message during polling */
+	captureLatestMessage?: boolean;
+	/** Callback when latest assistant message changes */
+	onLatestMessage?: (message: string) => void;
 }
 
 export type PollResult =
@@ -119,6 +133,20 @@ export interface GhostStructuredOutput {
 	files_modified: string[];
 	summary: string;
 	blockers?: string[];
+}
+
+export type TaskStateChangeCallback = (record: SwarmRunRecord) => void;
+
+export interface DispatchOptions {
+	client: OpencodeClient;
+	directory: string;
+	$: ShellRunner;
+	parentSessionId: string;
+	model?: string;
+	concurrency?: number;
+	sandboxProfile?: SecurityProfile;
+	polling?: PollingOptions;
+	onTaskStateChange?: TaskStateChangeCallback;
 }
 
 /** Shape of the swarm session registry JSON file. */

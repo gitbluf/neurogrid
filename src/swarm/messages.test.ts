@@ -1,7 +1,7 @@
 // src/swarm/messages.test.ts
 
 import { describe, expect, it } from "bun:test";
-import { extractGhostOutput } from "./messages";
+import { extractGhostOutput, extractLatestMessage } from "./messages";
 import type { OpencodeClient } from "./types";
 
 const createClient = (messages: unknown[]): OpencodeClient =>
@@ -149,6 +149,60 @@ describe("extractGhostOutput", () => {
 
 		const result = await extractGhostOutput(client, "session-1");
 		expect("raw" in result).toBe(false);
+		expect(captured).toEqual(
+			expect.objectContaining({ sessionID: "session-1" }),
+		);
+	});
+});
+
+describe("extractLatestMessage", () => {
+	it("returns latest assistant text", async () => {
+		const client = createClient([
+			{ info: { role: "user" }, parts: [{ type: "text", text: "hi" }] },
+			{
+				info: { role: "assistant" },
+				parts: [{ type: "text", text: "hello" }],
+			},
+		]);
+
+		const result = await extractLatestMessage(client, "session-1");
+		expect(result).toEqual({ message: "hello" });
+	});
+
+	it("handles missing assistant message", async () => {
+		const client = createClient([
+			{ info: { role: "user" }, parts: [{ type: "text", text: "hi" }] },
+		]);
+
+		const result = await extractLatestMessage(client, "session-1");
+		expect(result.error).toContain("assistant");
+	});
+
+	it("handles empty parts", async () => {
+		const client = createClient([{ info: { role: "assistant" }, parts: [] }]);
+
+		const result = await extractLatestMessage(client, "session-1");
+		expect(result.error).toContain("no text");
+	});
+
+	it("uses flat sessionID parameter", async () => {
+		let captured: Record<string, unknown> | undefined;
+		const client = {
+			session: {
+				messages: async (args: Record<string, unknown>) => {
+					captured = args;
+					return [
+						{
+							info: { role: "assistant" },
+							parts: [{ type: "text", text: "ok" }],
+						},
+					];
+				},
+			},
+		} as unknown as OpencodeClient;
+
+		const result = await extractLatestMessage(client, "session-1");
+		expect(result.message).toBe("ok");
 		expect(captured).toEqual(
 			expect.objectContaining({ sessionID: "session-1" }),
 		);

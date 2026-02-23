@@ -1,6 +1,7 @@
 // src/swarm/poll.test.ts
 
 import { describe, expect, it, spyOn } from "bun:test";
+import * as messagesModule from "./messages";
 import { waitForSessionIdle } from "./poll";
 import type { OpencodeClient } from "./types";
 
@@ -94,5 +95,55 @@ describe("waitForSessionIdle", () => {
 		if (result.status === "error") {
 			expect(result.error).toContain("Session not found");
 		}
+	});
+
+	it("captures latest message and emits on change", async () => {
+		const client = createClient([
+			{ "session-1": { status: "busy" } },
+			{ "session-1": { status: "busy" } },
+			{ "session-1": { status: "idle" } },
+		]);
+		const messagesSpy = spyOn(messagesModule, "extractLatestMessage")
+			.mockResolvedValueOnce({ message: "hello" })
+			.mockResolvedValueOnce({ message: "hello" })
+			.mockResolvedValueOnce({ message: "world" });
+		const received: string[] = [];
+
+		const result = await waitForSessionIdle(client, "session-1", {
+			intervalMs: 0,
+			timeoutMs: 50,
+			captureLatestMessage: true,
+			onLatestMessage: (message) => {
+				received.push(message);
+			},
+		});
+		messagesSpy.mockRestore();
+
+		expect(result).toEqual({ status: "idle" });
+		expect(received).toEqual(["hello", "world"]);
+	});
+
+	it("does not emit when message is unchanged", async () => {
+		const client = createClient([
+			{ "session-1": { status: "busy" } },
+			{ "session-1": { status: "idle" } },
+		]);
+		const messagesSpy = spyOn(messagesModule, "extractLatestMessage")
+			.mockResolvedValueOnce({ message: "same" })
+			.mockResolvedValueOnce({ message: "same" });
+		const received: string[] = [];
+
+		const result = await waitForSessionIdle(client, "session-1", {
+			intervalMs: 0,
+			timeoutMs: 50,
+			captureLatestMessage: true,
+			onLatestMessage: (message) => {
+				received.push(message);
+			},
+		});
+		messagesSpy.mockRestore();
+
+		expect(result).toEqual({ status: "idle" });
+		expect(received).toEqual(["same"]);
 	});
 });

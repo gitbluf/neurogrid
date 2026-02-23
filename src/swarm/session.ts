@@ -100,11 +100,19 @@ export function formatSwarmStatus(records: SwarmRunRecord[]): string {
 							? "⏰"
 							: r.status === "running"
 								? "🔄"
-								: "⏳";
+								: r.status === "streaming"
+									? "💬"
+									: r.status === "starting"
+										? "🟡"
+										: "⏳";
 		const duration =
 			r.durationMs != null
 				? `${(r.durationMs / 1000).toFixed(1)}s`
-				: r.status === "running" || r.status === "pending"
+				: r.status === "running" ||
+						r.status === "pending" ||
+						r.status === "queued" ||
+						r.status === "starting" ||
+						r.status === "streaming"
 					? "…"
 					: "-";
 		const dispatch = r.dispatchId ? r.dispatchId.slice(0, 8) : "-";

@@ -84,3 +84,55 @@ export async function extractGhostOutput(
 		};
 	}
 }
+
+export async function extractLatestMessage(
+	client: OpencodeClient,
+	sessionId: string,
+): Promise<{ message?: string; error?: string }> {
+	const fetchMessages = client.session.messages as unknown as (args: {
+		sessionID: string;
+	}) => Promise<unknown>;
+	let messagesResult: unknown;
+	try {
+		messagesResult = await fetchMessages({ sessionID: sessionId });
+	} catch (error) {
+		return {
+			error: error instanceof Error ? error.message : String(error),
+		};
+	}
+	const messagesData = messagesResult as { data?: unknown };
+	const messages = messagesData.data ?? messagesResult;
+	if (!Array.isArray(messages) || messages.length === 0) {
+		return { error: "No session messages found" };
+	}
+
+	const lastAssistant = [...messages]
+		.reverse()
+		.find((message) => message?.info?.role === "assistant");
+
+	if (!lastAssistant) {
+		return { error: "No assistant message found" };
+	}
+
+	const error = lastAssistant?.info?.error;
+	if (error) {
+		return {
+			error: typeof error === "string" ? error : "Assistant error",
+		};
+	}
+
+	const parts = Array.isArray(lastAssistant.parts)
+		? (lastAssistant.parts as Array<{ type?: string; text?: unknown }>)
+		: [];
+	const text = parts
+		.filter((part) => part?.type === "text")
+		.map((part) => String(part.text ?? ""))
+		.join("\n")
+		.trim();
+
+	if (!text) {
+		return { error: "Assistant message had no text" };
+	}
+
+	return { message: text };
+}

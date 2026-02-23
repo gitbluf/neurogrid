@@ -3,32 +3,19 @@
 import { randomUUID } from "node:crypto";
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import type { SecurityProfile } from "../tools/sandbox/profiles";
 import { checkBranchDivergence } from "./git";
 import { extractGhostOutput } from "./messages";
 import { waitForSessionIdle } from "./poll";
 import { installSandboxShim } from "./sandbox-shim";
 import { registerSwarmRun } from "./session";
 import type {
+	DispatchOptions,
 	DispatchReport,
-	OpencodeClient,
-	PollingOptions,
-	ShellRunner,
 	SwarmResult,
+	SwarmRunRecord,
 	SwarmTask,
 } from "./types";
 import { createWorktree, pruneWorktrees } from "./worktree";
-
-export interface DispatchOptions {
-	client: OpencodeClient;
-	directory: string;
-	$: ShellRunner;
-	parentSessionId: string;
-	model?: string;
-	concurrency?: number;
-	sandboxProfile?: SecurityProfile;
-	polling?: PollingOptions;
-}
 
 /**
  * Dispatch N independent plan files to N parallel GHOST sessions,
@@ -40,6 +27,26 @@ export async function dispatchSwarm(
 ): Promise<DispatchReport> {
 	const { client, directory, $, parentSessionId } = opts;
 	const concurrency = Math.min(opts.concurrency ?? tasks.length, 10);
+	const terminalStatuses = new Set<SwarmRunRecord["status"]>([
+		"done",
+		"failed",
+		"no-changes",
+		"timeout",
+	]);
+	type TaskState = {
+		status: SwarmRunRecord["status"];
+		lastMessage?: string;
+	};
+	const taskState = new Map<string, TaskState>();
+
+	async function recordState(record: SwarmRunRecord): Promise<void> {
+		taskState.set(record.taskId, {
+			status: record.status,
+			lastMessage: record.lastMessage,
+		});
+		await registerSwarmRun(directory, record);
+		opts.onTaskStateChange?.(record);
+	}
 
 	// Pre-flight: verify SDK session API is available
 	if (
@@ -140,15 +147,16 @@ export async function dispatchSwarm(
 					throw new Error(`No plan content for task ${task.taskId}`);
 				const taskStartedAt = new Date().toISOString();
 				taskStartTimes.set(task.taskId, taskStartedAt);
+				taskState.set(task.taskId, { status: "queued" });
 
-				// Register as pending — written to disk immediately
-				await registerSwarmRun(directory, {
+				// Register as queued — written to disk immediately
+				await recordState({
 					taskId: task.taskId,
 					sessionId: "",
 					branch: sandbox.branch,
 					worktreePath: sandbox.path,
 					planFile: task.planFile,
-					status: "pending",
+					status: "queued",
 					dispatchId,
 					startedAt: taskStartedAt,
 					sandboxBackend: sandbox.sandbox.backend,
@@ -174,14 +182,14 @@ export async function dispatchSwarm(
 				const sessionId =
 					typeof session.id === "string" ? session.id : "unknown";
 
-				// Update to running — written to disk immediately
-				await registerSwarmRun(directory, {
+				// Update to starting — written to disk immediately
+				await recordState({
 					taskId: task.taskId,
 					sessionId,
 					branch: sandbox.branch,
 					worktreePath: sandbox.path,
 					planFile: task.planFile,
-					status: "running",
+					status: "starting",
 					dispatchId,
 					startedAt: taskStartedAt,
 					sandboxBackend: sandbox.sandbox.backend,
@@ -230,6 +238,21 @@ export async function dispatchSwarm(
 				});
 				void executeResult;
 
+				// Update to running after prompts are sent
+				await recordState({
+					taskId: task.taskId,
+					sessionId,
+					branch: sandbox.branch,
+					worktreePath: sandbox.path,
+					planFile: task.planFile,
+					status: "running",
+					dispatchId,
+					startedAt: taskStartedAt,
+					sandboxBackend: sandbox.sandbox.backend,
+					sandboxProfile: sandbox.sandbox.profile,
+					sandboxEnforced: sandbox.sandbox.enforced,
+				});
+
 				return { taskId: task.taskId, sessionId, sandbox, taskStartedAt };
 			}),
 		);
@@ -245,6 +268,7 @@ export async function dispatchSwarm(
 				const taskStartedAt =
 					taskStartTimes.get(task.taskId) ?? new Date().toISOString();
 				const { completedAt, durationMs } = computeDuration(taskStartedAt);
+				const lastMessage = taskState.get(task.taskId)?.lastMessage;
 				const failedResult: SwarmResult = {
 					taskId: task.taskId,
 					planFile: task.planFile,
@@ -268,7 +292,7 @@ export async function dispatchSwarm(
 				};
 
 				results.push(failedResult);
-				await registerSwarmRun(directory, {
+				await recordState({
 					taskId: task.taskId,
 					sessionId: "unknown",
 					branch: sandbox.branch,
@@ -282,6 +306,7 @@ export async function dispatchSwarm(
 					sandboxBackend: sandbox.sandbox.backend,
 					sandboxProfile: sandbox.sandbox.profile,
 					sandboxEnforced: sandbox.sandbox.enforced,
+					lastMessage,
 					error:
 						settled.reason instanceof Error
 							? settled.reason.message
@@ -291,11 +316,31 @@ export async function dispatchSwarm(
 				const { sessionId, taskStartedAt } = settled.value;
 				const { completedAt, durationMs } = computeDuration(taskStartedAt);
 
-				const pollResult = await waitForSessionIdle(
-					client,
-					sessionId,
-					opts.polling,
-				);
+				const pollResult = await waitForSessionIdle(client, sessionId, {
+					...opts.polling,
+					captureLatestMessage:
+						opts.polling?.captureLatestMessage ??
+						Boolean(opts.onTaskStateChange),
+					onLatestMessage: async (message) => {
+						const state = taskState.get(task.taskId);
+						if (state && terminalStatuses.has(state.status)) return;
+						await recordState({
+							taskId: task.taskId,
+							sessionId,
+							branch: sandbox.branch,
+							worktreePath: sandbox.path,
+							planFile: task.planFile,
+							status: "streaming",
+							lastMessage: message,
+							dispatchId,
+							startedAt: taskStartedAt,
+							sandboxBackend: sandbox.sandbox.backend,
+							sandboxProfile: sandbox.sandbox.profile,
+							sandboxEnforced: sandbox.sandbox.enforced,
+						});
+					},
+				});
+				const lastMessage = taskState.get(task.taskId)?.lastMessage;
 
 				if (pollResult.status === "timeout") {
 					const timeoutMs = opts.polling?.timeoutMs ?? 300000;
@@ -318,7 +363,7 @@ export async function dispatchSwarm(
 						error: `Session timed out after ${timeoutMs}ms`,
 					};
 					results.push(timeoutResult);
-					await registerSwarmRun(directory, {
+					await recordState({
 						taskId: task.taskId,
 						sessionId,
 						branch: sandbox.branch,
@@ -326,6 +371,7 @@ export async function dispatchSwarm(
 						planFile: task.planFile,
 						status: "timeout",
 						error: timeoutResult.error,
+						lastMessage,
 						dispatchId,
 						startedAt: taskStartedAt,
 						completedAt,
@@ -357,7 +403,7 @@ export async function dispatchSwarm(
 						error: pollResult.error,
 					};
 					results.push(failedResult);
-					await registerSwarmRun(directory, {
+					await recordState({
 						taskId: task.taskId,
 						sessionId,
 						branch: sandbox.branch,
@@ -365,6 +411,7 @@ export async function dispatchSwarm(
 						planFile: task.planFile,
 						status: "failed",
 						error: pollResult.error,
+						lastMessage,
 						dispatchId,
 						startedAt: taskStartedAt,
 						completedAt,
@@ -398,7 +445,7 @@ export async function dispatchSwarm(
 						rawOutput: output.raw,
 					};
 					results.push(failedResult);
-					await registerSwarmRun(directory, {
+					await recordState({
 						taskId: task.taskId,
 						sessionId,
 						branch: sandbox.branch,
@@ -406,6 +453,7 @@ export async function dispatchSwarm(
 						planFile: task.planFile,
 						status: "failed",
 						error: failedResult.error,
+						lastMessage,
 						dispatchId,
 						startedAt: taskStartedAt,
 						completedAt,
@@ -454,7 +502,7 @@ export async function dispatchSwarm(
 				};
 
 				results.push(result);
-				await registerSwarmRun(directory, {
+				await recordState({
 					taskId: task.taskId,
 					sessionId,
 					branch: sandbox.branch,
@@ -462,6 +510,7 @@ export async function dispatchSwarm(
 					planFile: task.planFile,
 					status,
 					result: JSON.stringify(parsed),
+					lastMessage,
 					dispatchId,
 					startedAt: taskStartedAt,
 					completedAt,
