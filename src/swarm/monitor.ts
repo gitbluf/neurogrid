@@ -13,6 +13,8 @@ export function formatSwarmOverview(records: SwarmRunRecord[]): string {
 
 	const byStatus = {
 		done: records.filter((r) => r.status === "done").length,
+		noChanges: records.filter((r) => r.status === "no-changes").length,
+		timeout: records.filter((r) => r.status === "timeout").length,
 		failed: records.filter((r) => r.status === "failed").length,
 		running: records.filter((r) => r.status === "running").length,
 		pending: records.filter((r) => r.status === "pending").length,
@@ -24,6 +26,8 @@ export function formatSwarmOverview(records: SwarmRunRecord[]): string {
 	lines.push("| Status | Count |");
 	lines.push("|--------|-------|");
 	lines.push(`| ✅ Done | ${byStatus.done} |`);
+	lines.push(`| ⚪ No Changes | ${byStatus.noChanges} |`);
+	lines.push(`| ⏰ Timeout | ${byStatus.timeout} |`);
 	lines.push(`| ❌ Failed | ${byStatus.failed} |`);
 	lines.push(`| 🔄 Running | ${byStatus.running} |`);
 	lines.push(`| ⏳ Pending | ${byStatus.pending} |`);
@@ -40,12 +44,19 @@ export function formatDispatchReport(report: DispatchReport): string {
 	lines.push("## Dispatch Report");
 	lines.push("");
 	lines.push(
-		`**${report.succeeded}/${report.total}** tasks succeeded, **${report.failed}** failed.`,
+		`**${report.succeeded}/${report.total}** tasks succeeded, **${report.noChanges}** no-changes, **${report.failed}** failed.`,
 	);
 	lines.push("");
 
 	for (const r of report.results) {
-		const icon = r.status === "done" ? "✅" : "❌";
+		const icon =
+			r.status === "done"
+				? "✅"
+				: r.status === "failed"
+					? "❌"
+					: r.status === "timeout"
+						? "⏰"
+						: "⚪";
 		lines.push(`### ${icon} ${r.taskId}`);
 		lines.push("");
 		lines.push(`- **Plan:** \`${r.planFile}\``);

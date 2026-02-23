@@ -1,6 +1,6 @@
 // src/swarm/session.ts
 
-import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rename, unlink, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { SwarmRunRecord, SwarmSessionRegistry } from "./types";
 
@@ -8,10 +8,6 @@ const REGISTRY_FILENAME = ".swarm-sessions.json";
 
 function getRegistryPath(directory: string): string {
 	return join(directory, ".ai", REGISTRY_FILENAME);
-}
-
-function getRegistryTempPath(directory: string): string {
-	return join(directory, ".ai", `${REGISTRY_FILENAME}.tmp`);
 }
 
 export async function readSwarmRegistry(
@@ -35,10 +31,20 @@ export async function writeSwarmRegistry(
 ): Promise<void> {
 	const aiDir = join(directory, ".ai");
 	await mkdir(aiDir, { recursive: true });
-	const tempPath = getRegistryTempPath(directory);
+	const tempName = `${REGISTRY_FILENAME}.${Date.now()}-${Math.random().toString(36).slice(2, 8)}.tmp`;
+	const tempPath = join(aiDir, tempName);
 	const registryPath = getRegistryPath(directory);
 	await writeFile(tempPath, JSON.stringify(registry, null, 2), "utf8");
-	await rename(tempPath, registryPath);
+	try {
+		await rename(tempPath, registryPath);
+	} catch (error) {
+		try {
+			await unlink(tempPath);
+		} catch {
+			// best-effort cleanup
+		}
+		throw error;
+	}
 }
 
 export async function registerSwarmRun(
@@ -47,6 +53,18 @@ export async function registerSwarmRun(
 ): Promise<void> {
 	const registry = await readSwarmRegistry(directory);
 	registry[record.taskId] = record;
+	await writeSwarmRegistry(directory, registry);
+}
+
+export async function bulkRegisterSwarmRuns(
+	directory: string,
+	records: SwarmRunRecord[],
+): Promise<void> {
+	if (records.length === 0) return;
+	const registry = await readSwarmRegistry(directory);
+	for (const record of records) {
+		registry[record.taskId] = record;
+	}
 	await writeSwarmRegistry(directory, registry);
 }
 
@@ -72,9 +90,13 @@ export function formatSwarmStatus(records: SwarmRunRecord[]): string {
 				? "✅"
 				: r.status === "failed"
 					? "❌"
-					: r.status === "running"
-						? "🔄"
-						: "⏳";
+					: r.status === "no-changes"
+						? "⚪"
+						: r.status === "timeout"
+							? "⏰"
+							: r.status === "running"
+								? "🔄"
+								: "⏳";
 		const sandboxStatus = r.sandboxEnforced
 			? `✅ ${r.sandboxBackend ?? "unknown"} (${r.sandboxProfile ?? "default"})`
 			: "⚠️ Not enforced";

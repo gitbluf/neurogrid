@@ -10,6 +10,7 @@ export interface WorktreeSandbox {
 	path: string;
 	branch: string;
 	planFile: string;
+	baseBranch: string;
 	sandbox: SwarmSandboxConfig;
 	remove: () => Promise<void>;
 }
@@ -36,7 +37,7 @@ export async function createWorktree(
 	const backend = await sandboxDetect.detectBackend();
 	const profile = opts.sandboxProfile ?? sandboxProfiles.resolveProfile();
 	const branch = `neurogrid/swarm-${taskId}-${Date.now()}`;
-	const worktreePath = `${SWARM_TMP_ROOT}/${taskId}`;
+	const worktreePath = `${SWARM_TMP_ROOT}/${taskId}-${Date.now()}`;
 
 	await $`mkdir -p ${SWARM_TMP_ROOT}`;
 
@@ -51,6 +52,7 @@ export async function createWorktree(
 		path: worktreePath,
 		branch,
 		planFile,
+		baseBranch,
 		sandbox: {
 			backend,
 			profile,

@@ -41,6 +41,12 @@ describe("dispatch", () => {
 			const output = buildMergeInstructions(results);
 			expect(output).toContain("git merge --no-ff neurogrid/swarm-auth-123");
 			expect(output).toContain("1/1 succeeded");
+			expect(output).toContain(
+				"git diff --stat main..neurogrid/swarm-auth-123",
+			);
+			expect(output).toContain(
+				"git log --oneline main..neurogrid/swarm-auth-123",
+			);
 		});
 
 		it("lists failed tasks", () => {
@@ -102,6 +108,28 @@ describe("dispatch", () => {
 			expect(output).toContain("git merge --no-ff neurogrid/swarm-auth-1");
 			expect(output).toContain("crash");
 		});
+
+		it("flags no-changes branches with warning", () => {
+			const results: SwarmResult[] = [
+				{
+					taskId: "docs",
+					planFile: ".ai/plan-docs.md",
+					branch: "neurogrid/swarm-docs-1",
+					worktreePath: "/tmp/neurogrid-swarm/docs",
+					sessionId: "s3",
+					status: "no-changes",
+					filesModified: [],
+					summary: "No changes",
+					sandboxBackend: "sandbox-exec",
+					sandboxProfile: "default",
+					sandboxEnforced: true,
+				},
+			];
+
+			const output = buildMergeInstructions(results);
+			expect(output).toContain("No Changes Detected");
+			expect(output).not.toContain("git merge --no-ff");
+		});
 	});
 
 	describe("buildSwarmPrompt", () => {
@@ -117,6 +145,7 @@ describe("dispatch", () => {
 				path: "/tmp/neurogrid-swarm/auth",
 				branch: "neurogrid/swarm-auth-123",
 				planFile: ".ai/plan-auth.md",
+				baseBranch: "main",
 				sandbox: sandboxConfig,
 				remove: async () => {},
 			};

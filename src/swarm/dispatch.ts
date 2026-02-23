@@ -3,14 +3,18 @@
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { SecurityProfile } from "../tools/sandbox/profiles";
+import { checkBranchDivergence } from "./git";
+import { extractGhostOutput } from "./messages";
+import { waitForSessionIdle } from "./poll";
 import { installSandboxShim } from "./sandbox-shim";
-import { registerSwarmRun } from "./session";
+import { bulkRegisterSwarmRuns } from "./session";
 import type {
 	DispatchReport,
-	GhostStructuredOutput,
 	OpencodeClient,
+	PollingOptions,
 	ShellRunner,
 	SwarmResult,
+	SwarmRunRecord,
 	SwarmTask,
 } from "./types";
 import { createWorktree, pruneWorktrees } from "./worktree";
@@ -23,6 +27,7 @@ export interface DispatchOptions {
 	model?: string;
 	concurrency?: number;
 	sandboxProfile?: SecurityProfile;
+	polling?: PollingOptions;
 }
 
 /**
@@ -113,6 +118,7 @@ export async function dispatchSwarm(
 	for (let i = 0; i < tasks.length; i += concurrency) {
 		const batch = tasks.slice(i, i + concurrency);
 
+		const batchRecords: SwarmRunRecord[] = [];
 		const batchResults = await Promise.allSettled(
 			batch.map(async (task) => {
 				const sandbox = sandboxes.get(task.taskId);
@@ -121,13 +127,8 @@ export async function dispatchSwarm(
 				if (!planContent)
 					throw new Error(`No plan content for task ${task.taskId}`);
 
-				// Register as pending
-				// NOTE(v0.2.0): Concurrent registerSwarmRun calls have a race window
-				// (read-modify-write on same JSON file). Acceptable because taskIds are
-				// unique keys, and final writes in the aggregation loop below run
-				// sequentially after Promise.allSettled resolves.
-				// TODO(v0.3.0): Use file locking or in-memory accumulator to eliminate race window
-				await registerSwarmRun(directory, {
+				// Register as pending (in-memory accumulation)
+				batchRecords.push({
 					taskId: task.taskId,
 					sessionId: "",
 					branch: sandbox.branch,
@@ -140,19 +141,25 @@ export async function dispatchSwarm(
 				});
 
 				// Create child session
-				const sessionResult = await client.session.create({
+				const createSession = client.session.create as unknown as (args: {
+					body: { title: string; parentID: string };
+				}) => Promise<unknown>;
+				const sessionResult = await createSession({
 					body: {
 						title: `[SWARM] ${task.taskId}`,
 						parentID: parentSessionId,
 					},
 				});
-
-				// biome-ignore lint: SDK response shape varies by version
-				const session = (sessionResult as any).data ?? sessionResult;
-				const sessionId: string = session.id ?? "unknown";
+				const sessionData = sessionResult as {
+					data?: { id?: string };
+					id?: string;
+				};
+				const session = sessionData.data ?? sessionData;
+				const sessionId =
+					typeof session.id === "string" ? session.id : "unknown";
 
 				// Update registry with session ID
-				await registerSwarmRun(directory, {
+				batchRecords.push({
 					taskId: task.taskId,
 					sessionId,
 					branch: sandbox.branch,
@@ -165,7 +172,7 @@ export async function dispatchSwarm(
 				});
 
 				// Inject plan content
-				await client.session.prompt({
+				const promptResult = await client.session.prompt({
 					path: { id: sessionId },
 					body: {
 						noReply: true,
@@ -177,9 +184,11 @@ export async function dispatchSwarm(
 						],
 					},
 				});
+				// NOTE: session.prompt resolves at stream start, not completion.
+				void promptResult;
 
 				// Execute — structured output requested via prompt (SDK has no format field)
-				await client.session.prompt({
+				const executeResult = await client.session.prompt({
 					path: { id: sessionId },
 					body: {
 						parts: [
@@ -201,6 +210,7 @@ export async function dispatchSwarm(
 						],
 					},
 				});
+				void executeResult;
 
 				return { taskId: task.taskId, sessionId, sandbox };
 			}),
@@ -214,7 +224,7 @@ export async function dispatchSwarm(
 			const settled = batchResults[j];
 
 			if (settled.status === "rejected") {
-				results.push({
+				const failedResult: SwarmResult = {
 					taskId: task.taskId,
 					planFile: task.planFile,
 					branch: sandbox.branch,
@@ -230,9 +240,10 @@ export async function dispatchSwarm(
 						settled.reason instanceof Error
 							? settled.reason.message
 							: String(settled.reason),
-				});
+				};
 
-				await registerSwarmRun(directory, {
+				results.push(failedResult);
+				batchRecords.push({
 					taskId: task.taskId,
 					sessionId: "unknown",
 					branch: sandbox.branch,
@@ -250,39 +261,148 @@ export async function dispatchSwarm(
 			} else {
 				const { sessionId } = settled.value;
 
-				// ── STUB: Structured output parsing ──────────────────────────
-				// Phase 1 (v0.2.0): Sessions are dispatched but reading GHOST response
-				// requires waiting for session completion via SSE monitor (deferred).
-				// Phase 2 (v0.3.0): Integrate SSE monitor, wait for session.idle,
-				// then extract structured JSON from session messages.
-				// ──────────────────────────────────────────────────────────────────
-				const parsed: GhostStructuredOutput = {
-					status: "complete",
-					files_modified: [],
-					summary: `Task ${task.taskId} session dispatched (result parsing deferred to v0.3.0)`,
-				};
+				const pollResult = await waitForSessionIdle(
+					client,
+					sessionId,
+					opts.polling,
+				);
 
-				results.push({
+				if (pollResult.status === "timeout") {
+					const timeoutMs = opts.polling?.timeoutMs ?? 300000;
+					const timeoutResult: SwarmResult = {
+						taskId: task.taskId,
+						planFile: task.planFile,
+						branch: sandbox.branch,
+						worktreePath: sandbox.path,
+						sessionId,
+						status: "timeout",
+						filesModified: [],
+						summary: "Session timed out",
+						sandboxBackend: sandbox.sandbox.backend,
+						sandboxProfile: sandbox.sandbox.profile,
+						sandboxEnforced: sandbox.sandbox.enforced,
+						error: `Session timed out after ${timeoutMs}ms`,
+					};
+					results.push(timeoutResult);
+					batchRecords.push({
+						taskId: task.taskId,
+						sessionId,
+						branch: sandbox.branch,
+						worktreePath: sandbox.path,
+						planFile: task.planFile,
+						status: "timeout",
+						error: timeoutResult.error,
+						sandboxBackend: sandbox.sandbox.backend,
+						sandboxProfile: sandbox.sandbox.profile,
+						sandboxEnforced: sandbox.sandbox.enforced,
+					});
+					continue;
+				}
+
+				if (pollResult.status === "error") {
+					const failedResult: SwarmResult = {
+						taskId: task.taskId,
+						planFile: task.planFile,
+						branch: sandbox.branch,
+						worktreePath: sandbox.path,
+						sessionId,
+						status: "failed",
+						filesModified: [],
+						summary: "Session failed",
+						sandboxBackend: sandbox.sandbox.backend,
+						sandboxProfile: sandbox.sandbox.profile,
+						sandboxEnforced: sandbox.sandbox.enforced,
+						error: pollResult.error,
+					};
+					results.push(failedResult);
+					batchRecords.push({
+						taskId: task.taskId,
+						sessionId,
+						branch: sandbox.branch,
+						worktreePath: sandbox.path,
+						planFile: task.planFile,
+						status: "failed",
+						error: pollResult.error,
+						sandboxBackend: sandbox.sandbox.backend,
+						sandboxProfile: sandbox.sandbox.profile,
+						sandboxEnforced: sandbox.sandbox.enforced,
+					});
+					continue;
+				}
+
+				const output = await extractGhostOutput(client, sessionId);
+				if ("raw" in output) {
+					const failedResult: SwarmResult = {
+						taskId: task.taskId,
+						planFile: task.planFile,
+						branch: sandbox.branch,
+						worktreePath: sandbox.path,
+						sessionId,
+						status: "failed",
+						filesModified: [],
+						summary: "Failed to parse assistant output",
+						sandboxBackend: sandbox.sandbox.backend,
+						sandboxProfile: sandbox.sandbox.profile,
+						sandboxEnforced: sandbox.sandbox.enforced,
+						error: output.error ?? "Invalid assistant output",
+						rawOutput: output.raw,
+					};
+					results.push(failedResult);
+					batchRecords.push({
+						taskId: task.taskId,
+						sessionId,
+						branch: sandbox.branch,
+						worktreePath: sandbox.path,
+						planFile: task.planFile,
+						status: "failed",
+						error: failedResult.error,
+						sandboxBackend: sandbox.sandbox.backend,
+						sandboxProfile: sandbox.sandbox.profile,
+						sandboxEnforced: sandbox.sandbox.enforced,
+						result: output.raw,
+					});
+					continue;
+				}
+
+				const parsed = output;
+				const divergence = await checkBranchDivergence(
+					$,
+					sandbox.path,
+					sandbox.baseBranch,
+					sandbox.branch,
+				);
+				const isFailed = parsed.status === "failed";
+				const isComplete = parsed.status === "complete";
+				const status =
+					!isFailed && isComplete && !divergence.hasChanges
+						? "no-changes"
+						: isFailed
+							? "failed"
+							: "done";
+
+				const result: SwarmResult = {
 					taskId: task.taskId,
 					planFile: task.planFile,
 					branch: sandbox.branch,
 					worktreePath: sandbox.path,
 					sessionId,
-					status: parsed.status === "failed" ? "failed" : "done",
+					status,
 					filesModified: parsed.files_modified,
 					summary: parsed.summary,
 					sandboxBackend: sandbox.sandbox.backend,
 					sandboxProfile: sandbox.sandbox.profile,
 					sandboxEnforced: sandbox.sandbox.enforced,
-				});
+					commitCount: divergence.commits,
+				};
 
-				await registerSwarmRun(directory, {
+				results.push(result);
+				batchRecords.push({
 					taskId: task.taskId,
 					sessionId,
 					branch: sandbox.branch,
 					worktreePath: sandbox.path,
 					planFile: task.planFile,
-					status: "done",
+					status,
 					result: JSON.stringify(parsed),
 					sandboxBackend: sandbox.sandbox.backend,
 					sandboxProfile: sandbox.sandbox.profile,
@@ -290,17 +410,21 @@ export async function dispatchSwarm(
 				});
 			}
 		}
+
+		await bulkRegisterSwarmRuns(directory, batchRecords);
 	}
 
 	// ── Phase 4: Build report ─────────────────────────────────────────────────
 	const succeeded = results.filter((r) => r.status === "done").length;
-	const failed = results.length - succeeded;
+	const noChanges = results.filter((r) => r.status === "no-changes").length;
+	const failed = results.length - succeeded - noChanges;
 	const mergeInstructions = buildMergeInstructions(results);
 
 	const report: DispatchReport = {
 		total: tasks.length,
 		succeeded,
 		failed,
+		noChanges,
 		results,
 		mergeInstructions,
 	};
@@ -361,9 +485,16 @@ export function buildSwarmPrompt(
 
 export function buildMergeInstructions(results: SwarmResult[]): string {
 	const done = results.filter((r) => r.status === "done");
-	const failedTasks = results.filter((r) => r.status === "failed");
+	const failedTasks = results.filter(
+		(r) => r.status === "failed" || r.status === "timeout",
+	);
+	const noChanges = results.filter((r) => r.status === "no-changes");
 
 	const lines: string[] = [];
+	lines.push(
+		"⚠️ IMPORTANT: Verify each branch has actual changes before merging",
+	);
+	lines.push("");
 	lines.push(`## Swarm Results: ${done.length}/${results.length} succeeded`);
 	lines.push("");
 
@@ -372,7 +503,8 @@ export function buildMergeInstructions(results: SwarmResult[]): string {
 		lines.push("```bash");
 		lines.push("# Review each branch before merging");
 		for (const r of done) {
-			lines.push(`git diff main..${r.branch}  # ${r.taskId}`);
+			lines.push(`git diff --stat main..${r.branch}  # ${r.taskId}`);
+			lines.push(`git log --oneline main..${r.branch}  # ${r.taskId}`);
 		}
 		lines.push("");
 		lines.push("# Then merge");
@@ -380,6 +512,14 @@ export function buildMergeInstructions(results: SwarmResult[]): string {
 			lines.push(`git merge --no-ff ${r.branch} -m "swarm: merge ${r.taskId}"`);
 		}
 		lines.push("```");
+	}
+
+	if (noChanges.length > 0) {
+		lines.push("");
+		lines.push("### ⚠️ No Changes Detected");
+		for (const r of noChanges) {
+			lines.push(`- ${r.taskId} (\`${r.branch}\`) reported no commits`);
+		}
 	}
 
 	if (failedTasks.length > 0) {

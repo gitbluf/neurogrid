@@ -41,7 +41,7 @@ export interface SwarmRunRecord {
 	branch: string;
 	worktreePath: string;
 	planFile: string;
-	status: "pending" | "running" | "done" | "failed";
+	status: "pending" | "running" | "done" | "failed" | "no-changes" | "timeout";
 	result?: string;
 	error?: string;
 	sandboxBackend?: string;
@@ -56,10 +56,12 @@ export interface SwarmResult {
 	branch: string;
 	worktreePath: string;
 	sessionId: string;
-	status: "done" | "failed";
+	status: "done" | "failed" | "no-changes" | "timeout";
 	filesModified: string[];
 	summary: string;
 	error?: string;
+	rawOutput?: string;
+	commitCount?: number;
 	sandboxBackend: string;
 	sandboxProfile: string;
 	sandboxEnforced: boolean;
@@ -70,9 +72,22 @@ export interface DispatchReport {
 	total: number;
 	succeeded: number;
 	failed: number;
+	noChanges: number;
 	results: SwarmResult[];
 	mergeInstructions: string;
 }
+
+export interface PollingOptions {
+	/** Polling interval in ms (default: 2000) */
+	intervalMs?: number;
+	/** Total timeout in ms (default: 300000 = 5 min) */
+	timeoutMs?: number;
+}
+
+export type PollResult =
+	| { status: "idle" }
+	| { status: "timeout" }
+	| { status: "error"; error: string };
 
 /** GHOST structured output schema (requested via prompt instructions; SDK has no format field). */
 export interface GhostStructuredOutput {

@@ -1,10 +1,18 @@
 // src/swarm/session.test.ts
 
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import {
+	mkdir,
+	mkdtemp,
+	readdir,
+	readFile,
+	rm,
+	writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
+	bulkRegisterSwarmRuns,
 	formatSwarmStatus,
 	listSwarmRuns,
 	readSwarmRegistry,
@@ -69,6 +77,10 @@ describe("swarm session registry", () => {
 
 	describe("writeSwarmRegistry", () => {
 		it("creates .ai/ dir and writes atomically", async () => {
+			const aiDir = join(dir, ".ai");
+			await mkdir(aiDir, { recursive: true });
+			const sentinelPath = join(aiDir, ".swarm-sessions.json.tmp");
+			await writeFile(sentinelPath, "sentinel", "utf8");
 			const record: SwarmRunRecord = {
 				taskId: "db",
 				sessionId: "sess-456",
@@ -89,9 +101,16 @@ describe("swarm session registry", () => {
 			expect(JSON.parse(raw).db.taskId).toBe("db");
 
 			// Temp file should not exist after atomic rename
-			await expect(
-				readFile(join(dir, ".ai", ".swarm-sessions.json.tmp"), "utf8"),
-			).rejects.toBeTruthy();
+			const tempFiles = (await readdir(join(dir, ".ai"))).filter(
+				(name) =>
+					name.startsWith(".swarm-sessions.json.") && name.endsWith(".tmp"),
+			);
+			const leftoverTempFiles = tempFiles.filter(
+				(name) => name !== ".swarm-sessions.json.tmp",
+			);
+			expect(leftoverTempFiles).toEqual([]);
+			const sentinel = await readFile(sentinelPath, "utf8");
+			expect(sentinel).toBe("sentinel");
 		});
 	});
 
@@ -137,6 +156,71 @@ describe("swarm session registry", () => {
 
 			const reg = await readSwarmRegistry(dir);
 			expect(reg.api?.status).toBe("done");
+		});
+	});
+
+	describe("bulkRegisterSwarmRuns", () => {
+		it("writes all records to registry", async () => {
+			await bulkRegisterSwarmRuns(dir, [
+				{
+					taskId: "a",
+					sessionId: "s1",
+					branch: "b1",
+					worktreePath: "/tmp/neurogrid-swarm/a",
+					planFile: ".ai/plan-a.md",
+					status: "running",
+					sandboxBackend: "sandbox-exec",
+					sandboxProfile: "default",
+					sandboxEnforced: true,
+				},
+				{
+					taskId: "b",
+					sessionId: "s2",
+					branch: "b2",
+					worktreePath: "/tmp/neurogrid-swarm/b",
+					planFile: ".ai/plan-b.md",
+					status: "done",
+					sandboxBackend: "sandbox-exec",
+					sandboxProfile: "default",
+					sandboxEnforced: true,
+				},
+			]);
+
+			const reg = await readSwarmRegistry(dir);
+			expect(Object.keys(reg)).toEqual(expect.arrayContaining(["a", "b"]));
+		});
+
+		it("preserves existing registry entries", async () => {
+			await registerSwarmRun(dir, {
+				taskId: "existing",
+				sessionId: "s0",
+				branch: "b0",
+				worktreePath: "/tmp/neurogrid-swarm/existing",
+				planFile: ".ai/plan-existing.md",
+				status: "done",
+				sandboxBackend: "sandbox-exec",
+				sandboxProfile: "default",
+				sandboxEnforced: true,
+			});
+
+			await bulkRegisterSwarmRuns(dir, [
+				{
+					taskId: "new",
+					sessionId: "s1",
+					branch: "b1",
+					worktreePath: "/tmp/neurogrid-swarm/new",
+					planFile: ".ai/plan-new.md",
+					status: "running",
+					sandboxBackend: "sandbox-exec",
+					sandboxProfile: "default",
+					sandboxEnforced: true,
+				},
+			]);
+
+			const reg = await readSwarmRegistry(dir);
+			expect(Object.keys(reg)).toEqual(
+				expect.arrayContaining(["existing", "new"]),
+			);
 		});
 	});
 
@@ -213,6 +297,37 @@ describe("swarm session registry", () => {
 			expect(output).toContain("✅ auth");
 			expect(output).toContain("❌ db");
 			expect(output).toContain("Sandbox");
+		});
+
+		it("renders no-changes and timeout icons", () => {
+			const records: SwarmRunRecord[] = [
+				{
+					taskId: "docs",
+					sessionId: "session-1111111",
+					branch: "neurogrid/swarm-docs-1",
+					worktreePath: "/tmp/neurogrid-swarm/docs",
+					planFile: ".ai/plan-docs.md",
+					status: "no-changes",
+					sandboxBackend: "sandbox-exec",
+					sandboxProfile: "default",
+					sandboxEnforced: true,
+				},
+				{
+					taskId: "api",
+					sessionId: "session-2222222",
+					branch: "neurogrid/swarm-api-2",
+					worktreePath: "/tmp/neurogrid-swarm/api",
+					planFile: ".ai/plan-api.md",
+					status: "timeout",
+					sandboxBackend: "none",
+					sandboxProfile: "default",
+					sandboxEnforced: false,
+				},
+			];
+
+			const output = formatSwarmStatus(records);
+			expect(output).toContain("⚪ docs");
+			expect(output).toContain("⏰ api");
 		});
 	});
 });

@@ -28,6 +28,10 @@ describe("worktree", () => {
 
 	describe("createWorktree", () => {
 		it("returns sandbox with correct id, branch prefix, and path", async () => {
+			const nowSpy = spyOn(Date, "now")
+				.mockReturnValueOnce(1000)
+				.mockReturnValueOnce(2000)
+				.mockReturnValue(3000);
 			const mock$ = (strings: TemplateStringsArray, ...values: unknown[]) => {
 				const cmd = strings.reduce(
 					(acc, str, i) => acc + str + (values[i] ?? ""),
@@ -45,13 +49,13 @@ describe("worktree", () => {
 			});
 
 			expect(sandbox.id).toBe("auth-module");
-			expect(sandbox.path).toBe("/tmp/neurogrid-swarm/auth-module");
+			expect(sandbox.path).toMatch(/^\/tmp\/neurogrid-swarm\/auth-module-\d+$/);
 			expect(sandbox.branch).toMatch(/^neurogrid\/swarm-auth-module-\d+$/);
 			expect(sandbox.planFile).toBe(".ai/plan-auth.md");
-			expect(sandbox.sandbox.projectDir).toBe(
-				"/tmp/neurogrid-swarm/auth-module",
-			);
+			expect(sandbox.sandbox.projectDir).toBe(sandbox.path);
+			expect(sandbox.baseBranch).toBe("main");
 			expect(typeof sandbox.remove).toBe("function");
+			nowSpy.mockRestore();
 		});
 
 		it("sets enforced false when backend is none", async () => {
@@ -73,6 +77,10 @@ describe("worktree", () => {
 		});
 
 		it("allows sandboxProfile override", async () => {
+			const nowSpy = spyOn(Date, "now")
+				.mockReturnValueOnce(1000)
+				.mockReturnValueOnce(2000)
+				.mockReturnValue(3000);
 			const mock$ = (_s: TemplateStringsArray, ..._values: unknown[]) =>
 				Promise.resolve({ text: () => "main" });
 
@@ -85,6 +93,34 @@ describe("worktree", () => {
 			});
 
 			expect(sandbox.sandbox.profile).toBe("readonly");
+			nowSpy.mockRestore();
+		});
+
+		it("creates unique paths for same taskId", async () => {
+			const nowSpy = spyOn(Date, "now")
+				.mockReturnValueOnce(1000)
+				.mockReturnValueOnce(1001)
+				.mockReturnValueOnce(2000)
+				.mockReturnValueOnce(2001)
+				.mockReturnValue(3000);
+			const mock$ = (_s: TemplateStringsArray, ..._values: unknown[]) =>
+				Promise.resolve({ text: () => "main" });
+
+			const first = await createWorktree({
+				taskId: "repeat",
+				planFile: ".ai/plan-repeat.md",
+				directory: "/project",
+				$: mock$ as ShellRunner,
+			});
+			const second = await createWorktree({
+				taskId: "repeat",
+				planFile: ".ai/plan-repeat.md",
+				directory: "/project",
+				$: mock$ as ShellRunner,
+			});
+
+			expect(first.path).not.toBe(second.path);
+			nowSpy.mockRestore();
 		});
 	});
 
