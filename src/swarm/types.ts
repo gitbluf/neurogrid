@@ -47,6 +47,14 @@ export interface SwarmRunRecord {
 	sandboxBackend?: string;
 	sandboxProfile?: string;
 	sandboxEnforced?: boolean;
+	/** Dispatch run correlation ID (crypto.randomUUID) */
+	dispatchId?: string;
+	/** ISO 8601 timestamp when task was first registered */
+	startedAt?: string;
+	/** ISO 8601 timestamp when task reached terminal state */
+	completedAt?: string;
+	/** Duration in milliseconds (completedAt - startedAt) */
+	durationMs?: number;
 }
 
 /** Per-task output in the DispatchReport. */
@@ -65,16 +73,32 @@ export interface SwarmResult {
 	sandboxBackend: string;
 	sandboxProfile: string;
 	sandboxEnforced: boolean;
+	/** Dispatch run correlation ID */
+	dispatchId: string;
+	/** ISO 8601 timestamp when task was first registered */
+	startedAt?: string;
+	/** ISO 8601 timestamp when task reached terminal state */
+	completedAt?: string;
+	/** Duration in milliseconds */
+	durationMs?: number;
 }
 
 /** Full swarm output written to .ai/swarm-report-<ts>.json. */
 export interface DispatchReport {
+	/** Unique ID for this dispatch run */
+	dispatchId: string;
 	total: number;
 	succeeded: number;
 	failed: number;
 	noChanges: number;
 	results: SwarmResult[];
 	mergeInstructions: string;
+	/** ISO 8601 timestamp when dispatch started */
+	startedAt: string;
+	/** ISO 8601 timestamp when dispatch completed */
+	completedAt: string;
+	/** Total dispatch duration in milliseconds */
+	durationMs: number;
 }
 
 export interface PollingOptions {

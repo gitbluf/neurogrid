@@ -3,7 +3,7 @@
 import type { OpencodeClient, PollingOptions, PollResult } from "./types";
 
 const DEFAULT_INTERVAL_MS = 2000;
-const DEFAULT_TIMEOUT_MS = 300000;
+const DEFAULT_TIMEOUT_MS = 150000;
 const MAX_UNDEFINED_RETRIES = 3;
 
 function normalizeStatus(entry: unknown): string | undefined {

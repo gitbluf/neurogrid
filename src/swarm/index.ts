@@ -11,6 +11,7 @@ export {
 	bulkRegisterSwarmRuns,
 	formatSwarmStatus,
 	listSwarmRuns,
+	listSwarmRunsByDispatch,
 	readSwarmRegistry,
 	registerSwarmRun,
 	writeSwarmRegistry,

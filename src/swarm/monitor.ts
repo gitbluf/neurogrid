@@ -20,6 +20,11 @@ export function formatSwarmOverview(records: SwarmRunRecord[]): string {
 		pending: records.filter((r) => r.status === "pending").length,
 	};
 
+	const totalDurationMs = records.reduce(
+		(sum, r) => sum + (r.durationMs ?? 0),
+		0,
+	);
+
 	const lines: string[] = [];
 	lines.push("## Swarm Overview");
 	lines.push("");
@@ -33,6 +38,11 @@ export function formatSwarmOverview(records: SwarmRunRecord[]): string {
 	lines.push(`| ⏳ Pending | ${byStatus.pending} |`);
 	lines.push(`| **Total** | **${records.length}** |`);
 
+	if (totalDurationMs > 0) {
+		lines.push("");
+		lines.push(`**Total duration:** ${(totalDurationMs / 1000).toFixed(1)}s`);
+	}
+
 	return lines.join("\n");
 }
 
@@ -43,9 +53,14 @@ export function formatDispatchReport(report: DispatchReport): string {
 	const lines: string[] = [];
 	lines.push("## Dispatch Report");
 	lines.push("");
+	lines.push(`**Dispatch ID:** \`${report.dispatchId}\``);
+	lines.push("");
 	lines.push(
 		`**${report.succeeded}/${report.total}** tasks succeeded, **${report.noChanges}** no-changes, **${report.failed}** failed.`,
 	);
+	if (report.durationMs != null) {
+		lines.push(`**Total duration:** ${(report.durationMs / 1000).toFixed(1)}s`);
+	}
 	lines.push("");
 
 	for (const r of report.results) {
@@ -65,6 +80,9 @@ export function formatDispatchReport(report: DispatchReport): string {
 		lines.push(
 			`- **Sandbox:** ${r.sandboxEnforced ? `✅ ${r.sandboxBackend} (${r.sandboxProfile})` : "⚠️ Not enforced"}`,
 		);
+		if (r.durationMs != null) {
+			lines.push(`- **Duration:** ${(r.durationMs / 1000).toFixed(1)}s`);
+		}
 		lines.push(`- **Summary:** ${r.summary}`);
 
 		if (r.filesModified.length > 0) {

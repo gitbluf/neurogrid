@@ -106,6 +106,15 @@ describe("dispatchSwarm prompt behavior", () => {
 			expect(promptResolved).toBe(true);
 			expect(promptAsyncSpy.calls).toBe(0);
 			expect(report.results[0]?.status).toBe("done");
+			expect(report.dispatchId).toBeDefined();
+			expect(report.dispatchId).toMatch(/^[0-9a-f-]{36}$/);
+			expect(report.startedAt).toBeDefined();
+			expect(report.completedAt).toBeDefined();
+			expect(report.durationMs).toBeGreaterThanOrEqual(0);
+			expect(report.results[0]?.dispatchId).toBe(report.dispatchId);
+			expect(report.results[0]?.startedAt).toBeDefined();
+			expect(report.results[0]?.completedAt).toBeDefined();
+			expect(report.results[0]?.durationMs).toBeGreaterThanOrEqual(0);
 		} finally {
 			worktreeSpy.mockRestore();
 			shimSpy.mockRestore();

@@ -22,11 +22,11 @@ describe("dispatchSwarm integration", () => {
 	});
 
 	it("marks timeout when session polling times out", async () => {
-		const nowSpy = spyOn(Date, "now")
-			.mockReturnValueOnce(0)
-			.mockReturnValueOnce(100)
-			.mockReturnValueOnce(1000)
-			.mockReturnValue(1000);
+		let now = 0;
+		const nowSpy = spyOn(Date, "now").mockImplementation(() => {
+			now += 100;
+			return now;
+		});
 		const taskId = "timeout-task";
 		const planFile = ".ai/plan-timeout.md";
 		await writeFile(join(dir, planFile), "# plan", "utf8");
@@ -83,6 +83,10 @@ describe("dispatchSwarm integration", () => {
 
 			expect(report.results[0]?.status).toBe("timeout");
 			expect(report.failed).toBe(1);
+			expect(report.results[0]?.startedAt).toBeDefined();
+			expect(report.results[0]?.completedAt).toBeDefined();
+			expect(report.results[0]?.durationMs).toBeGreaterThanOrEqual(0);
+			expect(report.dispatchId).toBeDefined();
 		} finally {
 			worktreeSpy.mockRestore();
 			shimSpy.mockRestore();
@@ -149,6 +153,10 @@ describe("dispatchSwarm integration", () => {
 
 			expect(report.results[0]?.status).toBe("failed");
 			expect(report.results[0]?.error).toContain("boom");
+			expect(report.results[0]?.startedAt).toBeDefined();
+			expect(report.results[0]?.completedAt).toBeDefined();
+			expect(report.results[0]?.durationMs).toBeGreaterThanOrEqual(0);
+			expect(report.dispatchId).toBeDefined();
 		} finally {
 			worktreeSpy.mockRestore();
 			shimSpy.mockRestore();

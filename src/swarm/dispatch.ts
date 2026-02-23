@@ -1,5 +1,6 @@
 // src/swarm/dispatch.ts
 
+import { randomUUID } from "node:crypto";
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { SecurityProfile } from "../tools/sandbox/profiles";
@@ -7,14 +8,13 @@ import { checkBranchDivergence } from "./git";
 import { extractGhostOutput } from "./messages";
 import { waitForSessionIdle } from "./poll";
 import { installSandboxShim } from "./sandbox-shim";
-import { bulkRegisterSwarmRuns } from "./session";
+import { registerSwarmRun } from "./session";
 import type {
 	DispatchReport,
 	OpencodeClient,
 	PollingOptions,
 	ShellRunner,
 	SwarmResult,
-	SwarmRunRecord,
 	SwarmTask,
 } from "./types";
 import { createWorktree, pruneWorktrees } from "./worktree";
@@ -51,6 +51,8 @@ export async function dispatchSwarm(
 				"Upgrade @opencode-ai/sdk to a version that supports session management.",
 		);
 	}
+	const dispatchId = randomUUID();
+	const dispatchStartedAt = new Date().toISOString();
 
 	// ── Phase 1: Validate plan files ──────────────────────────────────────────
 	const planContents = new Map<string, string>();
@@ -114,11 +116,21 @@ export async function dispatchSwarm(
 	});
 
 	const results: SwarmResult[] = [];
+	const taskStartTimes = new Map<string, string>();
+
+	function computeDuration(startedAt: string): {
+		completedAt: string;
+		durationMs: number;
+	} {
+		const completedAt = new Date().toISOString();
+		const durationMs =
+			new Date(completedAt).getTime() - new Date(startedAt).getTime();
+		return { completedAt, durationMs };
+	}
 
 	for (let i = 0; i < tasks.length; i += concurrency) {
 		const batch = tasks.slice(i, i + concurrency);
 
-		const batchRecords: SwarmRunRecord[] = [];
 		const batchResults = await Promise.allSettled(
 			batch.map(async (task) => {
 				const sandbox = sandboxes.get(task.taskId);
@@ -126,15 +138,19 @@ export async function dispatchSwarm(
 				const planContent = planContents.get(task.taskId);
 				if (!planContent)
 					throw new Error(`No plan content for task ${task.taskId}`);
+				const taskStartedAt = new Date().toISOString();
+				taskStartTimes.set(task.taskId, taskStartedAt);
 
-				// Register as pending (in-memory accumulation)
-				batchRecords.push({
+				// Register as pending — written to disk immediately
+				await registerSwarmRun(directory, {
 					taskId: task.taskId,
 					sessionId: "",
 					branch: sandbox.branch,
 					worktreePath: sandbox.path,
 					planFile: task.planFile,
 					status: "pending",
+					dispatchId,
+					startedAt: taskStartedAt,
 					sandboxBackend: sandbox.sandbox.backend,
 					sandboxProfile: sandbox.sandbox.profile,
 					sandboxEnforced: sandbox.sandbox.enforced,
@@ -158,14 +174,16 @@ export async function dispatchSwarm(
 				const sessionId =
 					typeof session.id === "string" ? session.id : "unknown";
 
-				// Update registry with session ID
-				batchRecords.push({
+				// Update to running — written to disk immediately
+				await registerSwarmRun(directory, {
 					taskId: task.taskId,
 					sessionId,
 					branch: sandbox.branch,
 					worktreePath: sandbox.path,
 					planFile: task.planFile,
 					status: "running",
+					dispatchId,
+					startedAt: taskStartedAt,
 					sandboxBackend: sandbox.sandbox.backend,
 					sandboxProfile: sandbox.sandbox.profile,
 					sandboxEnforced: sandbox.sandbox.enforced,
@@ -212,7 +230,7 @@ export async function dispatchSwarm(
 				});
 				void executeResult;
 
-				return { taskId: task.taskId, sessionId, sandbox };
+				return { taskId: task.taskId, sessionId, sandbox, taskStartedAt };
 			}),
 		);
 
@@ -224,6 +242,9 @@ export async function dispatchSwarm(
 			const settled = batchResults[j];
 
 			if (settled.status === "rejected") {
+				const taskStartedAt =
+					taskStartTimes.get(task.taskId) ?? new Date().toISOString();
+				const { completedAt, durationMs } = computeDuration(taskStartedAt);
 				const failedResult: SwarmResult = {
 					taskId: task.taskId,
 					planFile: task.planFile,
@@ -233,6 +254,10 @@ export async function dispatchSwarm(
 					status: "failed",
 					filesModified: [],
 					summary: "Session failed before completion",
+					dispatchId,
+					startedAt: taskStartedAt,
+					completedAt,
+					durationMs,
 					sandboxBackend: sandbox.sandbox.backend,
 					sandboxProfile: sandbox.sandbox.profile,
 					sandboxEnforced: sandbox.sandbox.enforced,
@@ -243,13 +268,17 @@ export async function dispatchSwarm(
 				};
 
 				results.push(failedResult);
-				batchRecords.push({
+				await registerSwarmRun(directory, {
 					taskId: task.taskId,
 					sessionId: "unknown",
 					branch: sandbox.branch,
 					worktreePath: sandbox.path,
 					planFile: task.planFile,
 					status: "failed",
+					dispatchId,
+					startedAt: taskStartedAt,
+					completedAt,
+					durationMs,
 					sandboxBackend: sandbox.sandbox.backend,
 					sandboxProfile: sandbox.sandbox.profile,
 					sandboxEnforced: sandbox.sandbox.enforced,
@@ -259,7 +288,8 @@ export async function dispatchSwarm(
 							: String(settled.reason),
 				});
 			} else {
-				const { sessionId } = settled.value;
+				const { sessionId, taskStartedAt } = settled.value;
+				const { completedAt, durationMs } = computeDuration(taskStartedAt);
 
 				const pollResult = await waitForSessionIdle(
 					client,
@@ -278,13 +308,17 @@ export async function dispatchSwarm(
 						status: "timeout",
 						filesModified: [],
 						summary: "Session timed out",
+						dispatchId,
+						startedAt: taskStartedAt,
+						completedAt,
+						durationMs,
 						sandboxBackend: sandbox.sandbox.backend,
 						sandboxProfile: sandbox.sandbox.profile,
 						sandboxEnforced: sandbox.sandbox.enforced,
 						error: `Session timed out after ${timeoutMs}ms`,
 					};
 					results.push(timeoutResult);
-					batchRecords.push({
+					await registerSwarmRun(directory, {
 						taskId: task.taskId,
 						sessionId,
 						branch: sandbox.branch,
@@ -292,6 +326,10 @@ export async function dispatchSwarm(
 						planFile: task.planFile,
 						status: "timeout",
 						error: timeoutResult.error,
+						dispatchId,
+						startedAt: taskStartedAt,
+						completedAt,
+						durationMs,
 						sandboxBackend: sandbox.sandbox.backend,
 						sandboxProfile: sandbox.sandbox.profile,
 						sandboxEnforced: sandbox.sandbox.enforced,
@@ -309,13 +347,17 @@ export async function dispatchSwarm(
 						status: "failed",
 						filesModified: [],
 						summary: "Session failed",
+						dispatchId,
+						startedAt: taskStartedAt,
+						completedAt,
+						durationMs,
 						sandboxBackend: sandbox.sandbox.backend,
 						sandboxProfile: sandbox.sandbox.profile,
 						sandboxEnforced: sandbox.sandbox.enforced,
 						error: pollResult.error,
 					};
 					results.push(failedResult);
-					batchRecords.push({
+					await registerSwarmRun(directory, {
 						taskId: task.taskId,
 						sessionId,
 						branch: sandbox.branch,
@@ -323,6 +365,10 @@ export async function dispatchSwarm(
 						planFile: task.planFile,
 						status: "failed",
 						error: pollResult.error,
+						dispatchId,
+						startedAt: taskStartedAt,
+						completedAt,
+						durationMs,
 						sandboxBackend: sandbox.sandbox.backend,
 						sandboxProfile: sandbox.sandbox.profile,
 						sandboxEnforced: sandbox.sandbox.enforced,
@@ -341,6 +387,10 @@ export async function dispatchSwarm(
 						status: "failed",
 						filesModified: [],
 						summary: "Failed to parse assistant output",
+						dispatchId,
+						startedAt: taskStartedAt,
+						completedAt,
+						durationMs,
 						sandboxBackend: sandbox.sandbox.backend,
 						sandboxProfile: sandbox.sandbox.profile,
 						sandboxEnforced: sandbox.sandbox.enforced,
@@ -348,7 +398,7 @@ export async function dispatchSwarm(
 						rawOutput: output.raw,
 					};
 					results.push(failedResult);
-					batchRecords.push({
+					await registerSwarmRun(directory, {
 						taskId: task.taskId,
 						sessionId,
 						branch: sandbox.branch,
@@ -356,6 +406,10 @@ export async function dispatchSwarm(
 						planFile: task.planFile,
 						status: "failed",
 						error: failedResult.error,
+						dispatchId,
+						startedAt: taskStartedAt,
+						completedAt,
+						durationMs,
 						sandboxBackend: sandbox.sandbox.backend,
 						sandboxProfile: sandbox.sandbox.profile,
 						sandboxEnforced: sandbox.sandbox.enforced,
@@ -389,6 +443,10 @@ export async function dispatchSwarm(
 					status,
 					filesModified: parsed.files_modified,
 					summary: parsed.summary,
+					dispatchId,
+					startedAt: taskStartedAt,
+					completedAt,
+					durationMs,
 					sandboxBackend: sandbox.sandbox.backend,
 					sandboxProfile: sandbox.sandbox.profile,
 					sandboxEnforced: sandbox.sandbox.enforced,
@@ -396,7 +454,7 @@ export async function dispatchSwarm(
 				};
 
 				results.push(result);
-				batchRecords.push({
+				await registerSwarmRun(directory, {
 					taskId: task.taskId,
 					sessionId,
 					branch: sandbox.branch,
@@ -404,14 +462,16 @@ export async function dispatchSwarm(
 					planFile: task.planFile,
 					status,
 					result: JSON.stringify(parsed),
+					dispatchId,
+					startedAt: taskStartedAt,
+					completedAt,
+					durationMs,
 					sandboxBackend: sandbox.sandbox.backend,
 					sandboxProfile: sandbox.sandbox.profile,
 					sandboxEnforced: sandbox.sandbox.enforced,
 				});
 			}
 		}
-
-		await bulkRegisterSwarmRuns(directory, batchRecords);
 	}
 
 	// ── Phase 4: Build report ─────────────────────────────────────────────────
@@ -420,13 +480,22 @@ export async function dispatchSwarm(
 	const failed = results.length - succeeded - noChanges;
 	const mergeInstructions = buildMergeInstructions(results);
 
+	const dispatchCompletedAt = new Date().toISOString();
+	const dispatchDurationMs =
+		new Date(dispatchCompletedAt).getTime() -
+		new Date(dispatchStartedAt).getTime();
+
 	const report: DispatchReport = {
+		dispatchId,
 		total: tasks.length,
 		succeeded,
 		failed,
 		noChanges,
 		results,
 		mergeInstructions,
+		startedAt: dispatchStartedAt,
+		completedAt: dispatchCompletedAt,
+		durationMs: dispatchDurationMs,
 	};
 
 	// Write report atomically
@@ -440,7 +509,7 @@ export async function dispatchSwarm(
 
 	await client.tui.showToast({
 		body: {
-			message: ` Swarm complete: ${succeeded}/${results.length} tasks succeeded`,
+			message: ` Swarm complete: ${succeeded}/${results.length} tasks succeeded (${(dispatchDurationMs / 1000).toFixed(1)}s)`,
 			variant: succeeded === results.length ? "success" : "warning",
 		},
 	});

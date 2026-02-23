@@ -82,8 +82,12 @@ export function formatSwarmStatus(records: SwarmRunRecord[]): string {
 	}
 
 	const lines: string[] = [];
-	lines.push("| Task | Status | Branch | Session | Sandbox |");
-	lines.push("|------|--------|--------|---------|---------|");
+	lines.push(
+		"| Task | Status | Branch | Session | Duration | Dispatch | Sandbox |",
+	);
+	lines.push(
+		"|------|--------|--------|---------|----------|----------|---------|",
+	);
 	for (const r of records) {
 		const icon =
 			r.status === "done"
@@ -97,12 +101,27 @@ export function formatSwarmStatus(records: SwarmRunRecord[]): string {
 							: r.status === "running"
 								? "🔄"
 								: "⏳";
+		const duration =
+			r.durationMs != null
+				? `${(r.durationMs / 1000).toFixed(1)}s`
+				: r.status === "running" || r.status === "pending"
+					? "…"
+					: "-";
+		const dispatch = r.dispatchId ? r.dispatchId.slice(0, 8) : "-";
 		const sandboxStatus = r.sandboxEnforced
 			? `✅ ${r.sandboxBackend ?? "unknown"} (${r.sandboxProfile ?? "default"})`
 			: "⚠️ Not enforced";
 		lines.push(
-			`| ${icon} ${r.taskId} | ${r.status} | \`${r.branch}\` | \`${r.sessionId.slice(0, 7)}\` | ${sandboxStatus} |`,
+			`| ${icon} ${r.taskId} | ${r.status} | \`${r.branch}\` | \`${r.sessionId.slice(0, 7)}\` | ${duration} | \`${dispatch}\` | ${sandboxStatus} |`,
 		);
 	}
 	return lines.join("\n");
+}
+
+export async function listSwarmRunsByDispatch(
+	directory: string,
+	dispatchId: string,
+): Promise<SwarmRunRecord[]> {
+	const registry = await readSwarmRegistry(directory);
+	return Object.values(registry).filter((r) => r.dispatchId === dispatchId);
 }

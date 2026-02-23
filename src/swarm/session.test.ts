@@ -15,6 +15,7 @@ import {
 	bulkRegisterSwarmRuns,
 	formatSwarmStatus,
 	listSwarmRuns,
+	listSwarmRunsByDispatch,
 	readSwarmRegistry,
 	registerSwarmRun,
 	writeSwarmRegistry,
@@ -233,6 +234,7 @@ describe("swarm session registry", () => {
 				worktreePath: "/tmp/neurogrid-swarm/a",
 				planFile: ".ai/plan-a.md",
 				status: "done",
+				dispatchId: "dispatch-1",
 				sandboxBackend: "sandbox-exec",
 				sandboxProfile: "default",
 				sandboxEnforced: true,
@@ -245,6 +247,7 @@ describe("swarm session registry", () => {
 				planFile: ".ai/plan-b.md",
 				status: "failed",
 				error: "timeout",
+				dispatchId: "dispatch-2",
 				sandboxBackend: "none",
 				sandboxProfile: "default",
 				sandboxEnforced: false,
@@ -265,6 +268,72 @@ describe("swarm session registry", () => {
 			expect(formatSwarmStatus([])).toBe("No swarm runs recorded.");
 		});
 
+		it("renders Duration and Dispatch columns", () => {
+			const records: SwarmRunRecord[] = [
+				{
+					taskId: "auth",
+					sessionId: "session-abc1234",
+					branch: "neurogrid/swarm-auth-123",
+					worktreePath: "/tmp/neurogrid-swarm/auth",
+					planFile: ".ai/plan-auth.md",
+					status: "done",
+					dispatchId: "d1234567-abcd-1234-abcd-1234567890ab",
+					startedAt: "2026-01-01T00:00:00.000Z",
+					completedAt: "2026-01-01T00:00:05.000Z",
+					durationMs: 5000,
+					sandboxBackend: "sandbox-exec",
+					sandboxProfile: "default",
+					sandboxEnforced: true,
+				},
+			];
+
+			const output = formatSwarmStatus(records);
+			expect(output).toContain("| Duration |");
+			expect(output).toContain("| Dispatch |");
+			expect(output).toContain("5.0s");
+			expect(output).toContain("`d1234567`");
+		});
+
+		it("shows dash for records without timestamps", () => {
+			const records: SwarmRunRecord[] = [
+				{
+					taskId: "legacy",
+					sessionId: "session-legacy",
+					branch: "neurogrid/swarm-legacy-1",
+					worktreePath: "/tmp/neurogrid-swarm/legacy",
+					planFile: ".ai/plan-legacy.md",
+					status: "done",
+					sandboxBackend: "sandbox-exec",
+					sandboxProfile: "default",
+					sandboxEnforced: true,
+				},
+			];
+
+			const output = formatSwarmStatus(records);
+			expect(output).toContain("| - |");
+		});
+
+		it("shows ellipsis for running tasks duration", () => {
+			const records: SwarmRunRecord[] = [
+				{
+					taskId: "active",
+					sessionId: "session-active",
+					branch: "neurogrid/swarm-active-1",
+					worktreePath: "/tmp/neurogrid-swarm/active",
+					planFile: ".ai/plan-active.md",
+					status: "running",
+					dispatchId: "run-id",
+					startedAt: "2026-01-01T00:00:00.000Z",
+					sandboxBackend: "sandbox-exec",
+					sandboxProfile: "default",
+					sandboxEnforced: true,
+				},
+			];
+
+			const output = formatSwarmStatus(records);
+			expect(output).toContain("…");
+		});
+
 		it("returns markdown table for records", () => {
 			const records: SwarmRunRecord[] = [
 				{
@@ -274,6 +343,8 @@ describe("swarm session registry", () => {
 					worktreePath: "/tmp/neurogrid-swarm/auth",
 					planFile: ".ai/plan-auth.md",
 					status: "done",
+					dispatchId: "dispatch-1",
+					durationMs: 1200,
 					sandboxBackend: "sandbox-exec",
 					sandboxProfile: "default",
 					sandboxEnforced: true,
@@ -286,6 +357,7 @@ describe("swarm session registry", () => {
 					planFile: ".ai/plan-db.md",
 					status: "failed",
 					error: "timeout",
+					dispatchId: "dispatch-1",
 					sandboxBackend: "none",
 					sandboxProfile: "default",
 					sandboxEnforced: false,
@@ -308,6 +380,7 @@ describe("swarm session registry", () => {
 					worktreePath: "/tmp/neurogrid-swarm/docs",
 					planFile: ".ai/plan-docs.md",
 					status: "no-changes",
+					dispatchId: "dispatch-1",
 					sandboxBackend: "sandbox-exec",
 					sandboxProfile: "default",
 					sandboxEnforced: true,
@@ -319,6 +392,7 @@ describe("swarm session registry", () => {
 					worktreePath: "/tmp/neurogrid-swarm/api",
 					planFile: ".ai/plan-api.md",
 					status: "timeout",
+					dispatchId: "dispatch-2",
 					sandboxBackend: "none",
 					sandboxProfile: "default",
 					sandboxEnforced: false,
@@ -328,6 +402,44 @@ describe("swarm session registry", () => {
 			const output = formatSwarmStatus(records);
 			expect(output).toContain("⚪ docs");
 			expect(output).toContain("⏰ api");
+		});
+	});
+
+	describe("listSwarmRunsByDispatch", () => {
+		it("filters records by dispatchId", async () => {
+			await registerSwarmRun(dir, {
+				taskId: "a",
+				sessionId: "s1",
+				branch: "b1",
+				worktreePath: "/tmp/neurogrid-swarm/a",
+				planFile: ".ai/plan-a.md",
+				status: "done",
+				dispatchId: "dispatch-1",
+				sandboxBackend: "sandbox-exec",
+				sandboxProfile: "default",
+				sandboxEnforced: true,
+			});
+			await registerSwarmRun(dir, {
+				taskId: "b",
+				sessionId: "s2",
+				branch: "b2",
+				worktreePath: "/tmp/neurogrid-swarm/b",
+				planFile: ".ai/plan-b.md",
+				status: "done",
+				dispatchId: "dispatch-2",
+				sandboxBackend: "sandbox-exec",
+				sandboxProfile: "default",
+				sandboxEnforced: true,
+			});
+
+			const runs = await listSwarmRunsByDispatch(dir, "dispatch-1");
+			expect(runs).toHaveLength(1);
+			expect(runs[0]?.taskId).toBe("a");
+		});
+
+		it("returns empty array for unknown dispatchId", async () => {
+			const runs = await listSwarmRunsByDispatch(dir, "nonexistent");
+			expect(runs).toEqual([]);
 		});
 	});
 });
