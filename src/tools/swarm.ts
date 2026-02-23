@@ -1,6 +1,6 @@
 // src/tools/swarm.ts
 
-import { readFile } from "node:fs/promises";
+import { access } from "node:fs/promises";
 import { join } from "node:path";
 import { tool } from "@opencode-ai/plugin";
 import { dispatchSwarm } from "../swarm/dispatch";
@@ -44,6 +44,12 @@ export function createPlatformSwarmDispatchTool(
 				.max(10)
 				.optional()
 				.describe("Max simultaneous agents (default: all plans run at once)"),
+			sandboxProfile: tool.schema
+				.enum(["default", "network-allow", "readonly"])
+				.optional()
+				.describe(
+					"Sandbox security profile for all GHOST sessions (default: 'default' = no network, writes confined to worktree)",
+				),
 		},
 		async execute(args, context) {
 			// Parse and validate plans JSON string
@@ -71,13 +77,20 @@ export function createPlatformSwarmDispatchTool(
 				}
 			}
 
-			// Pre-flight: verify all plan files exist
-			const missing: string[] = [];
-			for (const { planFile } of plans) {
+			// Pre-flight: verify all plan files exist (parallel checks)
+			const preflightChecks = plans.map(async ({ planFile }) => {
 				try {
-					await readFile(join(directory, planFile), "utf8");
+					await access(join(directory, planFile));
+					return { planFile, exists: true as const };
 				} catch {
-					missing.push(planFile);
+					return { planFile, exists: false as const };
+				}
+			});
+			const preflightResults = await Promise.allSettled(preflightChecks);
+			const missing: string[] = [];
+			for (const result of preflightResults) {
+				if (result.status === "fulfilled" && !result.value.exists) {
+					missing.push(result.value.planFile);
 				}
 			}
 
@@ -98,6 +111,7 @@ export function createPlatformSwarmDispatchTool(
 					parentSessionId: context.sessionID,
 					model: args.model,
 					concurrency: args.concurrency,
+					sandboxProfile: args.sandboxProfile,
 				});
 
 				return formatDispatchReport(report);

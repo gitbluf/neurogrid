@@ -1,9 +1,9 @@
-import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import { mkdtemp, rm, mkdir, writeFile } from "node:fs/promises";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { createCommandDispatchHook } from "./command-dispatch";
 import type { Part } from "@opencode-ai/sdk";
+import { createCommandDispatchHook } from "./command-dispatch";
 
 describe("createCommandDispatchHook", () => {
 	let dir: string;
@@ -24,25 +24,24 @@ describe("createCommandDispatchHook", () => {
 		expect(output.parts).toEqual([]);
 	});
 
-	it("shows usage on empty arguments", async () => {
+	it("shows no-plans message on empty arguments with no .ai/ dir", async () => {
 		const hook = createCommandDispatchHook(dir);
 		const input = { command: "dispatch", sessionID: "s1", arguments: "" };
 		const output: { parts: Part[] } = { parts: [] };
 		await hook(input, output);
 		expect(output.parts).toHaveLength(1);
 		const text = (output.parts[0] as { text?: string }).text ?? "";
-		expect(text).toContain("Usage");
-		expect(text).toContain("/dispatch");
+		expect(text).toContain("No unimplemented plans found");
 	});
 
-	it("shows usage when arguments is only whitespace", async () => {
+	it("shows no-plans message when arguments is only whitespace", async () => {
 		const hook = createCommandDispatchHook(dir);
 		const input = { command: "dispatch", sessionID: "s1", arguments: "   " };
 		const output: { parts: Part[] } = { parts: [] };
 		await hook(input, output);
 		expect(output.parts).toHaveLength(1);
 		const text = (output.parts[0] as { text?: string }).text ?? "";
-		expect(text).toContain("Usage");
+		expect(text).toContain("No unimplemented plans found");
 	});
 
 	it("rejects single plan (needs at least 2)", async () => {
@@ -159,5 +158,68 @@ describe("createCommandDispatchHook", () => {
 		expect(text).toContain("❌ Cannot dispatch");
 		expect(text).toContain("plan-foo.md");
 		expect(text).toContain("plan-bar.md");
+	});
+
+	it("auto-discovers 2+ unimplemented plans when no args given", async () => {
+		const aiDir = join(dir, ".ai");
+		await mkdir(aiDir, { recursive: true });
+		await writeFile(join(aiDir, "plan-auth.md"), "# Auth Plan", "utf8");
+		await writeFile(join(aiDir, "plan-db.md"), "# DB Plan", "utf8");
+
+		const hook = createCommandDispatchHook(dir);
+		const input = { command: "dispatch", sessionID: "s1", arguments: "" };
+		const output: { parts: Part[] } = { parts: [] };
+		await hook(input, output);
+		expect(output.parts.length).toBeGreaterThanOrEqual(2);
+		const texts = output.parts.map((p) => (p as { text?: string }).text ?? "");
+		const combined = texts.join("\n");
+		expect(combined).toContain("[AUTO-DISCOVERY]");
+		expect(combined).toContain("[DISPATCH]");
+		expect(combined).toContain("auth");
+		expect(combined).toContain("db");
+	});
+
+	it("suggests /synth when auto-discovery finds exactly 1 plan", async () => {
+		const aiDir = join(dir, ".ai");
+		await mkdir(aiDir, { recursive: true });
+		await writeFile(join(aiDir, "plan-auth.md"), "# Auth Plan", "utf8");
+
+		const hook = createCommandDispatchHook(dir);
+		const input = { command: "dispatch", sessionID: "s1", arguments: "" };
+		const output: { parts: Part[] } = { parts: [] };
+		await hook(input, output);
+		expect(output.parts).toHaveLength(1);
+		const text = (output.parts[0] as { text?: string }).text ?? "";
+		expect(text).toContain("Only 1 unimplemented plan");
+		expect(text).toContain("/synth auth");
+	});
+
+	it("rejects unsafe plan names with path traversal", async () => {
+		const hook = createCommandDispatchHook(dir);
+		const input = {
+			command: "dispatch",
+			sessionID: "s1",
+			arguments: "../../etc/passwd good-plan",
+		};
+		const output: { parts: Part[] } = { parts: [] };
+		await hook(input, output);
+		expect(output.parts).toHaveLength(1);
+		const text = (output.parts[0] as { text?: string }).text ?? "";
+		expect(text).toContain("Invalid plan name");
+		expect(text).toContain("../../etc/passwd");
+	});
+
+	it("rejects plan names with uppercase or special chars", async () => {
+		const hook = createCommandDispatchHook(dir);
+		const input = {
+			command: "dispatch",
+			sessionID: "s1",
+			arguments: "Good-Plan plan_two",
+		};
+		const output: { parts: Part[] } = { parts: [] };
+		await hook(input, output);
+		expect(output.parts).toHaveLength(1);
+		const text = (output.parts[0] as { text?: string }).text ?? "";
+		expect(text).toContain("Invalid plan name");
 	});
 });
