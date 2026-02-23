@@ -1,7 +1,7 @@
 // src/hooks/tool-swarm-audit.test.ts
 
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createToolSwarmAuditHook } from "./tool-swarm-audit";
@@ -36,6 +36,25 @@ describe("tool-swarm-audit", () => {
 
 	it("appends log line for write tool", async () => {
 		const hook = createToolSwarmAuditHook(dir);
+		const aiDir = join(dir, ".ai");
+		await mkdir(aiDir, { recursive: true });
+		await writeFile(
+			join(aiDir, ".swarm-sessions.json"),
+			JSON.stringify({
+				auth: {
+					taskId: "auth",
+					sessionId: "session-abc1234",
+					branch: "swarm-auth",
+					worktreePath: "/project",
+					planFile: ".ai/plan-auth.md",
+					status: "running",
+					sandboxBackend: "sandbox-exec",
+					sandboxProfile: "default",
+					sandboxEnforced: true,
+				},
+			}),
+			"utf8",
+		);
 
 		await hook(
 			makeInput("write", "session-abc1234", {
@@ -47,11 +66,30 @@ describe("tool-swarm-audit", () => {
 		const log = await readFile(join(dir, ".ai", "swarm-audit.log"), "utf8");
 		expect(log).toContain("write");
 		expect(log).toContain("/project/src/auth.ts");
-		expect(log).toContain("session");
+		expect(log).toContain("swarm:");
 	});
 
 	it("appends log line for edit tool", async () => {
 		const hook = createToolSwarmAuditHook(dir);
+		const aiDir = join(dir, ".ai");
+		await mkdir(aiDir, { recursive: true });
+		await writeFile(
+			join(aiDir, ".swarm-sessions.json"),
+			JSON.stringify({
+				db: {
+					taskId: "db",
+					sessionId: "session-def5678",
+					branch: "swarm-db",
+					worktreePath: "/project",
+					planFile: ".ai/plan-db.md",
+					status: "running",
+					sandboxBackend: "bwrap",
+					sandboxProfile: "readonly",
+					sandboxEnforced: true,
+				},
+			}),
+			"utf8",
+		);
 
 		await hook(
 			makeInput("edit", "session-def5678", {
@@ -63,6 +101,7 @@ describe("tool-swarm-audit", () => {
 		const log = await readFile(join(dir, ".ai", "swarm-audit.log"), "utf8");
 		expect(log).toContain("edit");
 		expect(log).toContain("/project/src/db.ts");
+		expect(log).toContain("swarm:");
 	});
 
 	it("does nothing for read tool", async () => {

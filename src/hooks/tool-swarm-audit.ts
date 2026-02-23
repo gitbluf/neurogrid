@@ -3,6 +3,7 @@
 import { appendFile, mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import type { Hooks } from "@opencode-ai/plugin";
+import { readSwarmRegistry } from "../swarm/session";
 
 const AUDIT_FILENAME = "swarm-audit.log";
 
@@ -20,8 +21,22 @@ export function createToolSwarmAuditHook(
 		const filePath =
 			(args?.filePath as string) ?? (args?.path as string) ?? "unknown";
 		const sessionID = input.sessionID ?? "unknown";
+		const sessionPrefix = sessionID.slice(0, 7);
+		let swarmContext = "swarm:unknown";
 
-		const logLine = `${new Date().toISOString()} | ${sessionID.slice(0, 7)} | ${input.tool} | ${filePath}\n`;
+		try {
+			const registry = await readSwarmRegistry(directory);
+			const record = Object.values(registry).find(
+				(entry) => entry.sessionId.slice(0, 7) === sessionPrefix,
+			);
+			if (record) {
+				swarmContext = `swarm:${record.worktreePath} | ${record.sandboxBackend ?? "unknown"} | ${record.sandboxProfile ?? "default"}`;
+			}
+		} catch {
+			// best-effort enrichment only
+		}
+
+		const logLine = `${new Date().toISOString()} | ${sessionPrefix} | ${input.tool} | ${filePath} | ${swarmContext}\n`;
 
 		try {
 			const aiDir = join(directory, ".ai");

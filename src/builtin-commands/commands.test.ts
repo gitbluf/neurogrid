@@ -38,9 +38,7 @@ describe("createBuiltinCommands", () => {
 	});
 
 	it("commit command has model override", () => {
-		const commit = createBuiltinCommands().find(
-			(cmd) => cmd.name === "commit",
-		);
+		const commit = createBuiltinCommands().find((cmd) => cmd.name === "commit");
 		expect(commit?.model).toBe("github-copilot/claude-haiku-4.5");
 	});
 

@@ -4,8 +4,9 @@ import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { mkdir, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { buildMergeInstructions } from "./dispatch";
-import type { SwarmResult } from "./types";
+import { buildMergeInstructions, buildSwarmPrompt } from "./dispatch";
+import type { SwarmResult, SwarmSandboxConfig } from "./types";
+import type { WorktreeSandbox } from "./worktree";
 
 describe("dispatch", () => {
 	let dir: string;
@@ -31,6 +32,9 @@ describe("dispatch", () => {
 					status: "done",
 					filesModified: ["src/auth.ts"],
 					summary: "Added auth module",
+					sandboxBackend: "sandbox-exec",
+					sandboxProfile: "default",
+					sandboxEnforced: true,
 				},
 			];
 
@@ -51,6 +55,9 @@ describe("dispatch", () => {
 					filesModified: [],
 					summary: "Timeout",
 					error: "session timed out",
+					sandboxBackend: "none",
+					sandboxProfile: "default",
+					sandboxEnforced: false,
 				},
 			];
 
@@ -70,6 +77,9 @@ describe("dispatch", () => {
 					status: "done",
 					filesModified: ["src/auth.ts"],
 					summary: "OK",
+					sandboxBackend: "sandbox-exec",
+					sandboxProfile: "readonly",
+					sandboxEnforced: true,
 				},
 				{
 					taskId: "db",
@@ -81,6 +91,9 @@ describe("dispatch", () => {
 					filesModified: [],
 					summary: "Failed",
 					error: "crash",
+					sandboxBackend: "bwrap",
+					sandboxProfile: "default",
+					sandboxEnforced: true,
 				},
 			];
 
@@ -88,6 +101,32 @@ describe("dispatch", () => {
 			expect(output).toContain("1/2 succeeded");
 			expect(output).toContain("git merge --no-ff neurogrid/swarm-auth-1");
 			expect(output).toContain("crash");
+		});
+	});
+
+	describe("buildSwarmPrompt", () => {
+		it("injects sandbox rules and shim path", () => {
+			const sandboxConfig: SwarmSandboxConfig = {
+				backend: "sandbox-exec",
+				profile: "default",
+				projectDir: "/tmp/neurogrid-swarm/auth",
+				enforced: true,
+			};
+			const sandbox: WorktreeSandbox = {
+				id: "auth",
+				path: "/tmp/neurogrid-swarm/auth",
+				branch: "neurogrid/swarm-auth-123",
+				planFile: ".ai/plan-auth.md",
+				sandbox: sandboxConfig,
+				remove: async () => {},
+			};
+
+			const prompt = buildSwarmPrompt("auth", sandbox, "# Plan content");
+
+			expect(prompt).toContain("## Sandbox Enforcement");
+			expect(prompt).toContain("sandbox_exec");
+			expect(prompt).toContain(".neurogrid-sandbox.sh");
+			expect(prompt).toContain("# Plan content");
 		});
 	});
 });

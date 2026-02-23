@@ -51,6 +51,9 @@ export function formatDispatchReport(report: DispatchReport): string {
 		lines.push(`- **Plan:** \`${r.planFile}\``);
 		lines.push(`- **Branch:** \`${r.branch}\``);
 		lines.push(`- **Session:** \`${r.sessionId.slice(0, 7)}\``);
+		lines.push(
+			`- **Sandbox:** ${r.sandboxEnforced ? `✅ ${r.sandboxBackend} (${r.sandboxProfile})` : "⚠️ Not enforced"}`,
+		);
 		lines.push(`- **Summary:** ${r.summary}`);
 
 		if (r.filesModified.length > 0) {

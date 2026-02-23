@@ -40,6 +40,9 @@ describe("swarm session registry", () => {
 				worktreePath: "/tmp/neurogrid-swarm/auth",
 				planFile: ".ai/plan-auth.md",
 				status: "done",
+				sandboxBackend: "sandbox-exec",
+				sandboxProfile: "default",
+				sandboxEnforced: true,
 			};
 			await writeFile(
 				join(aiDir, ".swarm-sessions.json"),
@@ -73,6 +76,9 @@ describe("swarm session registry", () => {
 				worktreePath: "/tmp/neurogrid-swarm/db",
 				planFile: ".ai/plan-db.md",
 				status: "pending",
+				sandboxBackend: "sandbox-exec",
+				sandboxProfile: "default",
+				sandboxEnforced: true,
 			};
 			await writeSwarmRegistry(dir, { db: record });
 
@@ -98,6 +104,9 @@ describe("swarm session registry", () => {
 				worktreePath: "/tmp/neurogrid-swarm/ui",
 				planFile: ".ai/plan-ui.md",
 				status: "running",
+				sandboxBackend: "bwrap",
+				sandboxProfile: "readonly",
+				sandboxEnforced: true,
 			};
 			await registerSwarmRun(dir, record);
 
@@ -113,6 +122,9 @@ describe("swarm session registry", () => {
 				worktreePath: "/tmp/neurogrid-swarm/api",
 				planFile: ".ai/plan-api.md",
 				status: "pending",
+				sandboxBackend: "sandbox-exec",
+				sandboxProfile: "default",
+				sandboxEnforced: true,
 			};
 			const record2: SwarmRunRecord = {
 				...record1,
@@ -137,6 +149,9 @@ describe("swarm session registry", () => {
 				worktreePath: "/tmp/neurogrid-swarm/a",
 				planFile: ".ai/plan-a.md",
 				status: "done",
+				sandboxBackend: "sandbox-exec",
+				sandboxProfile: "default",
+				sandboxEnforced: true,
 			});
 			await registerSwarmRun(dir, {
 				taskId: "b",
@@ -146,6 +161,9 @@ describe("swarm session registry", () => {
 				planFile: ".ai/plan-b.md",
 				status: "failed",
 				error: "timeout",
+				sandboxBackend: "none",
+				sandboxProfile: "default",
+				sandboxEnforced: false,
 			});
 
 			const runs = await listSwarmRuns(dir);
@@ -172,6 +190,9 @@ describe("swarm session registry", () => {
 					worktreePath: "/tmp/neurogrid-swarm/auth",
 					planFile: ".ai/plan-auth.md",
 					status: "done",
+					sandboxBackend: "sandbox-exec",
+					sandboxProfile: "default",
+					sandboxEnforced: true,
 				},
 				{
 					taskId: "db",
@@ -181,6 +202,9 @@ describe("swarm session registry", () => {
 					planFile: ".ai/plan-db.md",
 					status: "failed",
 					error: "timeout",
+					sandboxBackend: "none",
+					sandboxProfile: "default",
+					sandboxEnforced: false,
 				},
 			];
 
@@ -188,6 +212,7 @@ describe("swarm session registry", () => {
 			expect(output).toContain("| Task |");
 			expect(output).toContain("✅ auth");
 			expect(output).toContain("❌ db");
+			expect(output).toContain("Sandbox");
 		});
 	});
 });

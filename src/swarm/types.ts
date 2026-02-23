@@ -1,6 +1,8 @@
 // src/swarm/types.ts
 
 import type { createOpencodeClient } from "@opencode-ai/sdk";
+import type { SandboxBackend } from "../tools/sandbox/detect";
+import type { SecurityProfile } from "../tools/sandbox/profiles";
 
 /** SDK client type alias — local to swarm module to avoid coupling to tools/index.ts. */
 export type OpencodeClient = ReturnType<typeof createOpencodeClient>;
@@ -16,6 +18,15 @@ export type ShellRunner = (
 	...values: unknown[]
 	// biome-ignore lint/suspicious/noExplicitAny: SDK boundary — Bun shell return type not importable
 ) => any;
+
+export interface SwarmSandboxConfig {
+	backend: SandboxBackend;
+	profile: SecurityProfile;
+	/** The worktree path — used as projectDir for sandbox confinement */
+	projectDir: string;
+	/** Whether sandbox is actually enforced (false if backend === "none") */
+	enforced: boolean;
+}
 
 /** Input unit to swarm_dispatch tool. */
 export interface SwarmTask {
@@ -33,6 +44,9 @@ export interface SwarmRunRecord {
 	status: "pending" | "running" | "done" | "failed";
 	result?: string;
 	error?: string;
+	sandboxBackend?: string;
+	sandboxProfile?: string;
+	sandboxEnforced?: boolean;
 }
 
 /** Per-task output in the DispatchReport. */
@@ -46,6 +60,9 @@ export interface SwarmResult {
 	filesModified: string[];
 	summary: string;
 	error?: string;
+	sandboxBackend: string;
+	sandboxProfile: string;
+	sandboxEnforced: boolean;
 }
 
 /** Full swarm output written to .ai/swarm-report-<ts>.json. */

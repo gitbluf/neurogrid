@@ -2,6 +2,8 @@
 
 export { buildMergeInstructions, dispatchSwarm } from "./dispatch";
 export { formatDispatchReport, formatSwarmOverview } from "./monitor";
+export { executeSwarmSandboxed } from "./sandbox";
+export { installSandboxShim } from "./sandbox-shim";
 export {
 	formatSwarmStatus,
 	listSwarmRuns,
@@ -16,6 +18,7 @@ export type {
 	ShellRunner,
 	SwarmResult,
 	SwarmRunRecord,
+	SwarmSandboxConfig,
 	SwarmSessionRegistry,
 	SwarmTask,
 } from "./types";

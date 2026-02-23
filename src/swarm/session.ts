@@ -64,8 +64,8 @@ export function formatSwarmStatus(records: SwarmRunRecord[]): string {
 	}
 
 	const lines: string[] = [];
-	lines.push("| Task | Status | Branch | Session |");
-	lines.push("|------|--------|--------|---------|");
+	lines.push("| Task | Status | Branch | Session | Sandbox |");
+	lines.push("|------|--------|--------|---------|---------|");
 	for (const r of records) {
 		const icon =
 			r.status === "done"
@@ -75,8 +75,11 @@ export function formatSwarmStatus(records: SwarmRunRecord[]): string {
 					: r.status === "running"
 						? "🔄"
 						: "⏳";
+		const sandboxStatus = r.sandboxEnforced
+			? `✅ ${r.sandboxBackend ?? "unknown"} (${r.sandboxProfile ?? "default"})`
+			: "⚠️ Not enforced";
 		lines.push(
-			`| ${icon} ${r.taskId} | ${r.status} | \`${r.branch}\` | \`${r.sessionId.slice(0, 7)}\` |`,
+			`| ${icon} ${r.taskId} | ${r.status} | \`${r.branch}\` | \`${r.sessionId.slice(0, 7)}\` | ${sandboxStatus} |`,
 		);
 	}
 	return lines.join("\n");

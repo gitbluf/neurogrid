@@ -2,6 +2,8 @@
 
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import type { SecurityProfile } from "../tools/sandbox/profiles";
+import { installSandboxShim } from "./sandbox-shim";
 import { registerSwarmRun } from "./session";
 import type {
 	DispatchReport,
@@ -20,6 +22,7 @@ export interface DispatchOptions {
 	parentSessionId: string;
 	model?: string;
 	concurrency?: number;
+	sandboxProfile?: SecurityProfile;
 }
 
 /**
@@ -73,12 +76,14 @@ export async function dispatchSwarm(
 
 	try {
 		for (const task of tasks) {
-			const sandbox = await createWorktree(
-				task.taskId,
-				task.planFile,
+			const sandbox = await createWorktree({
+				taskId: task.taskId,
+				planFile: task.planFile,
 				directory,
 				$,
-			);
+				sandboxProfile: opts.sandboxProfile,
+			});
+			await installSandboxShim(sandbox.path, sandbox.sandbox);
 			sandboxes.set(task.taskId, sandbox);
 		}
 	} catch (err) {
@@ -92,10 +97,14 @@ export async function dispatchSwarm(
 	}
 
 	// ── Phase 3: Create sessions and execute in batches ───────────────────────
+	const sandboxEnforced = [...sandboxes.values()].every(
+		(sandbox) => sandbox.sandbox.enforced,
+	);
+
 	await client.tui.showToast({
 		body: {
-			message: ` Dispatching ${tasks.length} GHOST agents in parallel...`,
-			variant: "info",
+			message: ` Dispatching ${tasks.length} GHOST agents (sandbox: ${sandboxEnforced ? "enforced" : "⚠️ not enforced"})...`,
+			variant: sandboxEnforced ? "info" : "warning",
 		},
 	});
 
@@ -125,6 +134,9 @@ export async function dispatchSwarm(
 					worktreePath: sandbox.path,
 					planFile: task.planFile,
 					status: "pending",
+					sandboxBackend: sandbox.sandbox.backend,
+					sandboxProfile: sandbox.sandbox.profile,
+					sandboxEnforced: sandbox.sandbox.enforced,
 				});
 
 				// Create child session
@@ -147,6 +159,9 @@ export async function dispatchSwarm(
 					worktreePath: sandbox.path,
 					planFile: task.planFile,
 					status: "running",
+					sandboxBackend: sandbox.sandbox.backend,
+					sandboxProfile: sandbox.sandbox.profile,
+					sandboxEnforced: sandbox.sandbox.enforced,
 				});
 
 				// Inject plan content
@@ -157,19 +172,7 @@ export async function dispatchSwarm(
 						parts: [
 							{
 								type: "text",
-								text: [
-									`# SWARM TASK: ${task.taskId}`,
-									`Working directory: ${sandbox.path}`,
-									`Branch: ${sandbox.branch}`,
-									"",
-									"## Plan",
-									planContent,
-									"",
-									"## Rules",
-									"- Implement ONLY what the plan specifies",
-									"- Do NOT write outside the working directory",
-									"- Return structured JSON when complete",
-								].join("\n"),
+								text: buildSwarmPrompt(task.taskId, sandbox, planContent),
 							},
 						],
 					},
@@ -220,6 +223,9 @@ export async function dispatchSwarm(
 					status: "failed",
 					filesModified: [],
 					summary: "Session failed before completion",
+					sandboxBackend: sandbox.sandbox.backend,
+					sandboxProfile: sandbox.sandbox.profile,
+					sandboxEnforced: sandbox.sandbox.enforced,
 					error:
 						settled.reason instanceof Error
 							? settled.reason.message
@@ -233,6 +239,9 @@ export async function dispatchSwarm(
 					worktreePath: sandbox.path,
 					planFile: task.planFile,
 					status: "failed",
+					sandboxBackend: sandbox.sandbox.backend,
+					sandboxProfile: sandbox.sandbox.profile,
+					sandboxEnforced: sandbox.sandbox.enforced,
 					error:
 						settled.reason instanceof Error
 							? settled.reason.message
@@ -262,6 +271,9 @@ export async function dispatchSwarm(
 					status: parsed.status === "failed" ? "failed" : "done",
 					filesModified: parsed.files_modified,
 					summary: parsed.summary,
+					sandboxBackend: sandbox.sandbox.backend,
+					sandboxProfile: sandbox.sandbox.profile,
+					sandboxEnforced: sandbox.sandbox.enforced,
 				});
 
 				await registerSwarmRun(directory, {
@@ -272,6 +284,9 @@ export async function dispatchSwarm(
 					planFile: task.planFile,
 					status: "done",
 					result: JSON.stringify(parsed),
+					sandboxBackend: sandbox.sandbox.backend,
+					sandboxProfile: sandbox.sandbox.profile,
+					sandboxEnforced: sandbox.sandbox.enforced,
 				});
 			}
 		}
@@ -307,6 +322,41 @@ export async function dispatchSwarm(
 	});
 
 	return report;
+}
+
+export function buildSwarmPrompt(
+	taskId: string,
+	sandbox: Awaited<ReturnType<typeof createWorktree>>,
+	planContent: string,
+): string {
+	return [
+		`# SWARM TASK: ${taskId}`,
+		`Working directory: ${sandbox.path}`,
+		`Branch: ${sandbox.branch}`,
+		"",
+		"## Sandbox Enforcement",
+		"",
+		"This task runs in a sandboxed environment.",
+		`- **Working directory:** \`${sandbox.path}\``,
+		`- **Sandbox backend:** ${sandbox.sandbox.backend}`,
+		`- **Sandbox profile:** ${sandbox.sandbox.profile}`,
+		`- **Enforced:** ${sandbox.sandbox.enforced}`,
+		"",
+		"### Rules",
+		`- ALL file operations MUST be within \`${sandbox.path}\``,
+		`- ALL command execution MUST use \`sandbox_exec\` with \`cwd: "${sandbox.path}"\` (you can invoke \`${sandbox.path}/.neurogrid-sandbox.sh\` to enforce worktree scoping)`,
+		"- Network access is DENIED (default profile)",
+		"- Do NOT read or write files outside the working directory",
+		"- Do NOT access .env, .pem, .key, or credential files",
+		"",
+		"## Plan",
+		planContent,
+		"",
+		"## Rules",
+		"- Implement ONLY what the plan specifies",
+		"- Do NOT write outside the working directory",
+		"- Return structured JSON when complete",
+	].join("\n");
 }
 
 export function buildMergeInstructions(results: SwarmResult[]): string {

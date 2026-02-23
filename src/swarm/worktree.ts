@@ -1,12 +1,16 @@
 // src/swarm/worktree.ts
 
-import type { ShellRunner } from "./types";
+import * as sandboxDetect from "../tools/sandbox/detect";
+import type { SecurityProfile } from "../tools/sandbox/profiles";
+import * as sandboxProfiles from "../tools/sandbox/profiles";
+import type { ShellRunner, SwarmSandboxConfig } from "./types";
 
 export interface WorktreeSandbox {
 	id: string;
 	path: string;
 	branch: string;
 	planFile: string;
+	sandbox: SwarmSandboxConfig;
 	remove: () => Promise<void>;
 }
 
@@ -17,12 +21,20 @@ const SWARM_TMP_ROOT =
 /**
  * Create an isolated git worktree for a single swarm task.
  */
+export interface CreateWorktreeOptions {
+	taskId: string;
+	planFile: string;
+	directory: string;
+	$: ShellRunner;
+	sandboxProfile?: SecurityProfile;
+}
+
 export async function createWorktree(
-	taskId: string,
-	planFile: string,
-	directory: string,
-	$: ShellRunner,
+	opts: CreateWorktreeOptions,
 ): Promise<WorktreeSandbox> {
+	const { taskId, planFile, directory, $ } = opts;
+	const backend = await sandboxDetect.detectBackend();
+	const profile = opts.sandboxProfile ?? sandboxProfiles.resolveProfile();
 	const branch = `neurogrid/swarm-${taskId}-${Date.now()}`;
 	const worktreePath = `${SWARM_TMP_ROOT}/${taskId}`;
 
@@ -39,6 +51,12 @@ export async function createWorktree(
 		path: worktreePath,
 		branch,
 		planFile,
+		sandbox: {
+			backend,
+			profile,
+			projectDir: worktreePath,
+			enforced: backend !== "none",
+		},
 		remove: async () => {
 			await $`git -C ${directory} worktree remove --force ${worktreePath}`;
 			// Branch intentionally kept for human review
