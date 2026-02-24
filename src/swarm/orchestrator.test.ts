@@ -12,6 +12,14 @@ describe("SwarmOrchestrator", () => {
 			})),
 			abort: mock(async () => ({})),
 			promptAsync: mock(async () => ({})),
+			messages: mock(async () => ({
+				data: [
+					{
+						info: { role: "assistant", tokens: { input: 100, output: 50 } },
+						parts: [{ type: "text", text: "Mock output from agent" }],
+					},
+				],
+			})),
 		},
 		tui: {
 			showToast: mock(async () => ({})),
@@ -41,6 +49,14 @@ describe("SwarmOrchestrator", () => {
 					promptAsyncCalls.push(opts);
 					return {};
 				}),
+				messages: mock(async () => ({
+					data: [
+						{
+							info: { role: "assistant", tokens: { input: 100, output: 50 } },
+							parts: [{ type: "text", text: "Mock output from agent" }],
+						},
+					],
+				})),
 			},
 			tui: {
 				showToast: mock(async () => ({})),
@@ -84,6 +100,14 @@ describe("SwarmOrchestrator", () => {
 				}),
 				abort: mock(async () => ({})),
 				promptAsync: mock(async () => ({})),
+				messages: mock(async () => ({
+					data: [
+						{
+							info: { role: "assistant", tokens: { input: 100, output: 50 } },
+							parts: [{ type: "text", text: "Mock output from agent" }],
+						},
+					],
+				})),
 			},
 			tui: {
 				showToast: mock(async () => ({})),
@@ -131,6 +155,14 @@ describe("SwarmOrchestrator", () => {
 					return {};
 				}),
 				promptAsync: mock(async () => ({})),
+				messages: mock(async () => ({
+					data: [
+						{
+							info: { role: "assistant", tokens: { input: 100, output: 50 } },
+							parts: [{ type: "text", text: "Mock output from agent" }],
+						},
+					],
+				})),
 			},
 			tui: {
 				showToast: mock(async () => ({})),
@@ -192,6 +224,14 @@ describe("SwarmOrchestrator", () => {
 					concurrentCount--;
 					return {};
 				}),
+				messages: mock(async () => ({
+					data: [
+						{
+							info: { role: "assistant", tokens: { input: 100, output: 50 } },
+							parts: [{ type: "text", text: "Mock output from agent" }],
+						},
+					],
+				})),
 			},
 			tui: {
 				showToast: mock(async () => ({})),
@@ -236,6 +276,14 @@ describe("SwarmOrchestrator", () => {
 				}),
 				// promptAsync never resolves to simulate a hanging task
 				promptAsync: mock(() => new Promise(() => {})),
+				messages: mock(async () => ({
+					data: [
+						{
+							info: { role: "assistant", tokens: { input: 100, output: 50 } },
+							parts: [{ type: "text", text: "Mock output from agent" }],
+						},
+					],
+				})),
 			},
 			tui: {
 				showToast: mock(async () => ({})),
@@ -272,6 +320,14 @@ describe("SwarmOrchestrator", () => {
 				})),
 				abort: mock(async () => ({})),
 				promptAsync: mock(async () => ({})),
+				messages: mock(async () => ({
+					data: [
+						{
+							info: { role: "assistant", tokens: { input: 100, output: 50 } },
+							parts: [{ type: "text", text: "Mock output from agent" }],
+						},
+					],
+				})),
 			},
 			tui: {
 				showToast: mock(async () => ({})),
@@ -320,6 +376,14 @@ describe("SwarmOrchestrator", () => {
 				}),
 				abort: mock(async () => ({})),
 				promptAsync: mock(async () => ({})),
+				messages: mock(async () => ({
+					data: [
+						{
+							info: { role: "assistant", tokens: { input: 100, output: 50 } },
+							parts: [{ type: "text", text: "Mock output from agent" }],
+						},
+					],
+				})),
 			},
 			tui: {
 				showToast: mock(async () => ({})),
@@ -362,6 +426,14 @@ describe("SwarmOrchestrator", () => {
 				})),
 				abort: mock(async () => ({})),
 				promptAsync: mock(async () => ({})),
+				messages: mock(async () => ({
+					data: [
+						{
+							info: { role: "assistant", tokens: { input: 100, output: 50 } },
+							parts: [{ type: "text", text: "Mock output from agent" }],
+						},
+					],
+				})),
 			},
 			tui: {
 				showToast: mock(async () => ({})),
@@ -388,6 +460,14 @@ describe("SwarmOrchestrator", () => {
 				})),
 				abort: mock(async () => ({})),
 				promptAsync: mock(async () => ({})),
+				messages: mock(async () => ({
+					data: [
+						{
+							info: { role: "assistant", tokens: { input: 100, output: 50 } },
+							parts: [{ type: "text", text: "Mock output from agent" }],
+						},
+					],
+				})),
 			},
 			tui: {
 				showToast: mock(async () => ({})),
@@ -405,5 +485,73 @@ describe("SwarmOrchestrator", () => {
 
 		// Cleanup
 		await orchestrator2.abort();
+	});
+
+	it("should collect output from session messages when task completes", async () => {
+		let pollCount = 0;
+
+		const client = {
+			session: {
+				create: mock(async () => ({ data: { id: "output-sess" } })),
+				status: mock(async () => {
+					pollCount++;
+					if (pollCount <= 1) {
+						return { data: { "output-sess": { type: "busy" } } };
+					}
+					return { data: {} };
+				}),
+				abort: mock(async () => ({})),
+				promptAsync: mock(async () => ({})),
+				messages: mock(async () => ({
+					data: [
+						{
+							info: { role: "user" },
+							parts: [{ type: "text", text: "Find files" }],
+						},
+						{
+							info: {
+								role: "assistant",
+								tokens: { input: 150, output: 75 },
+							},
+							parts: [
+								{ type: "text", text: "I found 3 files:" },
+								{
+									type: "tool",
+									state: {
+										status: "completed",
+										title: "glob",
+										output: "src/a.ts\nsrc/b.ts\nsrc/c.ts",
+									},
+								},
+								{ type: "text", text: "These are the matching files." },
+							],
+						},
+					],
+				})),
+			},
+			tui: {
+				showToast: mock(async () => ({})),
+			},
+		} as unknown as OpencodeClient;
+
+		const orchestrator = new SwarmOrchestrator(client);
+		await orchestrator.dispatch([
+			{ id: "t1", agent: "dataweaver", prompt: "Find files" },
+		]);
+
+		const finalState = await orchestrator.waitForCompletion(10_000);
+
+		expect(finalState.status).toBe("completed");
+		const taskState = finalState.tasks.get("t1");
+		expect(taskState?.status).toBe("completed");
+
+		// Verify output was collected (not the old hardcoded string)
+		expect(taskState?.result).not.toBe("Session completed");
+		expect(taskState?.result).toContain("I found 3 files:");
+		expect(taskState?.result).toContain("[glob]: src/a.ts");
+		expect(taskState?.result).toContain("These are the matching files.");
+
+		// Verify tokens were collected
+		expect(taskState?.tokens).toEqual({ input: 150, output: 75 });
 	});
 });

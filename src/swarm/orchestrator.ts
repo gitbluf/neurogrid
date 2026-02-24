@@ -11,6 +11,7 @@ import type {
 	SwarmConfig,
 	SwarmId,
 	SwarmState,
+	TaskTokens,
 } from "./types";
 import { createSwarmId } from "./types";
 
@@ -376,7 +377,12 @@ export class SwarmOrchestrator {
 						if (controller) controller.abort();
 						this.abortControllers.delete(taskId);
 
-						this.stateManager?.markCompleted(taskId, "Session completed");
+						// Collect actual output from the session
+						const { output, tokens } = taskState.sessionId
+							? await this.collectTaskOutput(taskState.sessionId)
+							: { output: "Session completed (no session ID)" };
+
+						this.stateManager?.markCompleted(taskId, output, tokens);
 						this.client.tui
 							.showToast({
 								body: {
@@ -406,6 +412,86 @@ export class SwarmOrchestrator {
 		this.pollCleanup = () => {
 			cancelled = true;
 		};
+	}
+
+	/**
+	 * Retrieve the last assistant message from a completed session and extract text/tool output.
+	 * Returns a concatenated string of TextPart.text and ToolPart completed outputs.
+	 */
+	private async collectTaskOutput(
+		sessionId: string,
+	): Promise<{ output: string; tokens?: TaskTokens }> {
+		try {
+			const response = await this.client.session.messages({
+				path: { id: sessionId },
+			});
+
+			// Response is { data: Array<{ info: Message; parts: Array<Part> }> }
+			const messages = Array.isArray(response.data) ? response.data : [];
+
+			// Find the last assistant message (iterate backwards)
+			let lastAssistant:
+				| {
+						info: Record<string, unknown>;
+						parts: Array<Record<string, unknown>>;
+				  }
+				| undefined;
+			for (let i = messages.length - 1; i >= 0; i--) {
+				const msg = messages[i] as {
+					info: Record<string, unknown>;
+					parts: Array<Record<string, unknown>>;
+				};
+				if (msg?.info?.role === "assistant") {
+					lastAssistant = msg;
+					break;
+				}
+			}
+
+			if (!lastAssistant) {
+				return { output: "No assistant response found" };
+			}
+
+			// Extract text parts and completed tool outputs
+			const outputParts: string[] = [];
+			for (const part of lastAssistant.parts) {
+				if (part.type === "text" && typeof part.text === "string") {
+					outputParts.push(part.text);
+				} else if (part.type === "tool") {
+					const state = part.state as Record<string, unknown> | undefined;
+					if (
+						state?.status === "completed" &&
+						typeof state.output === "string"
+					) {
+						const title =
+							typeof state.title === "string" ? state.title : "tool";
+						outputParts.push(`[${title}]: ${state.output}`);
+					}
+				}
+			}
+
+			const output =
+				outputParts.join("\n").trim() || "Session completed (no text output)";
+
+			// Extract token info from AssistantMessage
+			const info = lastAssistant.info;
+			let tokens: TaskTokens | undefined;
+			if (info.tokens && typeof info.tokens === "object") {
+				const t = info.tokens as Record<string, unknown>;
+				if (typeof t.input === "number" && typeof t.output === "number") {
+					tokens = {
+						input: t.input,
+						output: t.output,
+						...(typeof t.reasoning === "number"
+							? { reasoning: t.reasoning }
+							: {}),
+					};
+				}
+			}
+
+			return { output, tokens };
+		} catch {
+			return { output: "Session completed (output retrieval failed)" };
+		}
 	}
 
 	private cleanup(): void {
