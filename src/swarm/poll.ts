@@ -7,6 +7,12 @@ const DEFAULT_INTERVAL_MS = 2000;
 const DEFAULT_TIMEOUT_MS = 150000;
 const MAX_UNDEFINED_RETRIES = 3;
 
+export interface BoundSessionMethods {
+	status: OpencodeClient["session"]["status"];
+	abort: OpencodeClient["session"]["abort"];
+	messages: OpencodeClient["session"]["messages"];
+}
+
 function normalizeStatus(entry: unknown): string | undefined {
 	if (!entry) return undefined;
 	if (typeof entry === "string") return entry;
@@ -27,6 +33,7 @@ function normalizeError(entry: unknown): string | undefined {
 
 export async function waitForSessionIdle(
 	client: OpencodeClient,
+	boundSession: BoundSessionMethods,
 	sessionId: string,
 	options: PollingOptions = {},
 ): Promise<PollResult> {
@@ -38,8 +45,8 @@ export async function waitForSessionIdle(
 
 	while (Date.now() < deadline) {
 		try {
-			const fetchStatus = client.session
-				.status as unknown as () => Promise<unknown>;
+			const fetchStatus =
+				boundSession.status as unknown as () => Promise<unknown>;
 			const statusResult = await fetchStatus();
 			const statusData = statusResult as { data?: unknown };
 			const statusMap = (statusData.data ?? statusResult) as
@@ -65,7 +72,11 @@ export async function waitForSessionIdle(
 			}
 
 			if (options.captureLatestMessage) {
-				const latest = await extractLatestMessage(client, sessionId);
+				const latest = await extractLatestMessage(
+					client,
+					boundSession,
+					sessionId,
+				);
 				if (latest.message && latest.message !== lastEmittedMessage) {
 					lastEmittedMessage = latest.message;
 					options.onLatestMessage?.(latest.message);
@@ -86,7 +97,7 @@ export async function waitForSessionIdle(
 	}
 
 	try {
-		const abortSession = client.session.abort as unknown as (args: {
+		const abortSession = boundSession.abort as unknown as (args: {
 			sessionID: string;
 		}) => Promise<unknown>;
 		await abortSession({ sessionID: sessionId });

@@ -156,7 +156,7 @@ describe("dispatchSwarm prompt behavior", () => {
 			"/tmp/neurogrid-swarm/status/.neurogrid-sandbox.sh",
 		);
 		const pollSpy = spyOn(pollModule, "waitForSessionIdle").mockImplementation(
-			async (_client, _sessionId, options) => {
+			async (_client, _boundSession, _sessionId, options) => {
 				await options?.onLatestMessage?.("streaming message");
 				return { status: "idle" };
 			},

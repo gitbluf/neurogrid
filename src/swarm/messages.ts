@@ -4,6 +4,10 @@ import type { GhostStructuredOutput, OpencodeClient } from "./types";
 
 type ExtractResult = GhostStructuredOutput | { raw: string; error?: string };
 
+export interface BoundSessionMethods {
+	messages: OpencodeClient["session"]["messages"];
+}
+
 function stripMarkdownFence(text: string): string {
 	const trimmed = text.trim();
 	if (!trimmed.startsWith("```")) return trimmed;
@@ -26,10 +30,11 @@ function isStructuredOutput(value: unknown): value is GhostStructuredOutput {
 }
 
 export async function extractGhostOutput(
-	client: OpencodeClient,
+	_client: OpencodeClient,
+	boundSession: BoundSessionMethods,
 	sessionId: string,
 ): Promise<ExtractResult> {
-	const fetchMessages = client.session.messages as unknown as (args: {
+	const fetchMessages = boundSession.messages as unknown as (args: {
 		sessionID: string;
 	}) => Promise<unknown>;
 	const messagesResult = await fetchMessages({
@@ -86,10 +91,11 @@ export async function extractGhostOutput(
 }
 
 export async function extractLatestMessage(
-	client: OpencodeClient,
+	_client: OpencodeClient,
+	boundSession: BoundSessionMethods,
 	sessionId: string,
 ): Promise<{ message?: string; error?: string }> {
-	const fetchMessages = client.session.messages as unknown as (args: {
+	const fetchMessages = boundSession.messages as unknown as (args: {
 		sessionID: string;
 	}) => Promise<unknown>;
 	let messagesResult: unknown;

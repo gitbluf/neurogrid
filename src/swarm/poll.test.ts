@@ -2,6 +2,7 @@
 
 import { describe, expect, it, spyOn } from "bun:test";
 import * as messagesModule from "./messages";
+import type { BoundSessionMethods } from "./poll";
 import { waitForSessionIdle } from "./poll";
 import type { OpencodeClient } from "./types";
 
@@ -18,8 +19,15 @@ const createClient = (
 			abort: async () => {
 				if (abortSpy) abortSpy.calls += 1;
 			},
+			messages: async () => [],
 		},
 	}) as unknown as OpencodeClient;
+
+const createBoundSession = (client: OpencodeClient): BoundSessionMethods => ({
+	status: client.session.status.bind(client.session),
+	abort: client.session.abort.bind(client.session),
+	messages: client.session.messages.bind(client.session),
+});
 
 describe("waitForSessionIdle", () => {
 	it("returns idle when status becomes idle", async () => {
@@ -27,8 +35,9 @@ describe("waitForSessionIdle", () => {
 			{ "session-1": { status: "busy" } },
 			{ "session-1": { status: "idle" } },
 		]);
+		const boundSession = createBoundSession(client);
 
-		const result = await waitForSessionIdle(client, "session-1", {
+		const result = await waitForSessionIdle(client, boundSession, "session-1", {
 			intervalMs: 0,
 			timeoutMs: 50,
 		});
@@ -46,13 +55,14 @@ describe("waitForSessionIdle", () => {
 			],
 			abortSpy,
 		);
+		const boundSession = createBoundSession(client);
 
 		const nowSpy = spyOn(Date, "now")
 			.mockReturnValueOnce(0)
 			.mockReturnValueOnce(100)
 			.mockReturnValueOnce(1000)
 			.mockReturnValue(1000);
-		const result = await waitForSessionIdle(client, "session-1", {
+		const result = await waitForSessionIdle(client, boundSession, "session-1", {
 			intervalMs: 1,
 			timeoutMs: 1,
 		});
@@ -69,10 +79,12 @@ describe("waitForSessionIdle", () => {
 					throw new Error("boom");
 				},
 				abort: async () => {},
+				messages: async () => [],
 			},
 		} as unknown as OpencodeClient;
+		const boundSession = createBoundSession(client);
 
-		const result = await waitForSessionIdle(client, "session-1", {
+		const result = await waitForSessionIdle(client, boundSession, "session-1", {
 			intervalMs: 0,
 			timeoutMs: 50,
 		});
@@ -85,8 +97,9 @@ describe("waitForSessionIdle", () => {
 
 	it("treats undefined status as transient then errors", async () => {
 		const client = createClient([{}, {}, {}]);
+		const boundSession = createBoundSession(client);
 
-		const result = await waitForSessionIdle(client, "session-1", {
+		const result = await waitForSessionIdle(client, boundSession, "session-1", {
 			intervalMs: 0,
 			timeoutMs: 50,
 		});
@@ -103,13 +116,14 @@ describe("waitForSessionIdle", () => {
 			{ "session-1": { status: "busy" } },
 			{ "session-1": { status: "idle" } },
 		]);
+		const boundSession = createBoundSession(client);
 		const messagesSpy = spyOn(messagesModule, "extractLatestMessage")
 			.mockResolvedValueOnce({ message: "hello" })
 			.mockResolvedValueOnce({ message: "hello" })
 			.mockResolvedValueOnce({ message: "world" });
 		const received: string[] = [];
 
-		const result = await waitForSessionIdle(client, "session-1", {
+		const result = await waitForSessionIdle(client, boundSession, "session-1", {
 			intervalMs: 0,
 			timeoutMs: 50,
 			captureLatestMessage: true,
@@ -128,12 +142,13 @@ describe("waitForSessionIdle", () => {
 			{ "session-1": { status: "busy" } },
 			{ "session-1": { status: "idle" } },
 		]);
+		const boundSession = createBoundSession(client);
 		const messagesSpy = spyOn(messagesModule, "extractLatestMessage")
 			.mockResolvedValueOnce({ message: "same" })
 			.mockResolvedValueOnce({ message: "same" });
 		const received: string[] = [];
 
-		const result = await waitForSessionIdle(client, "session-1", {
+		const result = await waitForSessionIdle(client, boundSession, "session-1", {
 			intervalMs: 0,
 			timeoutMs: 50,
 			captureLatestMessage: true,

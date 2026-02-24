@@ -29,6 +29,17 @@ export async function dispatchSwarm(
 ): Promise<DispatchReport> {
 	const { client, directory, $, parentSessionId } = opts;
 	const concurrency = Math.min(opts.concurrency ?? tasks.length, 10);
+
+	// Bind session methods to preserve `this._client` context.
+	// The SDK's Session class methods reference `this._client` internally;
+	// some host environments (proxies, getters) can drop the binding.
+	const boundSession = {
+		create: client.session.create.bind(client.session),
+		prompt: client.session.prompt.bind(client.session),
+		status: client.session.status.bind(client.session),
+		abort: client.session.abort.bind(client.session),
+		messages: client.session.messages.bind(client.session),
+	};
 	const terminalStatuses = new Set<SwarmRunRecord["status"]>([
 		"done",
 		"failed",
@@ -184,15 +195,12 @@ export async function dispatchSwarm(
 				});
 
 				// Create child session
-				const createSession = client.session.create as unknown as (args: {
-					body: { title: string; parentID: string };
-				}) => Promise<unknown>;
-				const sessionResult = await createSession({
+				const sessionResult = (await boundSession.create({
 					body: {
 						title: `[SWARM] ${task.taskId}`,
 						parentID: parentSessionId,
 					},
-				});
+				})) as unknown;
 				const sessionData = sessionResult as {
 					data?: { id?: string };
 					id?: string;
@@ -217,7 +225,7 @@ export async function dispatchSwarm(
 				});
 
 				// Inject plan content
-				const promptResult = await client.session.prompt({
+				const promptResult = await boundSession.prompt({
 					path: { id: sessionId },
 					body: {
 						noReply: true,
@@ -233,7 +241,7 @@ export async function dispatchSwarm(
 				void promptResult;
 
 				// Execute — structured output requested via prompt (SDK has no format field)
-				const executeResult = await client.session.prompt({
+				const executeResult = await boundSession.prompt({
 					path: { id: sessionId },
 					body: {
 						parts: [
@@ -356,30 +364,35 @@ export async function dispatchSwarm(
 					sandboxEnforced: sandbox.sandbox.enforced,
 				};
 
-				const pollResult = await waitForSessionIdle(client, sessionId, {
-					...opts.polling,
-					captureLatestMessage:
-						opts.polling?.captureLatestMessage ??
-						Boolean(opts.onTaskStateChange),
-					onLatestMessage: async (message) => {
-						const state = taskState.get(task.taskId);
-						if (state && terminalStatuses.has(state.status)) return;
-						await recordState({
-							taskId: task.taskId,
-							sessionId,
-							branch: sandbox.branch,
-							worktreePath: sandbox.path,
-							planFile: task.planFile,
-							status: "streaming",
-							lastMessage: message,
-							dispatchId,
-							startedAt: taskStartedAt,
-							sandboxBackend: sandbox.sandbox.backend,
-							sandboxProfile: sandbox.sandbox.profile,
-							sandboxEnforced: sandbox.sandbox.enforced,
-						});
+				const pollResult = await waitForSessionIdle(
+					client,
+					boundSession,
+					sessionId,
+					{
+						...opts.polling,
+						captureLatestMessage:
+							opts.polling?.captureLatestMessage ??
+							Boolean(opts.onTaskStateChange),
+						onLatestMessage: async (message) => {
+							const state = taskState.get(task.taskId);
+							if (state && terminalStatuses.has(state.status)) return;
+							await recordState({
+								taskId: task.taskId,
+								sessionId,
+								branch: sandbox.branch,
+								worktreePath: sandbox.path,
+								planFile: task.planFile,
+								status: "streaming",
+								lastMessage: message,
+								dispatchId,
+								startedAt: taskStartedAt,
+								sandboxBackend: sandbox.sandbox.backend,
+								sandboxProfile: sandbox.sandbox.profile,
+								sandboxEnforced: sandbox.sandbox.enforced,
+							});
+						},
 					},
-				});
+				);
 				const lastMessage = taskState.get(task.taskId)?.lastMessage;
 
 				if (pollResult.status === "timeout") {
@@ -455,7 +468,11 @@ export async function dispatchSwarm(
 					continue;
 				}
 
-				const output = await extractGhostOutput(client, sessionId);
+				const output = await extractGhostOutput(
+					client,
+					boundSession,
+					sessionId,
+				);
 				if ("raw" in output) {
 					const failedResult: SwarmResult = {
 						taskId: task.taskId,
