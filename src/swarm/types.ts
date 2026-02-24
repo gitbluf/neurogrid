@@ -9,12 +9,19 @@ export function createSwarmId(): SwarmId {
 	return crypto.randomUUID() as SwarmId;
 }
 
+/** Per-task options */
+export interface TaskOptions {
+	worktree?: boolean;
+	// Future: docker?, resourceLimits?, ...
+}
+
 /** Input definition for a single swarm task */
 export interface AgentTask {
 	id: string;
 	agent: string;
 	prompt: string;
 	description?: string;
+	options?: TaskOptions;
 }
 
 export type AgentTaskStatus =
@@ -42,6 +49,8 @@ export interface AgentTaskState {
 	error?: string;
 	result?: string;
 	tokens?: TaskTokens;
+	worktreePath?: string; // NEW: path to this task's worktree (if any)
+	worktreeBranch?: string; // NEW: branch name for this task's worktree (if any)
 }
 
 export type SwarmStatus = "running" | "completed" | "failed" | "aborted";
@@ -59,6 +68,9 @@ export interface SwarmConfig {
 	concurrency?: number;
 	timeoutMs?: number;
 	pollIntervalMs?: number;
+	enableWorktrees?: boolean; // default false
+	worktreeBaseDir?: string; // default ${projectDir}/.ai/.worktrees
+	maxWorktrees?: number; // default 10
 }
 
 /** Discriminated union for swarm events */
@@ -80,6 +92,14 @@ export type SwarmEvent =
 	| { type: "task:failed"; swarmId: SwarmId; taskId: string; error: string }
 	| { type: "task:aborted"; swarmId: SwarmId; taskId: string }
 	| { type: "task:timed_out"; swarmId: SwarmId; taskId: string; error: string }
+	| {
+			type: "task:worktree_created";
+			swarmId: SwarmId;
+			taskId: string;
+			worktreePath: string;
+			branch: string;
+	  } // NEW
+	| { type: "task:worktree_removed"; swarmId: SwarmId; taskId: string } // NEW
 	| { type: "swarm:completed"; swarmId: SwarmId; summary: string }
 	| { type: "swarm:failed"; swarmId: SwarmId; error: string }
 	| { type: "swarm:aborted"; swarmId: SwarmId };

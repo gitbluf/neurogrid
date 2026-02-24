@@ -1,3 +1,8 @@
+import {
+	recordSwarm,
+	type SwarmRecord,
+	type SwarmTaskRecord,
+} from "../registry/swarm-records";
 import { createSwarmEventBus, type SwarmEventHandler } from "./events";
 import {
 	createSwarmState,
@@ -14,6 +19,7 @@ import type {
 	TaskTokens,
 } from "./types";
 import { createSwarmId } from "./types";
+import { WorktreeManager } from "./worktree";
 
 const DEFAULT_CONCURRENCY = 5;
 const DEFAULT_TIMEOUT_MS = 10 * 60 * 1000; // 10 minutes
@@ -31,7 +37,15 @@ function extractSessionId(response: unknown): string | undefined {
 
 export class SwarmOrchestrator {
 	private client: OpencodeClient;
-	private config: Required<SwarmConfig>;
+	private projectDir: string | undefined;
+	private config: {
+		concurrency: number;
+		timeoutMs: number;
+		pollIntervalMs: number;
+		enableWorktrees: boolean;
+		worktreeBaseDir?: string;
+		maxWorktrees: number;
+	};
 	private stateManager: SwarmStateManager | undefined;
 	private eventBus = createSwarmEventBus();
 	private abortControllers = new Map<string, AbortController>();
@@ -44,13 +58,22 @@ export class SwarmOrchestrator {
 	private completionResolve: ((state: SwarmState) => void) | undefined;
 	private completionPromise: Promise<SwarmState> | undefined;
 	private cleaned = false;
+	private worktreeManager: WorktreeManager | undefined;
 
-	constructor(client: OpencodeClient, config?: SwarmConfig) {
+	constructor(
+		client: OpencodeClient,
+		config?: SwarmConfig,
+		projectDir?: string,
+	) {
 		this.client = client;
+		this.projectDir = projectDir;
 		this.config = {
 			concurrency: config?.concurrency ?? DEFAULT_CONCURRENCY,
 			timeoutMs: config?.timeoutMs ?? DEFAULT_TIMEOUT_MS,
 			pollIntervalMs: config?.pollIntervalMs ?? DEFAULT_POLL_INTERVAL_MS,
+			enableWorktrees: config?.enableWorktrees ?? false,
+			worktreeBaseDir: config?.worktreeBaseDir,
+			maxWorktrees: config?.maxWorktrees ?? 10,
 		};
 	}
 
@@ -67,6 +90,55 @@ export class SwarmOrchestrator {
 			this.completionResolve = resolve;
 		});
 
+		// Initialize worktree manager if enabled
+		if (this.config.enableWorktrees) {
+			if (!this.projectDir) {
+				throw new Error("projectDir is required when enableWorktrees is true");
+			}
+			const swarmIdShort = swarmId.slice(0, 12);
+			const baseDir =
+				this.config.worktreeBaseDir ?? `${this.projectDir}/.ai/.worktrees`;
+			this.worktreeManager = new WorktreeManager({
+				projectDir: this.projectDir,
+				baseDir,
+				swarmIdShort,
+				maxWorktrees: this.config.maxWorktrees,
+			});
+
+			// Validate git repo
+			await this.worktreeManager.validateGitRepo();
+
+			// Clean up orphans from previous crashes
+			await this.worktreeManager.prune();
+			await this.worktreeManager.cleanupOrphaned("swarm-");
+
+			// Warn about uncommitted changes (best-effort toast)
+			try {
+				const statusProc = Bun.spawn(["git", "status", "--porcelain"], {
+					cwd: this.projectDir,
+					stdout: "pipe",
+					stderr: "pipe",
+				});
+				const output = await new Response(statusProc.stdout).text();
+				await statusProc.exited;
+				if (output.trim().length > 0) {
+					this.client.tui
+						.showToast({
+							body: {
+								title: "⚠️ Uncommitted Changes",
+								message:
+									"Working directory has uncommitted changes. Worktrees will be created from HEAD.",
+								variant: "warning",
+								duration: 5000,
+							},
+						})
+						.catch(() => {});
+				}
+			} catch {
+				/* best-effort */
+			}
+		}
+
 		this.eventBus.on((event) => {
 			if (
 				event.type === "swarm:completed" ||
@@ -78,6 +150,42 @@ export class SwarmOrchestrator {
 					this.completionResolve(finalState);
 				}
 				this.cleanup();
+
+				// Record swarm to registry (best-effort, fire-and-forget)
+				if (finalState && this.projectDir) {
+					const taskRecords: SwarmTaskRecord[] = [
+						...finalState.tasks.entries(),
+					].map(([, ts]) => ({
+						taskId: ts.task.id,
+						agent: ts.task.agent,
+						sessionId: ts.sessionId,
+						status: ts.status,
+						worktreePath: ts.worktreePath,
+						branch: ts.worktreeBranch,
+						// Truncated result with indicator (M4)
+						result:
+							ts.result && ts.result.length > 500
+								? `${ts.result.slice(0, 497)}...`
+								: ts.result,
+						tokens: ts.tokens,
+						startedAt: ts.startedAt,
+						completedAt: ts.completedAt,
+					}));
+
+					const record: SwarmRecord = {
+						swarmId: finalState.id,
+						// createdAt is epoch-ms from Date.now() in state.ts
+						createdAt: new Date(finalState.createdAt).toISOString(),
+						completedAt: new Date().toISOString(),
+						status: finalState.status,
+						taskCount: finalState.tasks.size,
+						// Swarm-level config; per-task usage inferred from worktreePath presence
+						worktreesEnabled: this.config.enableWorktrees,
+						tasks: taskRecords,
+					};
+
+					recordSwarm(this.projectDir, record).catch(() => {});
+				}
 
 				const taskCount = finalState?.tasks.size ?? 0;
 				if (event.type === "swarm:completed") {
@@ -176,9 +284,12 @@ export class SwarmOrchestrator {
 			) {
 				if (taskState.sessionId) {
 					try {
-						await this.client.session.abort({
+						const abortOpts: Record<string, unknown> = {
 							path: { id: taskState.sessionId },
-						});
+						};
+						if (taskState.worktreePath)
+							abortOpts.query = { directory: taskState.worktreePath };
+						await this.client.session.abort(abortOpts as never);
 					} catch {
 						// Session may already be done
 					}
@@ -192,6 +303,11 @@ export class SwarmOrchestrator {
 		}
 
 		this.pendingQueue = [];
+
+		// Clean up all worktrees
+		if (this.worktreeManager) {
+			await this.worktreeManager.removeAll();
+		}
 		// Note: cleanup() will be called by the terminal event listener (H3)
 	}
 
@@ -239,8 +355,49 @@ export class SwarmOrchestrator {
 
 	private async dispatchTask(task: AgentTask): Promise<void> {
 		let sessionId: string | undefined;
+		let worktreePath: string | undefined;
+		let worktreeInfo: { path: string; branch: string } | undefined;
+
 		try {
-			const session = await this.client.session.create({ body: {} });
+			// Determine if this task uses a worktree
+			const useWorktree =
+				this.worktreeManager &&
+				(task.options?.worktree ?? this.config.enableWorktrees);
+
+			if (useWorktree && this.worktreeManager) {
+				// Fail-fast check
+				if (this.worktreeManager.shouldFailFast()) {
+					this.stateManager?.markFailed(
+						task.id,
+						"Swarm aborting: 3 consecutive worktree creation failures",
+					);
+					this.activeTaskIds.delete(task.id);
+					// Trigger full swarm abort
+					this.abort().catch(() => {});
+					return;
+				}
+
+				const info = await this.worktreeManager.create(task.id);
+				worktreePath = info.path;
+				worktreeInfo = info;
+
+				if (this.stateManager) {
+					this.eventBus.emit({
+						type: "task:worktree_created",
+						swarmId: this.stateManager.getState().id,
+						taskId: task.id,
+						worktreePath: info.path,
+						branch: info.branch,
+					});
+				}
+			}
+
+			// Create session — with directory scoping if worktree
+			const sessionOpts: Record<string, unknown> = { body: {} };
+			if (worktreePath) {
+				sessionOpts.query = { directory: worktreePath };
+			}
+			const session = await this.client.session.create(sessionOpts as never);
 
 			const extractedId = extractSessionId(session);
 			if (!extractedId) {
@@ -250,6 +407,10 @@ export class SwarmOrchestrator {
 				);
 				this.activeTaskIds.delete(task.id);
 				this.drainQueue().catch(() => {});
+				// Clean up worktree on failure
+				if (this.worktreeManager && worktreePath) {
+					this.worktreeManager.remove(task.id).catch(() => {});
+				}
 				return;
 			}
 			sessionId = extractedId;
@@ -258,13 +419,28 @@ export class SwarmOrchestrator {
 				this.stateManager &&
 				isTaskTerminal(this.stateManager.getState(), task.id)
 			) {
-				this.client.session.abort({ path: { id: sessionId } }).catch(() => {});
+				const abortOpts: Record<string, unknown> = { path: { id: sessionId } };
+				if (worktreePath) abortOpts.query = { directory: worktreePath };
+				this.client.session.abort(abortOpts as never).catch(() => {});
 				this.activeTaskIds.delete(task.id);
 				this.abortControllers.delete(task.id);
+				// Clean up worktree
+				if (this.worktreeManager && worktreePath) {
+					this.worktreeManager.remove(task.id).catch(() => {});
+				}
 				return;
 			}
 
 			this.stateManager?.markDispatched(task.id, sessionId);
+
+			// Set worktree info atomically on the dispatched state
+			if (worktreeInfo && this.stateManager) {
+				this.stateManager.setWorktreeInfo(
+					task.id,
+					worktreeInfo.path,
+					worktreeInfo.branch,
+				);
+			}
 
 			const controller = new AbortController();
 			this.abortControllers.set(task.id, controller);
@@ -276,9 +452,11 @@ export class SwarmOrchestrator {
 				)
 					return;
 				if (sessionId) {
-					this.client.session
-						.abort({ path: { id: sessionId } })
-						.catch(() => {});
+					const abortOpts: Record<string, unknown> = {
+						path: { id: sessionId },
+					};
+					if (worktreePath) abortOpts.query = { directory: worktreePath };
+					this.client.session.abort(abortOpts as never).catch(() => {});
 				}
 				this.stateManager?.markTimedOut(
 					task.id,
@@ -294,6 +472,20 @@ export class SwarmOrchestrator {
 						},
 					})
 					.catch(() => {});
+				// Clean up this task's worktree
+				if (this.worktreeManager && worktreePath && this.stateManager) {
+					const swarmId = this.stateManager.getState().id;
+					this.worktreeManager
+						.remove(task.id)
+						.then(() => {
+							this.eventBus.emit({
+								type: "task:worktree_removed",
+								swarmId,
+								taskId: task.id,
+							});
+						})
+						.catch(() => {});
+				}
 				this.activeTaskIds.delete(task.id);
 				this.abortControllers.delete(task.id);
 				this.drainQueue().catch(() => {});
@@ -305,17 +497,26 @@ export class SwarmOrchestrator {
 				{ once: true },
 			);
 
-			await this.client.session.promptAsync({
+			// promptAsync — with directory scoping
+			const promptOpts: Record<string, unknown> = {
 				path: { id: sessionId },
 				body: {
 					agent: task.agent,
 					parts: [{ type: "text", text: task.prompt }],
 				},
-			});
+			};
+			if (worktreePath) {
+				promptOpts.query = { directory: worktreePath };
+			}
+			await this.client.session.promptAsync(promptOpts as never);
 		} catch (err) {
 			if (sessionId) {
 				try {
-					await this.client.session.abort({ path: { id: sessionId } });
+					const abortOpts: Record<string, unknown> = {
+						path: { id: sessionId },
+					};
+					if (worktreePath) abortOpts.query = { directory: worktreePath };
+					await this.client.session.abort(abortOpts as never);
 				} catch {
 					/* ignore cleanup errors */
 				}
@@ -324,6 +525,10 @@ export class SwarmOrchestrator {
 			this.stateManager?.markFailed(task.id, msg);
 			if (this.activeTaskIds.delete(task.id)) {
 				this.drainQueue().catch(() => {});
+			}
+			// Clean up worktree on dispatch failure
+			if (this.worktreeManager && worktreePath) {
+				this.worktreeManager.remove(task.id).catch(() => {});
 			}
 		}
 	}
@@ -379,7 +584,10 @@ export class SwarmOrchestrator {
 
 						// Collect actual output from the session
 						const { output, tokens } = taskState.sessionId
-							? await this.collectTaskOutput(taskState.sessionId)
+							? await this.collectTaskOutput(
+									taskState.sessionId,
+									taskState.worktreePath,
+								)
 							: { output: "Session completed (no session ID)" };
 
 						this.stateManager?.markCompleted(taskId, output, tokens);
@@ -393,6 +601,21 @@ export class SwarmOrchestrator {
 								},
 							})
 							.catch(() => {});
+
+						// Clean up this task's worktree after output collected
+						if (this.worktreeManager && taskState.worktreePath) {
+							this.worktreeManager
+								.remove(taskId)
+								.then(() => {
+									this.eventBus.emit({
+										type: "task:worktree_removed",
+										swarmId: state.id,
+										taskId,
+									});
+								})
+								.catch(() => {});
+						}
+
 						this.activeTaskIds.delete(taskId);
 						this.drainQueue().catch(() => {});
 					}
@@ -420,11 +643,12 @@ export class SwarmOrchestrator {
 	 */
 	private async collectTaskOutput(
 		sessionId: string,
+		directory?: string,
 	): Promise<{ output: string; tokens?: TaskTokens }> {
 		try {
-			const response = await this.client.session.messages({
-				path: { id: sessionId },
-			});
+			const opts: Record<string, unknown> = { path: { id: sessionId } };
+			if (directory) opts.query = { directory };
+			const response = await this.client.session.messages(opts as never);
 
 			// Response is { data: Array<{ info: Message; parts: Array<Part> }> }
 			const messages = Array.isArray(response.data) ? response.data : [];
@@ -502,5 +726,9 @@ export class SwarmOrchestrator {
 			this.pollCleanup = undefined;
 		}
 		this.abortControllers.clear();
+		// Belt-and-suspenders: remove any remaining worktrees
+		if (this.worktreeManager) {
+			this.worktreeManager.removeAll().catch(() => {});
+		}
 	}
 }

@@ -21,6 +21,9 @@ export type {
 	SwarmId,
 	SwarmState,
 	SwarmStatus,
+	TaskOptions,
 	TaskTokens,
 } from "./types";
 export { createSwarmId } from "./types";
+export type { WorktreeInfo, WorktreeManagerConfig } from "./worktree";
+export { WorktreeManager } from "./worktree";

@@ -27,7 +27,10 @@ const PlatformPlugin: Plugin = async ({ client, directory }) => {
 	const platformInfo = createPlatformInfoTool(client, directory);
 	const platformCreateAgent = createPlatformCreateAgentTool(directory);
 	const platformCortexAgent = createPlatformCortexAgentTool(client);
-	const platformSwarmDispatch = createPlatformSwarmDispatchTool(client);
+	const platformSwarmDispatch = createPlatformSwarmDispatchTool(
+		client,
+		directory,
+	);
 	const platformSwarmStatus = createPlatformSwarmStatusTool();
 	const platformSwarmAbort = createPlatformSwarmAbortTool();
 	const platformSwarmWait = createPlatformSwarmWaitTool();

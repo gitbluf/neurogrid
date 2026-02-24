@@ -204,6 +204,18 @@ export class SwarmStateManager {
 		this.checkSwarmComplete();
 	}
 
+	setWorktreeInfo(taskId: string, path: string, branch: string): void {
+		const existing = this.state.tasks.get(taskId);
+		if (!existing) return;
+		const tasks = new Map(this.state.tasks);
+		tasks.set(taskId, {
+			...existing,
+			worktreePath: path,
+			worktreeBranch: branch,
+		});
+		this.state = { ...this.state, tasks };
+	}
+
 	markAborted(taskId: string): void {
 		if (isTaskTerminal(this.state, taskId)) return;
 		this.state = updateTaskStatus(this.state, taskId, "aborted");

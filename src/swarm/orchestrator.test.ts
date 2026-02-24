@@ -1,4 +1,12 @@
-import { describe, expect, it, mock } from "bun:test";
+import {
+	afterEach,
+	beforeEach,
+	describe,
+	expect,
+	it,
+	mock,
+	spyOn,
+} from "bun:test";
 import { SwarmOrchestrator } from "./orchestrator";
 import type { OpencodeClient } from "./types";
 
@@ -553,5 +561,405 @@ describe("SwarmOrchestrator", () => {
 
 		// Verify tokens were collected
 		expect(taskState?.tokens).toEqual({ input: 150, output: 75 });
+	});
+
+	describe("worktree integration", () => {
+		let spawnSpy: ReturnType<typeof spyOn>;
+
+		beforeEach(() => {
+			spawnSpy = spyOn(Bun, "spawn").mockImplementation(
+				(..._args: unknown[]) => {
+					return {
+						stdout: new Response("").body,
+						stderr: new Response("").body,
+						exited: Promise.resolve(0),
+						exitCode: 0,
+						pid: 12345,
+						kill: () => {},
+					} as never;
+				},
+			);
+		});
+
+		afterEach(() => {
+			spawnSpy.mockRestore();
+		});
+
+		it("should throw if enableWorktrees is true but projectDir is missing", async () => {
+			const client = {
+				session: {
+					create: mock(async () => ({ data: { id: "wt-sess" } })),
+					status: mock(async () => ({ data: {} })),
+					abort: mock(async () => ({})),
+					promptAsync: mock(async () => ({})),
+					messages: mock(async () => ({ data: [] })),
+				},
+				tui: { showToast: mock(async () => ({})) },
+			} as unknown as OpencodeClient;
+
+			const orchestrator = new SwarmOrchestrator(client, {
+				enableWorktrees: true,
+			});
+
+			await expect(
+				orchestrator.dispatch([
+					{ id: "t1", agent: "ghost", prompt: "Do something" },
+				]),
+			).rejects.toThrow("projectDir is required when enableWorktrees is true");
+		});
+
+		it("should pass query.directory to session.create when worktree enabled", async () => {
+			const createCalls: unknown[] = [];
+			const client = {
+				session: {
+					create: mock(async (opts: unknown) => {
+						createCalls.push(opts);
+						return { data: { id: "wt-sess" } };
+					}),
+					status: mock(async () => ({ data: { "wt-sess": { type: "idle" } } })),
+					abort: mock(async () => ({})),
+					promptAsync: mock(async () => ({})),
+					messages: mock(async () => ({ data: [] })),
+				},
+				tui: { showToast: mock(async () => ({})) },
+			} as unknown as OpencodeClient;
+
+			const orchestrator = new SwarmOrchestrator(
+				client,
+				{ enableWorktrees: true },
+				"/fake/project",
+			);
+
+			await orchestrator.dispatch([
+				{ id: "t1", agent: "ghost", prompt: "Do something" },
+			]);
+
+			// Wait for async dispatch to complete
+			await new Promise((r) => setTimeout(r, 100));
+
+			expect(createCalls.length).toBeGreaterThanOrEqual(1);
+			const call = createCalls[0] as Record<string, unknown>;
+			expect(call.query).toBeDefined();
+			const query = call.query as Record<string, unknown>;
+			expect(query.directory).toBeDefined();
+			expect(typeof query.directory).toBe("string");
+			expect((query.directory as string).includes(".ai/.worktrees")).toBe(true);
+
+			// Cleanup
+			await orchestrator.abort();
+		});
+
+		it("should pass query.directory to session.promptAsync when worktree enabled", async () => {
+			const promptAsyncCalls: unknown[] = [];
+			const client = {
+				session: {
+					create: mock(async () => ({ data: { id: "wt-sess" } })),
+					status: mock(async () => ({ data: { "wt-sess": { type: "idle" } } })),
+					abort: mock(async () => ({})),
+					promptAsync: mock(async (opts: unknown) => {
+						promptAsyncCalls.push(opts);
+						return {};
+					}),
+					messages: mock(async () => ({ data: [] })),
+				},
+				tui: { showToast: mock(async () => ({})) },
+			} as unknown as OpencodeClient;
+
+			const orchestrator = new SwarmOrchestrator(
+				client,
+				{ enableWorktrees: true },
+				"/fake/project",
+			);
+
+			await orchestrator.dispatch([
+				{ id: "t1", agent: "ghost", prompt: "Do something" },
+			]);
+
+			// Wait for async dispatch to complete
+			await new Promise((r) => setTimeout(r, 100));
+
+			expect(promptAsyncCalls.length).toBeGreaterThanOrEqual(1);
+			const call = promptAsyncCalls[0] as Record<string, unknown>;
+			expect(call.query).toBeDefined();
+			const query = call.query as Record<string, unknown>;
+			expect(query.directory).toBeDefined();
+			expect(typeof query.directory).toBe("string");
+			expect((query.directory as string).includes(".ai/.worktrees")).toBe(true);
+
+			// Cleanup
+			await orchestrator.abort();
+		});
+
+		it("should pass query.directory to session.abort during abort()", async () => {
+			const abortCalls: unknown[] = [];
+			const client = {
+				session: {
+					create: mock(async () => ({ data: { id: "wt-sess" } })),
+					status: mock(async () => ({ data: { "wt-sess": { type: "busy" } } })),
+					abort: mock(async (opts: unknown) => {
+						abortCalls.push(opts);
+						return {};
+					}),
+					promptAsync: mock(async () => ({})),
+					messages: mock(async () => ({ data: [] })),
+				},
+				tui: { showToast: mock(async () => ({})) },
+			} as unknown as OpencodeClient;
+
+			const orchestrator = new SwarmOrchestrator(
+				client,
+				{ enableWorktrees: true },
+				"/fake/project",
+			);
+
+			await orchestrator.dispatch([
+				{ id: "t1", agent: "ghost", prompt: "Do something" },
+			]);
+
+			// Wait for async dispatch to complete
+			await new Promise((r) => setTimeout(r, 100));
+
+			await orchestrator.abort();
+
+			expect(abortCalls.length).toBeGreaterThanOrEqual(1);
+			const call = abortCalls[0] as Record<string, unknown>;
+			expect(call.query).toBeDefined();
+			const query = call.query as Record<string, unknown>;
+			expect(query.directory).toBeDefined();
+			expect(typeof query.directory).toBe("string");
+		});
+
+		it("should pass query.directory to session.messages when task has worktreePath", async () => {
+			const messagesCalls: unknown[] = [];
+			const client = {
+				session: {
+					create: mock(async () => ({ data: { id: "wt-sess" } })),
+					status: mock(async () => ({ data: { "wt-sess": { type: "idle" } } })),
+					abort: mock(async () => ({})),
+					promptAsync: mock(async () => ({})),
+					messages: mock(async (opts: unknown) => {
+						messagesCalls.push(opts);
+						return {
+							data: [
+								{
+									info: {
+										role: "assistant",
+										tokens: { input: 50, output: 25 },
+									},
+									parts: [{ type: "text", text: "Task complete" }],
+								},
+							],
+						};
+					}),
+				},
+				tui: { showToast: mock(async () => ({})) },
+			} as unknown as OpencodeClient;
+
+			const orchestrator = new SwarmOrchestrator(
+				client,
+				{ enableWorktrees: true },
+				"/fake/project",
+			);
+
+			await orchestrator.dispatch([
+				{ id: "t1", agent: "ghost", prompt: "Do something" },
+			]);
+
+			// Wait for polling to detect idle and call collectTaskOutput
+			await new Promise((r) => setTimeout(r, 2500));
+
+			expect(messagesCalls.length).toBeGreaterThanOrEqual(1);
+			const call = messagesCalls[0] as Record<string, unknown>;
+			expect(call.query).toBeDefined();
+			const query = call.query as Record<string, unknown>;
+			expect(query.directory).toBeDefined();
+			expect(typeof query.directory).toBe("string");
+
+			// Cleanup
+			await orchestrator.abort();
+		});
+
+		it("should skip worktree when task.options.worktree = false", async () => {
+			const createCalls: unknown[] = [];
+			const client = {
+				session: {
+					create: mock(async (opts: unknown) => {
+						createCalls.push(opts);
+						return { data: { id: "no-wt-sess" } };
+					}),
+					status: mock(async () => ({
+						data: { "no-wt-sess": { type: "idle" } },
+					})),
+					abort: mock(async () => ({})),
+					promptAsync: mock(async () => ({})),
+					messages: mock(async () => ({ data: [] })),
+				},
+				tui: { showToast: mock(async () => ({})) },
+			} as unknown as OpencodeClient;
+
+			const orchestrator = new SwarmOrchestrator(
+				client,
+				{ enableWorktrees: true },
+				"/fake/project",
+			);
+
+			await orchestrator.dispatch([
+				{
+					id: "t1",
+					agent: "ghost",
+					prompt: "Do something",
+					options: { worktree: false },
+				},
+			]);
+
+			// Wait for async dispatch to complete
+			await new Promise((r) => setTimeout(r, 100));
+
+			expect(createCalls.length).toBeGreaterThanOrEqual(1);
+			const call = createCalls[0] as Record<string, unknown>;
+			// Should NOT have query.directory
+			expect(call.query).toBeUndefined();
+
+			// Cleanup
+			await orchestrator.abort();
+		});
+
+		it("should not use worktrees when enableWorktrees is false (default)", async () => {
+			const createCalls: unknown[] = [];
+			const client = {
+				session: {
+					create: mock(async (opts: unknown) => {
+						createCalls.push(opts);
+						return { data: { id: "default-sess" } };
+					}),
+					status: mock(async () => ({
+						data: { "default-sess": { type: "idle" } },
+					})),
+					abort: mock(async () => ({})),
+					promptAsync: mock(async () => ({})),
+					messages: mock(async () => ({ data: [] })),
+				},
+				tui: { showToast: mock(async () => ({})) },
+			} as unknown as OpencodeClient;
+
+			const orchestrator = new SwarmOrchestrator(client);
+
+			await orchestrator.dispatch([
+				{ id: "t1", agent: "ghost", prompt: "Do something" },
+			]);
+
+			// Wait for async dispatch to complete
+			await new Promise((r) => setTimeout(r, 100));
+
+			expect(createCalls.length).toBeGreaterThanOrEqual(1);
+			const call = createCalls[0] as Record<string, unknown>;
+			// Should NOT have query.directory
+			expect(call.query).toBeUndefined();
+
+			// Verify Bun.spawn was NOT called for git worktree operations
+			// (spawn may be called for git status check, so we just verify no query.directory)
+			expect(call.query).toBeUndefined();
+
+			// Cleanup
+			await orchestrator.abort();
+		});
+
+		it("should call WorktreeManager.removeAll() during abort()", async () => {
+			const client = {
+				session: {
+					create: mock(async () => ({ data: { id: "wt-sess" } })),
+					status: mock(async () => ({ data: { "wt-sess": { type: "busy" } } })),
+					abort: mock(async () => ({})),
+					promptAsync: mock(async () => ({})),
+					messages: mock(async () => ({ data: [] })),
+				},
+				tui: { showToast: mock(async () => ({})) },
+			} as unknown as OpencodeClient;
+
+			const orchestrator = new SwarmOrchestrator(
+				client,
+				{ enableWorktrees: true },
+				"/fake/project",
+			);
+
+			await orchestrator.dispatch([
+				{ id: "t1", agent: "ghost", prompt: "Do something" },
+			]);
+
+			// Wait for async dispatch to complete
+			await new Promise((r) => setTimeout(r, 100));
+
+			// Track spawn calls before abort
+			const spawnCallsBefore = spawnSpy.mock.calls.length;
+
+			await orchestrator.abort();
+
+			// Wait for cleanup to complete
+			await new Promise((r) => setTimeout(r, 100));
+
+			// Verify additional spawn calls were made (for git worktree remove)
+			const spawnCallsAfter = spawnSpy.mock.calls.length;
+			expect(spawnCallsAfter).toBeGreaterThan(spawnCallsBefore);
+		});
+
+		it("should emit task:worktree_created and task:worktree_removed events", async () => {
+			const client = {
+				session: {
+					create: mock(async () => ({ data: { id: "event-sess" } })),
+					status: mock(async () => ({
+						data: { "event-sess": { type: "idle" } },
+					})),
+					abort: mock(async () => ({})),
+					promptAsync: mock(async () => ({})),
+					messages: mock(async () => ({
+						data: [
+							{
+								info: { role: "assistant", tokens: { input: 50, output: 25 } },
+								parts: [{ type: "text", text: "Done" }],
+							},
+						],
+					})),
+				},
+				tui: { showToast: mock(async () => ({})) },
+			} as unknown as OpencodeClient;
+
+			const orchestrator = new SwarmOrchestrator(
+				client,
+				{ enableWorktrees: true },
+				"/fake/project",
+			);
+
+			const events: Array<{ type: string; taskId?: string }> = [];
+			orchestrator.onEvent((event) => {
+				if (
+					event.type === "task:worktree_created" ||
+					event.type === "task:worktree_removed"
+				) {
+					events.push({ type: event.type, taskId: event.taskId });
+				}
+			});
+
+			await orchestrator.dispatch([
+				{ id: "t1", agent: "ghost", prompt: "Do something" },
+			]);
+
+			// Wait for worktree creation and task completion
+			await new Promise((r) => setTimeout(r, 2500));
+
+			// Should have worktree_created event
+			const createdEvent = events.find(
+				(e) => e.type === "task:worktree_created" && e.taskId === "t1",
+			);
+			expect(createdEvent).toBeDefined();
+
+			// Should have worktree_removed event (after task completion)
+			const removedEvent = events.find(
+				(e) => e.type === "task:worktree_removed" && e.taskId === "t1",
+			);
+			expect(removedEvent).toBeDefined();
+
+			// Cleanup
+			await orchestrator.abort();
+		});
 	});
 });

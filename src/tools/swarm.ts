@@ -13,15 +13,34 @@ export function resetActiveSwarms(): void {
 }
 
 const AgentTaskSchema = z.object({
-	id: z.string().min(1).max(256),
+	id: z
+		.string()
+		.min(1)
+		.max(256)
+		.regex(
+			/^[a-zA-Z0-9_-]+$/,
+			"Task ID must be alphanumeric, hyphens, or underscores only",
+		),
 	agent: z.string().min(1).max(256),
 	prompt: z.string().min(1).max(100_000),
 	description: z.string().max(1024).optional(),
+	options: z
+		.object({
+			worktree: z
+				.boolean()
+				.optional()
+				.describe("Override swarm-level worktree setting for this task"),
+		})
+		.optional()
+		.describe("Per-task options"),
 });
 
 const TasksInputSchema = z.array(AgentTaskSchema).min(1).max(50);
 
-export function createPlatformSwarmDispatchTool(client: Client) {
+export function createPlatformSwarmDispatchTool(
+	client: Client,
+	directory: string,
+) {
 	return tool({
 		description:
 			"Dispatch a swarm of concurrent agent sessions. Provide an array of tasks, each with an agent name and prompt. Returns the swarm ID and initial state.",
@@ -43,6 +62,12 @@ export function createPlatformSwarmDispatchTool(client: Client) {
 				.min(1000)
 				.optional()
 				.describe("Per-task timeout in milliseconds (default: 300000)"),
+			worktrees: tool.schema
+				.boolean()
+				.optional()
+				.describe(
+					"Enable git worktree isolation per task (default: false). Each task gets its own worktree and branch.",
+				),
 		},
 		async execute(args) {
 			try {
@@ -58,10 +83,16 @@ export function createPlatformSwarmDispatchTool(client: Client) {
 				}
 				const tasks: AgentTask[] = validationResult.data;
 
-				const orchestrator = new SwarmOrchestrator(client, {
-					concurrency: args.concurrency,
-					timeoutMs: args.timeout,
-				});
+				const orchestrator = new SwarmOrchestrator(
+					client,
+					{
+						concurrency: args.concurrency,
+						timeoutMs: args.timeout,
+						enableWorktrees: args.worktrees ?? false,
+						maxWorktrees: 10,
+					},
+					directory,
+				);
 
 				const swarmId = await orchestrator.dispatch(tasks);
 				activeSwarms.set(swarmId, orchestrator);
@@ -83,6 +114,7 @@ export function createPlatformSwarmDispatchTool(client: Client) {
 						taskCount: tasks.length,
 						concurrency: args.concurrency ?? 5,
 						timeoutMs: args.timeout ?? 300000,
+						worktreesEnabled: args.worktrees ?? false,
 						tasks: tasks.map((t) => ({
 							id: t.id,
 							agent: t.agent,
@@ -135,6 +167,8 @@ export function createPlatformSwarmStatusTool() {
 					sessionId: ts.sessionId,
 					error: ts.error,
 					result: ts.result,
+					worktreePath: ts.worktreePath ?? null,
+					worktreeBranch: ts.worktreeBranch ?? null,
 					durationMs:
 						ts.startedAt && ts.completedAt
 							? ts.completedAt - ts.startedAt
@@ -221,6 +255,8 @@ export function createPlatformSwarmWaitTool() {
 					status: ts.status,
 					error: ts.error,
 					result: ts.result,
+					worktreePath: ts.worktreePath ?? null,
+					worktreeBranch: ts.worktreeBranch ?? null,
 					durationMs:
 						ts.startedAt && ts.completedAt
 							? ts.completedAt - ts.startedAt
