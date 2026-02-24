@@ -83,10 +83,10 @@ export function formatSwarmStatus(records: SwarmRunRecord[]): string {
 
 	const lines: string[] = [];
 	lines.push(
-		"| Task | Status | Branch | Session | Duration | Dispatch | Sandbox |",
+		"| Task | Status | Branch | Session | Duration | Dispatch | SHA | Sandbox |",
 	);
 	lines.push(
-		"|------|--------|--------|---------|----------|----------|---------|",
+		"|------|--------|--------|---------|----------|----------|-----|---------|",
 	);
 	for (const r of records) {
 		const icon =
@@ -116,11 +116,12 @@ export function formatSwarmStatus(records: SwarmRunRecord[]): string {
 					? "…"
 					: "-";
 		const dispatch = r.dispatchId ? r.dispatchId.slice(0, 8) : "-";
+		const sha = r.tipSha ? r.tipSha.slice(0, 7) : "-";
 		const sandboxStatus = r.sandboxEnforced
 			? `✅ ${r.sandboxBackend ?? "unknown"} (${r.sandboxProfile ?? "default"})`
 			: "⚠️ Not enforced";
 		lines.push(
-			`| ${icon} ${r.taskId} | ${r.status} | \`${r.branch}\` | \`${r.sessionId.slice(0, 7)}\` | ${duration} | \`${dispatch}\` | ${sandboxStatus} |`,
+			`| ${icon} ${r.taskId} | ${r.status} | \`${r.branch}\` | \`${r.sessionId.slice(0, 7)}\` | ${duration} | \`${dispatch}\` | \`${sha}\` | ${sandboxStatus} |`,
 		);
 	}
 	return lines.join("\n");

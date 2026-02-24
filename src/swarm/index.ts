@@ -2,6 +2,8 @@
 
 export { buildMergeInstructions, dispatchSwarm } from "./dispatch";
 export { checkBranchDivergence } from "./git";
+export type { TaskLogData } from "./logs";
+export { writeTaskLog } from "./logs";
 export { extractGhostOutput, extractLatestMessage } from "./messages";
 export { formatDispatchReport, formatSwarmOverview } from "./monitor";
 export { waitForSessionIdle } from "./poll";
@@ -17,6 +19,7 @@ export {
 	writeSwarmRegistry,
 } from "./session";
 export type {
+	BatchProgress,
 	DispatchReport,
 	GhostStructuredOutput,
 	OpencodeClient,

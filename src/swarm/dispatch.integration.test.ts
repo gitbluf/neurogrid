@@ -5,6 +5,9 @@ import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { dispatchSwarm } from "./dispatch";
+import * as gitModule from "./git";
+import * as messagesModule from "./messages";
+import * as pollModule from "./poll";
 import * as shimModule from "./sandbox-shim";
 import type { OpencodeClient, ShellRunner, SwarmTask } from "./types";
 import * as worktreeModule from "./worktree";
@@ -54,6 +57,23 @@ describe("dispatchSwarm integration", () => {
 		const shimSpy = spyOn(shimModule, "installSandboxShim").mockResolvedValue(
 			"/tmp/neurogrid-swarm/timeout/.neurogrid-sandbox.sh",
 		);
+		const pollSpy = spyOn(pollModule, "waitForSessionIdle").mockResolvedValue({
+			status: "timeout",
+		});
+		const messagesSpy = spyOn(
+			messagesModule,
+			"extractGhostOutput",
+		).mockResolvedValue({
+			status: "complete",
+			files_modified: [],
+			summary: "ok",
+		});
+		const gitSpy = spyOn(gitModule, "checkBranchDivergence").mockResolvedValue({
+			commits: 0,
+			hasChanges: false,
+			tipSha: "abc1234",
+			diffStat: "",
+		});
 
 		const client = {
 			session: {
@@ -90,6 +110,9 @@ describe("dispatchSwarm integration", () => {
 		} finally {
 			worktreeSpy.mockRestore();
 			shimSpy.mockRestore();
+			pollSpy.mockRestore();
+			messagesSpy.mockRestore();
+			gitSpy.mockRestore();
 			nowSpy.mockRestore();
 		}
 	});
@@ -122,6 +145,24 @@ describe("dispatchSwarm integration", () => {
 		const shimSpy = spyOn(shimModule, "installSandboxShim").mockResolvedValue(
 			"/tmp/neurogrid-swarm/error/.neurogrid-sandbox.sh",
 		);
+		const pollSpy = spyOn(pollModule, "waitForSessionIdle").mockResolvedValue({
+			status: "error",
+			error: "boom",
+		});
+		const messagesSpy = spyOn(
+			messagesModule,
+			"extractGhostOutput",
+		).mockResolvedValue({
+			status: "complete",
+			files_modified: [],
+			summary: "ok",
+		});
+		const gitSpy = spyOn(gitModule, "checkBranchDivergence").mockResolvedValue({
+			commits: 0,
+			hasChanges: false,
+			tipSha: "abc1234",
+			diffStat: "",
+		});
 
 		const client = {
 			session: {
@@ -160,6 +201,9 @@ describe("dispatchSwarm integration", () => {
 		} finally {
 			worktreeSpy.mockRestore();
 			shimSpy.mockRestore();
+			pollSpy.mockRestore();
+			messagesSpy.mockRestore();
+			gitSpy.mockRestore();
 		}
 	});
 
@@ -191,6 +235,23 @@ describe("dispatchSwarm integration", () => {
 		const shimSpy = spyOn(shimModule, "installSandboxShim").mockResolvedValue(
 			"/tmp/neurogrid-swarm/stream/.neurogrid-sandbox.sh",
 		);
+		const pollSpy = spyOn(pollModule, "waitForSessionIdle").mockResolvedValue({
+			status: "timeout",
+		});
+		const messagesSpy = spyOn(
+			messagesModule,
+			"extractGhostOutput",
+		).mockResolvedValue({
+			status: "complete",
+			files_modified: [],
+			summary: "ok",
+		});
+		const gitSpy = spyOn(gitModule, "checkBranchDivergence").mockResolvedValue({
+			commits: 0,
+			hasChanges: false,
+			tipSha: "abc1234",
+			diffStat: "",
+		});
 
 		const client = {
 			session: {
@@ -230,6 +291,102 @@ describe("dispatchSwarm integration", () => {
 		} finally {
 			worktreeSpy.mockRestore();
 			shimSpy.mockRestore();
+			pollSpy.mockRestore();
+			messagesSpy.mockRestore();
+			gitSpy.mockRestore();
+		}
+	});
+
+	it("emits onBatchProgress after terminal state", async () => {
+		const taskId = "batch-task-1";
+		const taskId2 = "batch-task-2";
+		const planFile = ".ai/plan-batch.md";
+		await writeFile(join(dir, planFile), "# plan", "utf8");
+		const planFile2 = ".ai/plan-batch-2.md";
+		await writeFile(join(dir, planFile2), "# plan", "utf8");
+
+		const worktreeSpy = spyOn(
+			worktreeModule,
+			"createWorktree",
+		).mockImplementation(async (options) => {
+			const suffix = options.taskId === taskId ? "one" : "two";
+			await mkdir(`/tmp/neurogrid-swarm/${suffix}`, { recursive: true });
+			return {
+				id: options.taskId,
+				path: `/tmp/neurogrid-swarm/${suffix}`,
+				branch: `neurogrid/swarm-${suffix}-1`,
+				planFile: options.planFile,
+				baseBranch: "main",
+				sandbox: {
+					backend: "none",
+					profile: "default",
+					projectDir: `/tmp/neurogrid-swarm/${suffix}`,
+					enforced: false,
+				},
+				remove: async () => {},
+			};
+		});
+		const shimSpy = spyOn(shimModule, "installSandboxShim").mockResolvedValue(
+			"/tmp/neurogrid-swarm/.neurogrid-sandbox.sh",
+		);
+		const pollSpy = spyOn(pollModule, "waitForSessionIdle").mockResolvedValue({
+			status: "idle",
+		});
+		const messagesSpy = spyOn(
+			messagesModule,
+			"extractGhostOutput",
+		).mockResolvedValue({
+			status: "complete",
+			files_modified: [],
+			summary: "ok",
+		});
+		const gitSpy = spyOn(gitModule, "checkBranchDivergence").mockResolvedValue({
+			commits: 1,
+			hasChanges: true,
+			tipSha: "abc1234",
+			diffStat: "1 file changed",
+		});
+
+		const client = {
+			session: {
+				create: async () => ({ id: "session-batch" }),
+				prompt: async () => ({ ok: true }),
+				status: async () => ({ "session-batch": { status: "idle" } }),
+				abort: async () => ({}),
+				messages: async () => [],
+			},
+			tui: {
+				showToast: async () => {},
+			},
+		} as unknown as OpencodeClient;
+
+		const mock$: ShellRunner = (_s: TemplateStringsArray, ..._v: unknown[]) =>
+			Promise.resolve({ text: () => "main" });
+
+		const tasks: SwarmTask[] = [
+			{ taskId, planFile },
+			{ taskId: taskId2, planFile: planFile2 },
+		];
+		const seen: Array<{ completed: number; total: number }> = [];
+		try {
+			await dispatchSwarm(tasks, {
+				client,
+				directory: dir,
+				$: mock$,
+				parentSessionId: "parent",
+				onBatchProgress: (progress) => {
+					seen.push({ completed: progress.completed, total: progress.total });
+				},
+			});
+
+			expect(seen.length).toBeGreaterThan(0);
+			expect(seen[seen.length - 1]).toEqual({ completed: 2, total: 2 });
+		} finally {
+			worktreeSpy.mockRestore();
+			shimSpy.mockRestore();
+			pollSpy.mockRestore();
+			messagesSpy.mockRestore();
+			gitSpy.mockRestore();
 		}
 	});
 });

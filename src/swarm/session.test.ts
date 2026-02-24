@@ -281,6 +281,7 @@ describe("swarm session registry", () => {
 					startedAt: "2026-01-01T00:00:00.000Z",
 					completedAt: "2026-01-01T00:00:05.000Z",
 					durationMs: 5000,
+					tipSha: "abc1234def",
 					sandboxBackend: "sandbox-exec",
 					sandboxProfile: "default",
 					sandboxEnforced: true,
@@ -290,8 +291,10 @@ describe("swarm session registry", () => {
 			const output = formatSwarmStatus(records);
 			expect(output).toContain("| Duration |");
 			expect(output).toContain("| Dispatch |");
+			expect(output).toContain("| SHA |");
 			expect(output).toContain("5.0s");
 			expect(output).toContain("`d1234567`");
+			expect(output).toContain("`abc1234`");
 		});
 
 		it("shows dash for records without timestamps", () => {
@@ -311,6 +314,7 @@ describe("swarm session registry", () => {
 
 			const output = formatSwarmStatus(records);
 			expect(output).toContain("| - |");
+			expect(output).toContain("| `-` |");
 		});
 
 		it("shows ellipsis for running tasks duration", () => {

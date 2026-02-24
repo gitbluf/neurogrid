@@ -90,6 +90,18 @@ export function formatDispatchReport(report: DispatchReport): string {
 			lines.push(`- **Duration:** ${(r.durationMs / 1000).toFixed(1)}s`);
 		}
 		lines.push(`- **Summary:** ${r.summary}`);
+		if (r.tipSha) {
+			lines.push(`- **SHA:** \`${r.tipSha.slice(0, 7)}\``);
+		}
+		if (r.diffStat) {
+			lines.push("- **Diff Stats:**");
+			lines.push("```");
+			lines.push(r.diffStat);
+			lines.push("```");
+		}
+		if (r.logFile) {
+			lines.push(`- **Log:** \`${r.logFile}\``);
+		}
 
 		if (r.filesModified.length > 0) {
 			lines.push(`- **Files:** ${r.filesModified.join(", ")}`);

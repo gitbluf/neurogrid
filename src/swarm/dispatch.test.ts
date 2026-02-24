@@ -32,6 +32,8 @@ describe("dispatch", () => {
 					status: "done",
 					filesModified: ["src/auth.ts"],
 					summary: "Added auth module",
+					tipSha: "abc1234def",
+					diffStat: "1 file changed",
 					dispatchId: "test-dispatch-id",
 					sandboxBackend: "sandbox-exec",
 					sandboxProfile: "default",
@@ -48,6 +50,8 @@ describe("dispatch", () => {
 			expect(output).toContain(
 				"git log --oneline main..neurogrid/swarm-auth-123",
 			);
+			expect(output).toContain("auth tip: abc1234");
+			expect(output).toContain("**Diff stats:**");
 		});
 
 		it("lists failed tasks", () => {
@@ -85,6 +89,8 @@ describe("dispatch", () => {
 					status: "done",
 					filesModified: ["src/auth.ts"],
 					summary: "OK",
+					tipSha: "fedcba9876",
+					diffStat: "2 files changed",
 					dispatchId: "test-dispatch-id",
 					sandboxBackend: "sandbox-exec",
 					sandboxProfile: "readonly",

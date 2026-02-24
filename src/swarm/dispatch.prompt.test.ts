@@ -67,6 +67,8 @@ describe("dispatchSwarm prompt behavior", () => {
 		const gitSpy = spyOn(gitModule, "checkBranchDivergence").mockResolvedValue({
 			commits: 1,
 			hasChanges: true,
+			tipSha: "abc1234",
+			diffStat: "1 file changed",
 		});
 
 		const promptAsyncSpy = { calls: 0 };
@@ -106,6 +108,7 @@ describe("dispatchSwarm prompt behavior", () => {
 			expect(promptResolved).toBe(true);
 			expect(promptAsyncSpy.calls).toBe(0);
 			expect(report.results[0]?.status).toBe("done");
+			expect(report.results[0]?.tipSha).toBe("abc1234");
 			expect(report.dispatchId).toBeDefined();
 			expect(report.dispatchId).toMatch(/^[0-9a-f-]{36}$/);
 			expect(report.startedAt).toBeDefined();
@@ -169,6 +172,8 @@ describe("dispatchSwarm prompt behavior", () => {
 		const gitSpy = spyOn(gitModule, "checkBranchDivergence").mockResolvedValue({
 			commits: 1,
 			hasChanges: true,
+			tipSha: "abc1234",
+			diffStat: "1 file changed",
 		});
 
 		const client = {

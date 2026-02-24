@@ -92,6 +92,9 @@ describe("formatDispatchReport", () => {
 				status: "no-changes",
 				filesModified: [],
 				summary: "No changes",
+				tipSha: "abc1234def",
+				diffStat: "1 file changed",
+				logFile: ".ai/swarm-logs/a.log",
 				dispatchId: "d1234567-abcd-1234-abcd-1234567890ab",
 				sandboxBackend: "sandbox-exec",
 				sandboxProfile: "default",
@@ -130,6 +133,9 @@ describe("formatDispatchReport", () => {
 		const output = formatDispatchReport(report);
 		expect(output).toContain("⚪ a");
 		expect(output).toContain("⏰ b");
+		expect(output).toContain("**SHA:** `abc1234`");
+		expect(output).toContain("**Diff Stats:**");
+		expect(output).toContain("**Log:** `.ai/swarm-logs/a.log`");
 	});
 
 	it("renders dispatch ID and duration", () => {
@@ -143,6 +149,9 @@ describe("formatDispatchReport", () => {
 				status: "done",
 				filesModified: ["src/a.ts"],
 				summary: "Done",
+				tipSha: "abc1234def",
+				diffStat: "1 file changed",
+				logFile: ".ai/swarm-logs/a.log",
 				dispatchId: "d1234567-abcd-1234-abcd-1234567890ab",
 				startedAt: "2026-01-01T00:00:00.000Z",
 				completedAt: "2026-01-01T00:00:03.500Z",
@@ -171,6 +180,10 @@ describe("formatDispatchReport", () => {
 		expect(output).toContain("d1234567-abcd-1234-abcd-1234567890ab");
 		expect(output).toContain("3.5s");
 		expect(output).toContain("Duration:");
+		expect(output).toContain("**SHA:** `abc1234`");
+		expect(output).toContain("**Diff Stats:**");
+		expect(output).toContain("1 file changed");
+		expect(output).toContain("**Log:** `.ai/swarm-logs/a.log`");
 	});
 });
 

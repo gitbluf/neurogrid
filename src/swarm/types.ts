@@ -65,6 +65,12 @@ export interface SwarmRunRecord {
 	completedAt?: string;
 	/** Duration in milliseconds (completedAt - startedAt) */
 	durationMs?: number;
+	/** Branch tip commit SHA at completion */
+	tipSha?: string;
+	/** Output of `git diff --stat baseBranch..branch` */
+	diffStat?: string;
+	/** Path to the task execution log file */
+	logFile?: string;
 }
 
 /** Per-task output in the DispatchReport. */
@@ -91,6 +97,12 @@ export interface SwarmResult {
 	completedAt?: string;
 	/** Duration in milliseconds */
 	durationMs?: number;
+	/** Branch tip commit SHA at completion */
+	tipSha?: string;
+	/** Output of `git diff --stat baseBranch..branch` */
+	diffStat?: string;
+	/** Path to the task execution log file */
+	logFile?: string;
 }
 
 /** Full swarm output written to .ai/swarm-report-<ts>.json. */
@@ -137,6 +149,15 @@ export interface GhostStructuredOutput {
 
 export type TaskStateChangeCallback = (record: SwarmRunRecord) => void;
 
+export interface BatchProgress {
+	completed: number;
+	total: number;
+	succeeded: number;
+	failed: number;
+	noChanges: number;
+	timedOut: number;
+}
+
 export interface DispatchOptions {
 	client: OpencodeClient;
 	directory: string;
@@ -147,6 +168,7 @@ export interface DispatchOptions {
 	sandboxProfile?: SecurityProfile;
 	polling?: PollingOptions;
 	onTaskStateChange?: TaskStateChangeCallback;
+	onBatchProgress?: (progress: BatchProgress) => void;
 }
 
 /** Shape of the swarm session registry JSON file. */

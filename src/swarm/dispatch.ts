@@ -4,11 +4,13 @@ import { randomUUID } from "node:crypto";
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { checkBranchDivergence } from "./git";
+import { writeTaskLog } from "./logs";
 import { extractGhostOutput } from "./messages";
 import { waitForSessionIdle } from "./poll";
 import { installSandboxShim } from "./sandbox-shim";
 import { registerSwarmRun } from "./session";
 import type {
+	BatchProgress,
 	DispatchOptions,
 	DispatchReport,
 	SwarmResult,
@@ -124,6 +126,23 @@ export async function dispatchSwarm(
 
 	const results: SwarmResult[] = [];
 	const taskStartTimes = new Map<string, string>();
+	const batchProgress: BatchProgress = {
+		completed: 0,
+		total: tasks.length,
+		succeeded: 0,
+		failed: 0,
+		noChanges: 0,
+		timedOut: 0,
+	};
+
+	function emitBatchProgress(status: SwarmResult["status"]): void {
+		batchProgress.completed += 1;
+		if (status === "done") batchProgress.succeeded += 1;
+		else if (status === "failed") batchProgress.failed += 1;
+		else if (status === "no-changes") batchProgress.noChanges += 1;
+		else if (status === "timeout") batchProgress.timedOut += 1;
+		opts.onBatchProgress?.(structuredClone(batchProgress));
+	}
 
 	function computeDuration(startedAt: string): {
 		completedAt: string;
@@ -269,6 +288,24 @@ export async function dispatchSwarm(
 					taskStartTimes.get(task.taskId) ?? new Date().toISOString();
 				const { completedAt, durationMs } = computeDuration(taskStartedAt);
 				const lastMessage = taskState.get(task.taskId)?.lastMessage;
+				const failureBase: Omit<SwarmRunRecord, "status"> = {
+					taskId: task.taskId,
+					sessionId: "unknown",
+					branch: sandbox.branch,
+					worktreePath: sandbox.path,
+					planFile: task.planFile,
+					dispatchId,
+					startedAt: taskStartedAt,
+					completedAt,
+					durationMs,
+					sandboxBackend: sandbox.sandbox.backend,
+					sandboxProfile: sandbox.sandbox.profile,
+					sandboxEnforced: sandbox.sandbox.enforced,
+				};
+				const errorMessage =
+					settled.reason instanceof Error
+						? settled.reason.message
+						: String(settled.reason);
 				const failedResult: SwarmResult = {
 					taskId: task.taskId,
 					planFile: task.planFile,
@@ -285,20 +322,31 @@ export async function dispatchSwarm(
 					sandboxBackend: sandbox.sandbox.backend,
 					sandboxProfile: sandbox.sandbox.profile,
 					sandboxEnforced: sandbox.sandbox.enforced,
-					error:
-						settled.reason instanceof Error
-							? settled.reason.message
-							: String(settled.reason),
+					error: errorMessage,
 				};
-
 				results.push(failedResult);
-				await recordState({
+				const failedRecord: SwarmRunRecord = {
+					...failureBase,
+					status: "failed",
+					lastMessage,
+					error: errorMessage,
+				};
+				await recordState(failedRecord);
+				const logFile = await writeTaskLog(directory, {
+					record: failedRecord,
+				});
+				failedResult.logFile = logFile;
+				await recordState({ ...failedRecord, logFile });
+				emitBatchProgress("failed");
+			} else {
+				const { sessionId, taskStartedAt } = settled.value;
+				const { completedAt, durationMs } = computeDuration(taskStartedAt);
+				const baseRecord: Omit<SwarmRunRecord, "status"> = {
 					taskId: task.taskId,
-					sessionId: "unknown",
+					sessionId,
 					branch: sandbox.branch,
 					worktreePath: sandbox.path,
 					planFile: task.planFile,
-					status: "failed",
 					dispatchId,
 					startedAt: taskStartedAt,
 					completedAt,
@@ -306,15 +354,7 @@ export async function dispatchSwarm(
 					sandboxBackend: sandbox.sandbox.backend,
 					sandboxProfile: sandbox.sandbox.profile,
 					sandboxEnforced: sandbox.sandbox.enforced,
-					lastMessage,
-					error:
-						settled.reason instanceof Error
-							? settled.reason.message
-							: String(settled.reason),
-				});
-			} else {
-				const { sessionId, taskStartedAt } = settled.value;
-				const { completedAt, durationMs } = computeDuration(taskStartedAt);
+				};
 
 				const pollResult = await waitForSessionIdle(client, sessionId, {
 					...opts.polling,
@@ -363,23 +403,19 @@ export async function dispatchSwarm(
 						error: `Session timed out after ${timeoutMs}ms`,
 					};
 					results.push(timeoutResult);
-					await recordState({
-						taskId: task.taskId,
-						sessionId,
-						branch: sandbox.branch,
-						worktreePath: sandbox.path,
-						planFile: task.planFile,
+					const timeoutRecord: SwarmRunRecord = {
+						...baseRecord,
 						status: "timeout",
 						error: timeoutResult.error,
 						lastMessage,
-						dispatchId,
-						startedAt: taskStartedAt,
-						completedAt,
-						durationMs,
-						sandboxBackend: sandbox.sandbox.backend,
-						sandboxProfile: sandbox.sandbox.profile,
-						sandboxEnforced: sandbox.sandbox.enforced,
+					};
+					await recordState(timeoutRecord);
+					const logFile = await writeTaskLog(directory, {
+						record: timeoutRecord,
 					});
+					timeoutResult.logFile = logFile;
+					await recordState({ ...timeoutRecord, logFile });
+					emitBatchProgress("timeout");
 					continue;
 				}
 
@@ -403,23 +439,19 @@ export async function dispatchSwarm(
 						error: pollResult.error,
 					};
 					results.push(failedResult);
-					await recordState({
-						taskId: task.taskId,
-						sessionId,
-						branch: sandbox.branch,
-						worktreePath: sandbox.path,
-						planFile: task.planFile,
+					const failedRecord: SwarmRunRecord = {
+						...baseRecord,
 						status: "failed",
 						error: pollResult.error,
 						lastMessage,
-						dispatchId,
-						startedAt: taskStartedAt,
-						completedAt,
-						durationMs,
-						sandboxBackend: sandbox.sandbox.backend,
-						sandboxProfile: sandbox.sandbox.profile,
-						sandboxEnforced: sandbox.sandbox.enforced,
+					};
+					await recordState(failedRecord);
+					const logFile = await writeTaskLog(directory, {
+						record: failedRecord,
 					});
+					failedResult.logFile = logFile;
+					await recordState({ ...failedRecord, logFile });
+					emitBatchProgress("failed");
 					continue;
 				}
 
@@ -445,24 +477,21 @@ export async function dispatchSwarm(
 						rawOutput: output.raw,
 					};
 					results.push(failedResult);
-					await recordState({
-						taskId: task.taskId,
-						sessionId,
-						branch: sandbox.branch,
-						worktreePath: sandbox.path,
-						planFile: task.planFile,
+					const failedRecord: SwarmRunRecord = {
+						...baseRecord,
 						status: "failed",
 						error: failedResult.error,
 						lastMessage,
-						dispatchId,
-						startedAt: taskStartedAt,
-						completedAt,
-						durationMs,
-						sandboxBackend: sandbox.sandbox.backend,
-						sandboxProfile: sandbox.sandbox.profile,
-						sandboxEnforced: sandbox.sandbox.enforced,
 						result: output.raw,
+					};
+					await recordState(failedRecord);
+					const logFile = await writeTaskLog(directory, {
+						record: failedRecord,
+						rawOutput: output.raw,
 					});
+					failedResult.logFile = logFile;
+					await recordState({ ...failedRecord, logFile });
+					emitBatchProgress("failed");
 					continue;
 				}
 
@@ -499,10 +528,12 @@ export async function dispatchSwarm(
 					sandboxProfile: sandbox.sandbox.profile,
 					sandboxEnforced: sandbox.sandbox.enforced,
 					commitCount: divergence.commits,
+					tipSha: divergence.tipSha,
+					diffStat: divergence.diffStat,
 				};
 
 				results.push(result);
-				await recordState({
+				const terminalRecord: SwarmRunRecord = {
 					taskId: task.taskId,
 					sessionId,
 					branch: sandbox.branch,
@@ -518,7 +549,17 @@ export async function dispatchSwarm(
 					sandboxBackend: sandbox.sandbox.backend,
 					sandboxProfile: sandbox.sandbox.profile,
 					sandboxEnforced: sandbox.sandbox.enforced,
+					tipSha: divergence.tipSha,
+					diffStat: divergence.diffStat,
+				};
+				await recordState(terminalRecord);
+				const logFile = await writeTaskLog(directory, {
+					record: terminalRecord,
+					structuredOutput: JSON.stringify(parsed),
 				});
+				result.logFile = logFile;
+				await recordState({ ...terminalRecord, logFile });
+				emitBatchProgress(status);
 			}
 		}
 	}
@@ -623,6 +664,9 @@ export function buildMergeInstructions(results: SwarmResult[]): string {
 		for (const r of done) {
 			lines.push(`git diff --stat main..${r.branch}  # ${r.taskId}`);
 			lines.push(`git log --oneline main..${r.branch}  # ${r.taskId}`);
+			if (r.tipSha) {
+				lines.push(`# ${r.taskId} tip: ${r.tipSha.slice(0, 7)}`);
+			}
 		}
 		lines.push("");
 		lines.push("# Then merge");
@@ -658,6 +702,12 @@ export function buildMergeInstructions(results: SwarmResult[]): string {
 					: "  (none reported)";
 			lines.push(`**${r.taskId}**:`);
 			lines.push(files);
+			if (r.diffStat) {
+				lines.push("**Diff stats:**");
+				lines.push("```");
+				lines.push(r.diffStat);
+				lines.push("```");
+			}
 		}
 	}
 
