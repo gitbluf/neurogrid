@@ -67,6 +67,41 @@ describe("SwarmOrchestrator", () => {
 		await orchestrator.abort();
 	});
 
+	it("should complete tasks when session disappears from status map", async () => {
+		let pollCount = 0;
+
+		const client = {
+			session: {
+				create: mock(async () => ({ data: { id: "vanish-sess" } })),
+				status: mock(async () => {
+					pollCount++;
+					if (pollCount <= 1) {
+						// First poll: session is busy
+						return { data: { "vanish-sess": { type: "busy" } } };
+					}
+					// Subsequent polls: session gone from status map (server cleaned it up)
+					return { data: {} };
+				}),
+				abort: mock(async () => ({})),
+				promptAsync: mock(async () => ({})),
+			},
+			tui: {
+				showToast: mock(async () => ({})),
+			},
+		} as unknown as OpencodeClient;
+
+		const orchestrator = new SwarmOrchestrator(client);
+		await orchestrator.dispatch([
+			{ id: "t1", agent: "dataweaver", prompt: "Find files" },
+		]);
+
+		// Wait for polling to detect the missing session and mark complete
+		const finalState = await orchestrator.waitForCompletion(10_000);
+
+		expect(finalState.status).toBe("completed");
+		expect(finalState.tasks.get("t1")?.status).toBe("completed");
+	});
+
 	it("should throw if dispatch is called twice", async () => {
 		const orchestrator = new SwarmOrchestrator(mockClient);
 		await orchestrator.dispatch([{ id: "t1", agent: "ghost", prompt: "Do X" }]);

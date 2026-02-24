@@ -361,9 +361,11 @@ export class SwarmOrchestrator {
 				for (const [taskId, taskState] of activeTasks) {
 					if (!taskState.sessionId) continue;
 					const sessionStatus = statusMap[taskState.sessionId];
-					if (!sessionStatus) continue;
 
-					if (sessionStatus.type === "idle") {
+					// Session missing from status map means it finished and was cleaned up by the server
+					const isIdle = !sessionStatus || sessionStatus.type === "idle";
+
+					if (isIdle) {
 						if (
 							this.stateManager &&
 							isTaskTerminal(this.stateManager.getState(), taskId)
