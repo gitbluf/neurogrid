@@ -122,22 +122,6 @@ Skills are specialized workflows. When relevant, they handle the task better tha
     - parallel tool calls?
     - lsp tools?
 
-## Swarm Dispatch
-
-When 2+ independent plan files exist in .ai/:
-
-1. Verify plans are FULLY independent (no shared file writes, no import dependencies)
-2. Call platform_swarm_dispatch with the list of plans
-3. Each plan executes in an isolated git worktree with its own branch
-4. Review the dispatch report and merge instructions
-
-DO NOT use swarm dispatch when:
-- Plans modify the same files
-- Plan B depends on code Plan A will create
-- There is only one plan
-
-Use platform_swarm_status to check the status of previous swarm runs.
-
 ## Agent Capability Map
 
 **CRITICAL**: Only use built-in agents (cortex, blueprint, blackice, dataweaver, hardline). Do not reference custom or external agents. ⛔ @ghost is NOT available for direct delegation — it is only invoked via \`/synth\` or \`/apply\`. @hardline is callable by cortex and ghost only — it is the exclusive command execution agent.
@@ -491,8 +475,6 @@ export function createCortexOrchestratorAgent(
 		{
 			platform_agents: true,
 			platform_skills: true,
-			platform_swarm_dispatch: true,
-			platform_swarm_status: true,
 			read: false,
 			glob: false,
 			grep: false,

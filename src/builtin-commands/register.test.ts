@@ -1,4 +1,4 @@
-import { describe, it, expect } from "bun:test";
+import { describe, expect, it } from "bun:test";
 import { registerBuiltinCommands } from "./register";
 
 describe("registerBuiltinCommands", () => {
@@ -10,7 +10,7 @@ describe("registerBuiltinCommands", () => {
 			Record<string, unknown>
 		>;
 		expect(new Set(Object.keys(commandConfig))).toEqual(
-			new Set(["synth", "plans", "clean", "commit", "apply", "dispatch"]),
+			new Set(["synth", "plans", "clean", "commit", "apply"]),
 		);
 	});
 

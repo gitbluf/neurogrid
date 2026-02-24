@@ -1,4 +1,4 @@
-// src/hooks/tool-swarm-guard.ts
+// src/hooks/tool-safety-guard.ts
 
 import type { Hooks } from "@opencode-ai/plugin";
 
@@ -16,9 +16,9 @@ const SECRET_EXTENSIONS = /\.(env|pem|key|p12|pfx|secret|credentials)$/i;
 
 /**
  * Safety guard hook: blocks destructive shell patterns and secret reads.
- * Applies to ALL tool calls, not just swarm sessions.
+ * Applies to ALL tool calls.
  */
-export function createToolSwarmGuardHook(): NonNullable<
+export function createToolSafetyGuardHook(): NonNullable<
 	Hooks["tool.execute.before"]
 > {
 	return async (input, output) => {

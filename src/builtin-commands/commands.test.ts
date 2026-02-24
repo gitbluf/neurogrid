@@ -1,23 +1,16 @@
-import { describe, it, expect } from "bun:test";
+import { describe, expect, it } from "bun:test";
 import { createBuiltinCommands } from "./commands";
 
 describe("createBuiltinCommands", () => {
 	it("returns the expected number of commands", () => {
-		const expectedNames = [
-			"synth",
-			"plans",
-			"clean",
-			"commit",
-			"apply",
-			"dispatch",
-		];
+		const expectedNames = ["synth", "plans", "clean", "commit", "apply"];
 		expect(createBuiltinCommands()).toHaveLength(expectedNames.length);
 	});
 
 	it("contains correct command names", () => {
 		const names = createBuiltinCommands().map((cmd) => cmd.name);
 		expect(new Set(names)).toEqual(
-			new Set(["synth", "plans", "clean", "commit", "apply", "dispatch"]),
+			new Set(["synth", "plans", "clean", "commit", "apply"]),
 		);
 	});
 
@@ -46,14 +39,6 @@ describe("createBuiltinCommands", () => {
 		const apply = createBuiltinCommands().find((cmd) => cmd.name === "apply");
 		expect(apply?.agent).toBe("ghost");
 		expect(apply?.subtask).toBe(true);
-	});
-
-	it("dispatch command has agent 'cortex' and subtask true", () => {
-		const dispatch = createBuiltinCommands().find(
-			(cmd) => cmd.name === "dispatch",
-		);
-		expect(dispatch?.agent).toBe("cortex");
-		expect(dispatch?.subtask).toBe(true);
 	});
 
 	it("every command has non-empty description and template", () => {

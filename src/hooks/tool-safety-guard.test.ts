@@ -1,10 +1,10 @@
-// src/hooks/tool-swarm-guard.test.ts
+// src/hooks/tool-safety-guard.test.ts
 
 import { describe, expect, it } from "bun:test";
-import { createToolSwarmGuardHook } from "./tool-swarm-guard";
+import { createToolSafetyGuardHook } from "./tool-safety-guard";
 
-describe("tool-swarm-guard", () => {
-	const hook = createToolSwarmGuardHook();
+describe("tool-safety-guard", () => {
+	const hook = createToolSafetyGuardHook();
 
 	describe("destructive pattern blocking", () => {
 		it("blocks rm -rf with relative path", async () => {

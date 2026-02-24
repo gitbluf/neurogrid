@@ -282,7 +282,3 @@ export function createPlatformCortexAgentTool(client: OpencodeClient) {
 }
 
 export { createSandboxExecTool };
-export {
-	createPlatformSwarmDispatchTool,
-	createPlatformSwarmStatusTool,
-} from "./swarm";
