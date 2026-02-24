@@ -70,7 +70,7 @@ Model IDs depend on your configured provider (e.g. anthropic/claude-sonnet-4-202
 | **BLACKICE** | Code reviewer | Reviews for correctness, security, performance | ❌ |
 | **DATAWEAVER** | Codebase reconnaissance | Finds files, searches, extracts info | ❌ |
 | **GHOST** | Plan executor | Implements plans and quick edits | ✅ (via `/synth`, `/apply`) |
-| **HARDLINE** | Command executor | Runs scripts, builds, installs, diagnostics, and system ops | ❌ (⚠️ requires approval) |
+| **HARDLINE** | Command executor | Runs scripts, builds, installs, diagnostics, and system ops | ❌ |
 
 ### Agent Hierarchy
 
@@ -82,7 +82,7 @@ cortex (primary orchestrator)
 ├── @blackice (code review)
 ├── @dataweaver (file discovery)
 ├── @ghost (execution via /synth and /apply)
-└── @hardline (command execution ⚠️ requires approval)
+└── @hardline (command execution)
 ```
 
 ## 🐝 Swarm Dispatch
@@ -126,7 +126,7 @@ Or use the slash command directly:
 
 > **Quick edit?** Skip the plan workflow entirely — run **`/apply <what to change>`** for small, surgical edits.
 
-> **Need to run a command?** Use **@hardline** — it handles builds, installs, diagnostics, and any shell operation. Every command requires your explicit approval before execution.
+> **Need to run a command?** Use **@hardline** — it handles builds, installs, diagnostics, and any shell operation.
 
 ## 🛠 Commands
 
