@@ -87,7 +87,7 @@ cortex (primary orchestrator)
 
 ## 🐝 Swarm Dispatch
 
-Run multiple agent tasks concurrently — each in its own OpenCode session with full output collection.
+Run multiple agent tasks concurrently — each in its own OpenCode session with full output collection, optional git worktree isolation, and automatic result recording.
 
 ```
 cortex → platform_swarm_dispatch
@@ -101,20 +101,46 @@ Ask CORTEX to dispatch tasks:
 
 > "Search for all API endpoints and review the auth module for security issues at the same time"
 
-Or check status:
+Or use the `/dispatch` command directly:
 
-> "Show swarm status"
+> `/dispatch task-1 ghost "Refactor the auth module" | task-2 dataweaver "Find all unused exports"`
+
+Check status or wait:
+
+> "Show swarm status" · "Wait for the swarm to finish"
 
 ### Swarm Tools
 
 | Tool | Purpose |
 | --- | --- |
-| `platform_swarm_dispatch` | Dispatch concurrent agent sessions (up to 20) |
+| `platform_swarm_dispatch` | Dispatch concurrent agent sessions (up to 20 tasks, configurable concurrency) |
 | `platform_swarm_status` | Get current status of a running swarm |
 | `platform_swarm_wait` | Block until all tasks complete or timeout |
 | `platform_swarm_abort` | Cancel all running tasks in a swarm |
 
-Each task specifies an agent and prompt. The orchestrator manages concurrency limits, timeouts (default 10 min), and collects the full agent response (text output, tool results, and token usage) when tasks complete.
+### Dispatch Options
+
+| Option | Default | Description |
+| --- | --- | --- |
+| `concurrency` | 5 | Max concurrent sessions (1–20) |
+| `timeout` | 300000 | Per-task timeout in ms (default 5 min) |
+| `worktrees` | false | Enable git worktree isolation per task |
+
+### Git Worktree Isolation
+
+When `worktrees: true` is set, each task runs in its own git worktree — a lightweight, independent working copy branched from HEAD. This means agents can modify files in parallel without conflicts.
+
+- Worktrees are created under `.ai/.worktrees/` in your project
+- Each task gets a dedicated branch: `swarm/<id>/<task-id>`
+- On completion, uncommitted changes are auto-committed before cleanup
+- Worktree directories are removed after task completion; **branches are preserved** for review
+- Per-task override: set `options.worktree: false` on individual tasks to skip isolation
+
+### Swarm History
+
+Completed swarms are automatically recorded to `.ai/.swarm-records.json` with full details: task statuses, agent output (truncated to 500 chars), token usage, session IDs, worktree paths, and timestamps. The registry is pruned to the most recent 100 entries.
+
+> 📐 **Architecture details?** See [docs/SWARM_ARCHITECTURE.md](docs/SWARM_ARCHITECTURE.md) for the full technical deep-dive — components, state machine, polling loop, and safety mechanisms.
 
 ## 🧭 How It Works
 
