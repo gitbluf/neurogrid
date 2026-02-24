@@ -57,9 +57,9 @@ Model IDs depend on your configured provider (e.g. anthropic/claude-sonnet-4-202
 ## 📦 What You Get
 
 - **6 specialized agents** (orchestrator, planner, reviewer, discovery, executor, command runner)
-- **4 built-in commands** (`/synth`, `/apply`, `/dispatch`, `/clean`)
+- **6 built-in commands** (`/synth`, `/apply`, `/dispatch`, `/plans`, `/clean`, `/commit`)
 - **3 built-in skills** (complexity, security, git commit flow)
-- **Platform tools** for agent/skill discovery, configuration, and swarm dispatch
+- **Platform tools** for agent/skill discovery, configuration, and multi-agent swarm orchestration
 
 ## 🤖 Agents (At a Glance)
 
@@ -87,33 +87,34 @@ cortex (primary orchestrator)
 
 ## 🐝 Swarm Dispatch
 
-Run multiple plans in parallel — each in its own git worktree and GHOST session.
+Run multiple agent tasks concurrently — each in its own OpenCode session with full output collection.
 
 ```
 cortex → platform_swarm_dispatch
-         ├── worktree/auth-module  → GHOST session 1
-         ├── worktree/db-layer     → GHOST session 2
-         └── worktree/api-routes   → GHOST session 3
-         → aggregated report + merge instructions
+         ├── session 1 → @dataweaver (find API endpoints)
+         ├── session 2 → @dataweaver (analyze test coverage)
+         └── session 3 → @blackice (review auth module)
+         → collected output from all tasks
 ```
 
-Ask CORTEX to dispatch plans:
+Ask CORTEX to dispatch tasks:
 
-> "Dispatch these plans in parallel: plan-auth.md, plan-db.md, plan-api.md"
+> "Search for all API endpoints and review the auth module for security issues at the same time"
 
 Or check status:
 
 > "Show swarm status"
 
-Each task gets an isolated branch (`neurogrid/swarm-<taskId>-<ts>`). After completion, review diffs and merge manually.
+### Swarm Tools
 
-Or use the slash command directly:
+| Tool | Purpose |
+| --- | --- |
+| `platform_swarm_dispatch` | Dispatch concurrent agent sessions (up to 20) |
+| `platform_swarm_status` | Get current status of a running swarm |
+| `platform_swarm_wait` | Block until all tasks complete or timeout |
+| `platform_swarm_abort` | Cancel all running tasks in a swarm |
 
-```
-/dispatch auth-module db-layer api-routes
-```
-
-**Safety:** A guard hook blocks destructive commands (`rm -rf`, `git push --force`, `DROP TABLE`) and secret file reads (`.env`, `.pem`, `.key`). An audit hook logs all write/edit operations to `.ai/swarm-audit.log`.
+Each task specifies an agent and prompt. The orchestrator manages concurrency limits, timeouts (default 10 min), and collects the full agent response (text output, tool results, and token usage) when tasks complete.
 
 ## 🧭 How It Works
 
@@ -137,7 +138,7 @@ Or use the slash command directly:
 | **`/plans`** | List all plans and their lifecycle status | ❌ |
 | **`/clean`** | Remove all `.md` files from `.ai/` | ❌ |
 | **`/commit`** | Create a git commit with AI-generated message | ❌ |
-| **`/dispatch <plan1> <plan2> ...`** | Dispatch multiple plans in parallel via swarm | ❌ |
+| **`/dispatch <tasks>`** | Dispatch multiple agent tasks in parallel via swarm | ❌ |
 
 ### `/synth` vs `/apply`
 
@@ -161,8 +162,10 @@ Or use the slash command directly:
 - `platform_info` — Summarize platform setup
 - `platform_createAgent` — Create/update agent definitions
 - `platform_cortexAgent` — Get the fully configured cortex orchestrator
-- `platform_swarm_dispatch` — Dispatch parallel GHOST sessions across git worktrees
-- `platform_swarm_status` — Show current swarm run status
+- `platform_swarm_dispatch` — Dispatch concurrent agent sessions with configurable concurrency and timeout
+- `platform_swarm_status` — Get current status and results of a running or completed swarm
+- `platform_swarm_abort` — Cancel all running tasks in a swarm
+- `platform_swarm_wait` — Block until all swarm tasks reach a terminal state
 
 ## 📥 Installation Options
 
