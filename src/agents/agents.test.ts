@@ -1,9 +1,9 @@
-import { describe, it, expect } from "bun:test";
-import { createCortexOrchestratorAgent } from "./cortex";
-import { createBlueprintAgent } from "./blueprint";
+import { describe, expect, it } from "bun:test";
 import { createBlackiceAgent } from "./blackice";
-import { createGhostAgent } from "./ghost";
+import { createBlueprintAgent } from "./blueprint";
+import { createCortexOrchestratorAgent } from "./cortex";
 import { createDataweaverAgent } from "./dataweaver";
+import { createGhostAgent } from "./ghost";
 import { createHardlineAgent } from "./hardline";
 
 describe("createCortexOrchestratorAgent", () => {
@@ -270,7 +270,7 @@ describe("createHardlineAgent", () => {
 
 	it("uses fallback model when undefined passed", () => {
 		const agent = createHardlineAgent(undefined);
-		expect(agent.model).toBe("github-copilot/claude-haiku-4.5");
+		expect(agent.model).toBe("github-copilot/gpt-5-mini");
 	});
 
 	it("default temperature is 0.1", () => {

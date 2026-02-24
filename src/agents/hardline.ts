@@ -74,7 +74,7 @@ export function createHardlineAgent(
 	},
 ): AgentConfig {
 	const prompt = buildHardlinePrompt();
-	const resolvedModel = model ?? "github-copilot/claude-haiku-4.5";
+	const resolvedModel = model ?? "github-copilot/gpt-5-mini";
 
 	const tools = mergeAgentTools(
 		{
