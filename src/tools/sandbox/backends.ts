@@ -1,11 +1,11 @@
 import { spawn } from "node:child_process";
-import {
-	buildBwrapArgs,
-	buildSandboxExecProfile,
-	ALLOWED_BASE_ENV_VARS,
-} from "./profiles";
 import type { SandboxBackend } from "./detect";
 import type { SecurityProfile } from "./profiles";
+import {
+	ALLOWED_BASE_ENV_VARS,
+	buildBwrapArgs,
+	buildSandboxExecProfile,
+} from "./profiles";
 
 export type SandboxResult = {
 	exitCode: number | null;
@@ -64,7 +64,13 @@ async function executeSandboxExec(
 ): Promise<SandboxResult> {
 	const profileText = buildSandboxExecProfile(opts.profile, {
 		projectDir: opts.projectDir,
-		homeDir: process.env.HOME ?? opts.projectDir,
+		homeDir:
+			process.env.HOME ??
+			(() => {
+				throw new Error(
+					"[sandbox] HOME environment variable is not set. Cannot determine home directory for sandbox profile deny rules.",
+				);
+			})(),
 	});
 
 	const args = ["-p", profileText, "/usr/bin/env", "bash", "-c", opts.command];

@@ -3,14 +3,21 @@ import { createBuiltinCommands } from "./commands";
 
 describe("createBuiltinCommands", () => {
 	it("returns the expected number of commands", () => {
-		const expectedNames = ["synth", "plans", "clean", "commit", "apply"];
+		const expectedNames = [
+			"synth",
+			"plans",
+			"clean",
+			"commit",
+			"apply",
+			"dispatch",
+		];
 		expect(createBuiltinCommands()).toHaveLength(expectedNames.length);
 	});
 
 	it("contains correct command names", () => {
 		const names = createBuiltinCommands().map((cmd) => cmd.name);
 		expect(new Set(names)).toEqual(
-			new Set(["synth", "plans", "clean", "commit", "apply"]),
+			new Set(["synth", "plans", "clean", "commit", "apply", "dispatch"]),
 		);
 	});
 
@@ -32,7 +39,7 @@ describe("createBuiltinCommands", () => {
 
 	it("commit command has model override", () => {
 		const commit = createBuiltinCommands().find((cmd) => cmd.name === "commit");
-		expect(commit?.model).toBe("github-copilot/claude-haiku-4.5");
+		expect(commit?.model).toBe("github-copilot/claude-haiku-4.6");
 	});
 
 	it("apply command has agent 'ghost' and subtask true", () => {

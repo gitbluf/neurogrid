@@ -81,7 +81,7 @@ const cleanCommand: BuiltinCommand = {
 const commitCommand: BuiltinCommand = {
 	name: "commit",
 	description: "Create a git commit with AI-generated message.",
-	model: "github-copilot/claude-haiku-4.5",
+	model: "github-copilot/claude-haiku-4.6",
 	template: "$ARGUMENTS",
 };
 
@@ -121,6 +121,25 @@ $ARGUMENTS
 `,
 };
 
+// Agent required: swarm dispatch needs cortex to call platform_swarm_dispatch
+const dispatchCommand: BuiltinCommand = {
+	name: "dispatch",
+	description:
+		"Dispatch a swarm of concurrent agent sessions. Usage: /dispatch (one task per line, format: agent: task)",
+	agent: "cortex",
+	subtask: true,
+	template: `You are handling a \`/dispatch\` command for swarm orchestration.
+
+The user wants to dispatch multiple agent tasks concurrently.
+
+User input: $ARGUMENTS
+
+Use the \`platform_swarm_dispatch\` tool to execute the swarm.
+After dispatch, use \`platform_swarm_wait\` to wait for completion, then report results.
+If waiting times out, use \`platform_swarm_status\` to check progress.
+Report results back to the user.`,
+};
+
 export function createBuiltinCommands(): BuiltinCommand[] {
 	return [
 		synthCommand,
@@ -128,5 +147,6 @@ export function createBuiltinCommands(): BuiltinCommand[] {
 		cleanCommand,
 		commitCommand,
 		applyCommand,
+		dispatchCommand,
 	];
 }

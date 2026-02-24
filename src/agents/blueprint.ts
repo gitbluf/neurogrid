@@ -350,10 +350,6 @@ export function createBlueprintAgent(
 				".ai/plan-*.md": "allow",
 				"*": "deny",
 			},
-			write: {
-				".ai/plan-*.md": "allow",
-				"*": "deny",
-			},
 			glob: "allow",
 			grep: "allow",
 			bash: {

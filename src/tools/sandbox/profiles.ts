@@ -1,5 +1,5 @@
-import * as path from "node:path";
 import { existsSync, readdirSync } from "node:fs";
+import * as path from "node:path";
 
 export type SecurityProfile = "default" | "network-allow" | "readonly";
 
@@ -54,6 +54,8 @@ export function buildSandboxExecProfile(
 	profile: SecurityProfile,
 	paths: ProfilePaths,
 ): string {
+	validateSandboxPath(paths.projectDir);
+	validateSandboxPath(paths.homeDir);
 	const projectDir = escapeSchemePath(paths.projectDir);
 	const homeDir = escapeSchemePath(paths.homeDir);
 
@@ -172,6 +174,7 @@ export function filterProjectEnvDenies(projectDir: string): {
 	literal: string[];
 	regex: string[];
 } {
+	validateSandboxPath(projectDir);
 	const literals = ENV_DENY_PATTERNS.filter(
 		(pattern) => !pattern.includes("*"),
 	).map((pattern) => path.join(projectDir, pattern));
@@ -236,7 +239,32 @@ function buildSandboxExecSensitiveReadDenies(homeDir: string): string[] {
 	return lines;
 }
 
+/**
+ * SBPL metacharacters that could enable sandbox profile injection.
+ * These characters have special meaning in Sandbox Profile Language:
+ * - `(` / `)` — s-expression delimiters
+ * - `#` — literal/regex prefix (e.g., `#"..."`)
+ * - `;` — comment delimiter
+ * - `\n` / `\r` — could inject new SBPL lines or cause malformed profile parsing
+ */
+const SBPL_UNSAFE_PATTERN = /[()#;\n\r]/;
+
+/**
+ * Validate that a path does not contain SBPL metacharacters.
+ * Paths with these characters cannot be safely embedded in sandbox profiles.
+ * @throws {Error} if the path contains unsafe characters
+ */
+export function validateSandboxPath(input: string): void {
+	if (SBPL_UNSAFE_PATTERN.test(input)) {
+		throw new Error(
+			`[sandbox] Path contains SBPL metacharacters and cannot be safely used in a sandbox profile: "${input}". ` +
+				"Characters (, ), #, ;, and newline characters are not allowed in sandbox paths.",
+		);
+	}
+}
+
 function escapeSchemePath(input: string): string {
+	validateSandboxPath(input);
 	return input.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
 }
 
