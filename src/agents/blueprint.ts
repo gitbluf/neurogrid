@@ -371,5 +371,6 @@ export function createBlueprintAgent(
 
 export const blueprintDefinition = createBuiltinDefinition({
 	name: "blueprint",
-	factory: ({ model, overrides }) => createBlueprintAgent(model, overrides),
+	factory: ({ model, overrides }) =>
+		createBlueprintAgent(model ?? "github-copilot/gpt-5.2-codex", overrides),
 });

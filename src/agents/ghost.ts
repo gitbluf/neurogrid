@@ -285,5 +285,6 @@ export function createGhostAgent(
 export const ghostDefinition = createBuiltinDefinition({
 	name: "ghost",
 	factory: ({ model, overrides }) =>
-		createGhostAgent(model ?? "github-copilot/gpt-5.2-codex", overrides),
+		createGhostAgent(model ?? "github-copilot/claude-sonnet-4.5", overrides),
 });
+// # gpt-5.2-codex
