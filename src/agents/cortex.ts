@@ -475,6 +475,10 @@ export function createCortexOrchestratorAgent(
 		{
 			platform_agents: true,
 			platform_skills: true,
+			platform_swarm_dispatch: false,
+			platform_swarm_status: false,
+			platform_swarm_wait: false,
+			platform_swarm_abort: false,
 			read: false,
 			glob: false,
 			grep: false,
@@ -486,6 +490,7 @@ export function createCortexOrchestratorAgent(
 			webfetch: false,
 			todowrite: true,
 			todoread: true,
+			sandbox_exec: false,
 		},
 		overrides?.tools,
 	);
@@ -510,6 +515,8 @@ export function createCortexOrchestratorAgent(
 			webfetch: "deny",
 			task: "allow",
 			skill: "allow",
+			sandbox_exec: "deny",
+			"platform_swarm_*": "deny",
 			todowrite: "allow",
 			todoread: "allow",
 		} as unknown as AgentConfig["permission"],

@@ -256,6 +256,11 @@ export function createGhostAgent(
 			webfetch: false,
 			todowrite: false,
 			todoread: false,
+			platform_swarm_dispatch: true,
+			platform_swarm_status: true,
+			platform_swarm_wait: true,
+			platform_swarm_abort: true,
+			sandbox_exec: false,
 		},
 		overrides?.tools,
 	);
@@ -277,6 +282,8 @@ export function createGhostAgent(
 			webfetch: "deny",
 			task: "allow",
 			skill: "allow",
+			sandbox_exec: "deny",
+			"platform_swarm_*": "allow",
 		} as unknown as AgentConfig["permission"],
 		prompt,
 	};

@@ -269,9 +269,14 @@ export function createDataweaverAgent(
 			skill: false,
 			platform_agents: false,
 			platform_skills: false,
+			platform_swarm_dispatch: false,
+			platform_swarm_status: false,
+			platform_swarm_wait: false,
+			platform_swarm_abort: false,
 			webfetch: false,
 			todowrite: false,
 			todoread: false,
+			sandbox_exec: false,
 		},
 		overrides?.tools,
 	);
@@ -295,6 +300,8 @@ export function createDataweaverAgent(
 			},
 			webfetch: "deny",
 			task: "deny",
+			sandbox_exec: "deny",
+			"platform_swarm_*": "deny",
 		} as unknown as AgentConfig["permission"],
 		prompt,
 	};

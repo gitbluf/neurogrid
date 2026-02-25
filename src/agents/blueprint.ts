@@ -330,7 +330,12 @@ export function createBlueprintAgent(
 			skill: true,
 			platform_agents: false,
 			platform_skills: true,
+			platform_swarm_dispatch: false,
+			platform_swarm_status: false,
+			platform_swarm_wait: false,
+			platform_swarm_abort: false,
 			webfetch: false,
+			sandbox_exec: false,
 			todowrite: true,
 			todoread: true,
 		},
@@ -347,7 +352,7 @@ export function createBlueprintAgent(
 		permission: {
 			read: "allow",
 			edit: {
-				".ai/plan-*.md": "allow",
+				".ai/*": "allow",
 				"*": "deny",
 			},
 			glob: "allow",
@@ -360,6 +365,8 @@ export function createBlueprintAgent(
 			skill: "allow",
 			todowrite: "allow",
 			todoread: "allow",
+			sandbox_exec: "deny",
+			"platform_swarm_*": "deny",
 		} as unknown as AgentConfig["permission"],
 		prompt,
 	};

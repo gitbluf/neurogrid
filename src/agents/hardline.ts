@@ -77,6 +77,10 @@ export function createHardlineAgent(
 			skill: false,
 			platform_agents: false,
 			platform_skills: false,
+			platform_swarm_dispatch: false,
+			platform_swarm_status: false,
+			platform_swarm_wait: false,
+			platform_swarm_abort: false,
 			todowrite: false,
 			todoread: false,
 		},
@@ -101,6 +105,7 @@ export function createHardlineAgent(
 			webfetch: "deny",
 			skill: "deny",
 			task: "deny",
+			"platform_swarm_*": "deny",
 		} as unknown as AgentConfig["permission"],
 		prompt,
 	};

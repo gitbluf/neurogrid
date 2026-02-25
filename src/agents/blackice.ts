@@ -189,6 +189,10 @@ export function createBlackiceAgent(
 			grep: true,
 			platform_agents: false,
 			platform_skills: true,
+			platform_swarm_dispatch: false,
+			platform_swarm_status: false,
+			platform_swarm_wait: false,
+			platform_swarm_abort: false,
 			skill: true,
 			write: false,
 			edit: false,
@@ -197,6 +201,7 @@ export function createBlackiceAgent(
 			task: false,
 			todowrite: false,
 			todoread: false,
+			sandbox_exec: false,
 		},
 		overrides?.tools,
 	);
@@ -220,6 +225,8 @@ export function createBlackiceAgent(
 			webfetch: "deny",
 			task: "deny",
 			skill: "allow",
+			sandbox_exec: "deny",
+			"platform_swarm_*": "deny",
 		} as unknown as AgentConfig["permission"],
 		prompt,
 	};

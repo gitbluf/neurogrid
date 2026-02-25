@@ -301,6 +301,160 @@ describe("createHardlineAgent", () => {
 	});
 });
 
+describe("swarm dispatch permissions", () => {
+	it("ghost has all 4 swarm tools enabled", () => {
+		const agent = createGhostAgent("model");
+		expect(agent.tools?.platform_swarm_dispatch).toBe(true);
+		expect(agent.tools?.platform_swarm_status).toBe(true);
+		expect(agent.tools?.platform_swarm_wait).toBe(true);
+		expect(agent.tools?.platform_swarm_abort).toBe(true);
+	});
+
+	it("ghost permission allows swarm", () => {
+		const agent = createGhostAgent("model");
+		const permission = agent.permission as Record<string, unknown>;
+		expect(permission["platform_swarm_*"]).toBe("allow");
+	});
+
+	it("cortex permission denies swarm", () => {
+		const agent = createCortexOrchestratorAgent();
+		const permission = agent.permission as Record<string, unknown>;
+		expect(permission["platform_swarm_*"]).toBe("deny");
+	});
+
+	it("blueprint permission denies swarm", () => {
+		const agent = createBlueprintAgent("model");
+		const permission = agent.permission as Record<string, unknown>;
+		expect(permission["platform_swarm_*"]).toBe("deny");
+	});
+
+	it("blackice permission denies swarm", () => {
+		const agent = createBlackiceAgent("model");
+		const permission = agent.permission as Record<string, unknown>;
+		expect(permission["platform_swarm_*"]).toBe("deny");
+	});
+
+	it("dataweaver permission denies swarm", () => {
+		const agent = createDataweaverAgent("model");
+		const permission = agent.permission as Record<string, unknown>;
+		expect(permission["platform_swarm_*"]).toBe("deny");
+	});
+
+	it("hardline permission denies swarm", () => {
+		const agent = createHardlineAgent("model");
+		const permission = agent.permission as Record<string, unknown>;
+		expect(permission["platform_swarm_*"]).toBe("deny");
+	});
+
+	it("cortex does not have swarm tools in config", () => {
+		const agent = createCortexOrchestratorAgent();
+		expect(agent.tools?.platform_swarm_dispatch).toBe(false);
+		expect(agent.tools?.platform_swarm_status).toBe(false);
+		expect(agent.tools?.platform_swarm_wait).toBe(false);
+		expect(agent.tools?.platform_swarm_abort).toBe(false);
+	});
+
+	it("blueprint does not have swarm tools in config", () => {
+		const agent = createBlueprintAgent("model");
+		expect(agent.tools?.platform_swarm_dispatch).toBe(false);
+		expect(agent.tools?.platform_swarm_status).toBe(false);
+		expect(agent.tools?.platform_swarm_wait).toBe(false);
+		expect(agent.tools?.platform_swarm_abort).toBe(false);
+	});
+
+	it("blackice does not have swarm tools in config", () => {
+		const agent = createBlackiceAgent("model");
+		expect(agent.tools?.platform_swarm_dispatch).toBe(false);
+		expect(agent.tools?.platform_swarm_status).toBe(false);
+		expect(agent.tools?.platform_swarm_wait).toBe(false);
+		expect(agent.tools?.platform_swarm_abort).toBe(false);
+	});
+
+	it("dataweaver does not have swarm tools in config", () => {
+		const agent = createDataweaverAgent("model");
+		expect(agent.tools?.platform_swarm_dispatch).toBe(false);
+		expect(agent.tools?.platform_swarm_status).toBe(false);
+		expect(agent.tools?.platform_swarm_wait).toBe(false);
+		expect(agent.tools?.platform_swarm_abort).toBe(false);
+	});
+
+	it("hardline does not have swarm tools in config", () => {
+		const agent = createHardlineAgent("model");
+		expect(agent.tools?.platform_swarm_dispatch).toBe(false);
+		expect(agent.tools?.platform_swarm_status).toBe(false);
+		expect(agent.tools?.platform_swarm_wait).toBe(false);
+		expect(agent.tools?.platform_swarm_abort).toBe(false);
+	});
+});
+
+describe("sandbox_exec permissions", () => {
+	it("hardline has sandbox_exec enabled", () => {
+		const agent = createHardlineAgent("model");
+		expect(agent.tools?.sandbox_exec).toBe(true);
+	});
+
+	it("hardline permission allows sandbox_exec", () => {
+		const agent = createHardlineAgent("model");
+		const permission = agent.permission as Record<string, unknown>;
+		expect(permission.sandbox_exec).toBe("allow");
+	});
+
+	it("cortex permission denies sandbox_exec", () => {
+		const agent = createCortexOrchestratorAgent();
+		const permission = agent.permission as Record<string, unknown>;
+		expect(permission.sandbox_exec).toBe("deny");
+	});
+
+	it("ghost permission denies sandbox_exec", () => {
+		const agent = createGhostAgent("model");
+		const permission = agent.permission as Record<string, unknown>;
+		expect(permission.sandbox_exec).toBe("deny");
+	});
+
+	it("blueprint permission denies sandbox_exec", () => {
+		const agent = createBlueprintAgent("model");
+		const permission = agent.permission as Record<string, unknown>;
+		expect(permission.sandbox_exec).toBe("deny");
+	});
+
+	it("blackice permission denies sandbox_exec", () => {
+		const agent = createBlackiceAgent("model");
+		const permission = agent.permission as Record<string, unknown>;
+		expect(permission.sandbox_exec).toBe("deny");
+	});
+
+	it("dataweaver permission denies sandbox_exec", () => {
+		const agent = createDataweaverAgent("model");
+		const permission = agent.permission as Record<string, unknown>;
+		expect(permission.sandbox_exec).toBe("deny");
+	});
+
+	it("cortex does not have sandbox_exec in config", () => {
+		const agent = createCortexOrchestratorAgent();
+		expect(agent.tools?.sandbox_exec).toBe(false);
+	});
+
+	it("ghost does not have sandbox_exec in config", () => {
+		const agent = createGhostAgent("model");
+		expect(agent.tools?.sandbox_exec).toBe(false);
+	});
+
+	it("blueprint does not have sandbox_exec in config", () => {
+		const agent = createBlueprintAgent("model");
+		expect(agent.tools?.sandbox_exec).toBe(false);
+	});
+
+	it("blackice does not have sandbox_exec in config", () => {
+		const agent = createBlackiceAgent("model");
+		expect(agent.tools?.sandbox_exec).toBe(false);
+	});
+
+	it("dataweaver does not have sandbox_exec in config", () => {
+		const agent = createDataweaverAgent("model");
+		expect(agent.tools?.sandbox_exec).toBe(false);
+	});
+});
+
 describe("snapshot tests", () => {
 	it("cortex prompt structure contains all required sections in order", () => {
 		const agent = createCortexOrchestratorAgent(
