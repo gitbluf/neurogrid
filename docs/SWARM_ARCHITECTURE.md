@@ -61,22 +61,10 @@ Invalid transitions are rejected. Terminal states (`completed`, `failed`, `timed
 
 ### Worktree-scoped sessions produce no output
 
-**Status:** Open · **Severity:** High · **Affects:** `worktrees: true` mode
+**Status:** Resolved · **Severity:** High · **Affects:** `worktrees: true` mode
 
-When sessions are scoped to a worktree directory via `query.directory`, the OpenCode server completes them almost immediately (~300–400ms) with zero tokens and no agent output. Non-worktree sessions using the same agent and prompt work correctly (~8s, full output with real token usage).
+When sessions are scoped to a worktree directory via `query.directory`, sessions completed immediately (~300–400ms) with zero tokens and no agent output. Non-worktree sessions using the same agent and prompt worked correctly (~8s, full output with real token usage).
 
-**Observed behavior:**
-- `session.create({ body: {}, query: { directory: worktreePath } })` succeeds
-- `session.promptAsync(...)` with `query: { directory: worktreePath }` returns HTTP 204 as expected
-- Session disappears from `session.status()` within ~400ms (normally takes 6–10s)
-- `session.messages()` returns an assistant message with empty text and 0 tokens
+**Root Cause:** The polling loop in `orchestrator.ts` called `session.status({})` without passing the worktree directory, so worktree-scoped sessions never appeared in the status map and were immediately treated as completed.
 
-**Impact:** Worktree isolation infrastructure works correctly (create → branch → auto-commit → cleanup), but agents running inside worktree-scoped sessions don't produce meaningful work. This is why `worktrees` defaults to `false` in `platform_swarm_dispatch`.
-
-**Likely cause:** The OpenCode server may not fully support `query.directory` scoping for `promptAsync`, or the scoped session may lack access to tools/context needed to execute the prompt.
-
-**To investigate:**
-1. Check OpenCode server logs when a worktree-scoped session is prompted
-2. Test if the issue is specific to certain agents (e.g., `dataweaver` vs `ghost`)
-3. Verify if the server resolves plugin/tool paths relative to `query.directory`
-4. Open an issue upstream if `query.directory` is not intended for this use case
+**Fix:** Modified the poll loop to call `session.status()` once per unique directory (including undefined for non-worktree tasks), then merge the results. This ensures worktree-scoped sessions are correctly detected and polled until they complete naturally.

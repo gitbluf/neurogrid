@@ -556,13 +556,29 @@ export class SwarmOrchestrator {
 			}
 
 			try {
-				// Single API call to get status of ALL sessions
-				const statusResponse = await this.client.session.status({});
-				const statusMap =
-					typeof statusResponse.data === "object" &&
-					statusResponse.data !== null
-						? (statusResponse.data as Record<string, { type: string }>)
-						: {};
+				// Collect unique directories from active tasks
+				const directories = new Set<string | undefined>();
+				for (const [, taskState] of activeTasks) {
+					directories.add(taskState.worktreePath);
+				}
+
+				// Call session.status() for each unique directory and merge results
+				const mergedStatusMap: Record<string, { type: string }> = {};
+
+				for (const dir of directories) {
+					const opts: Record<string, unknown> = {};
+					if (dir) {
+						opts.query = { directory: dir };
+					}
+					const response = await this.client.session.status(opts as never);
+					const map =
+						typeof response.data === "object" && response.data !== null
+							? (response.data as Record<string, { type: string }>)
+							: {};
+					Object.assign(mergedStatusMap, map);
+				}
+
+				const statusMap = mergedStatusMap;
 
 				for (const [taskId, taskState] of activeTasks) {
 					if (!taskState.sessionId) continue;

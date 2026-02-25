@@ -961,5 +961,68 @@ describe("SwarmOrchestrator", () => {
 			// Cleanup
 			await orchestrator.abort();
 		});
+
+		it("should call session.status() with query.directory for worktree-scoped tasks", async () => {
+			const statusCalls: unknown[] = [];
+			let pollCount = 0;
+
+			const client = {
+				session: {
+					create: mock(async () => ({ data: { id: "wt-poll-sess" } })),
+					status: mock(async (opts: unknown) => {
+						statusCalls.push(opts);
+						pollCount++;
+						if (pollCount <= 1) {
+							// First poll: session is busy
+							return { data: { "wt-poll-sess": { type: "busy" } } };
+						}
+						// Subsequent polls: session is idle
+						return { data: { "wt-poll-sess": { type: "idle" } } };
+					}),
+					abort: mock(async () => ({})),
+					promptAsync: mock(async () => ({})),
+					messages: mock(async () => ({
+						data: [
+							{
+								info: { role: "assistant", tokens: { input: 50, output: 25 } },
+								parts: [{ type: "text", text: "Task complete" }],
+							},
+						],
+					})),
+				},
+				tui: { showToast: mock(async () => ({})) },
+			} as unknown as OpencodeClient;
+
+			const orchestrator = new SwarmOrchestrator(
+				client,
+				{ enableWorktrees: true },
+				"/fake/project",
+			);
+
+			await orchestrator.dispatch([
+				{ id: "t1", agent: "ghost", prompt: "Do something" },
+			]);
+
+			// Wait for completion
+			const finalState = await orchestrator.waitForCompletion(10_000);
+
+			// Verify session.status() was called with query.directory
+			expect(statusCalls.length).toBeGreaterThanOrEqual(1);
+			const callWithDirectory = statusCalls.find((call) => {
+				const opts = call as Record<string, unknown>;
+				if (!opts.query) return false;
+				const query = opts.query as Record<string, unknown>;
+				return (
+					query.directory &&
+					typeof query.directory === "string" &&
+					(query.directory as string).includes(".ai/.worktrees")
+				);
+			});
+			expect(callWithDirectory).toBeDefined();
+
+			// Verify task completed normally (not immediately)
+			expect(finalState.status).toBe("completed");
+			expect(finalState.tasks.get("t1")?.status).toBe("completed");
+		});
 	});
 });
