@@ -1,6 +1,7 @@
 import { realpathSync } from "node:fs";
 import * as path from "node:path";
 import { tool } from "@opencode-ai/plugin";
+import { enforceAgent } from "../agent-guard";
 import { executeSandboxed } from "./backends";
 import { detectBackend } from "./detect";
 import { resolveProfile } from "./profiles";
@@ -35,7 +36,10 @@ export function createSandboxExecTool(directory: string) {
 				.optional()
 				.describe("Additional environment variables to set inside the sandbox"),
 		},
-		async execute(args) {
+		async execute(args, context) {
+			const denied = enforceAgent(context, "hardline", "sandbox_exec");
+			if (denied) return denied;
+
 			try {
 				const profile = resolveProfile();
 				const timeout = args.timeout ?? DEFAULT_TIMEOUT;

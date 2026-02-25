@@ -7,13 +7,28 @@ import {
 	mock,
 	spyOn,
 } from "bun:test";
+import type { ToolContext } from "@opencode-ai/plugin";
 import type { OpencodeClient } from "../swarm/types";
 import {
+	createPlatformSwarmAbortTool,
 	createPlatformSwarmDispatchTool,
 	createPlatformSwarmStatusTool,
 	createPlatformSwarmWaitTool,
 	resetActiveSwarms,
 } from "./swarm";
+
+function mockToolContext(agent = "ghost"): ToolContext {
+	return {
+		sessionID: "test-session",
+		messageID: "test-message",
+		agent,
+		directory: "/tmp/test",
+		worktree: "/tmp/test",
+		abort: new AbortController().signal,
+		metadata: () => {},
+		ask: async () => {},
+	} as ToolContext;
+}
 
 describe("swarm tools", () => {
 	const mockClient = {
@@ -37,9 +52,12 @@ describe("swarm tools", () => {
 			"/tmp/test-project",
 		);
 		type ExecuteArgs = Parameters<typeof tool.execute>[0];
-		const result = await tool.execute({
-			tasks: "invalid-json",
-		} as unknown as ExecuteArgs);
+		const result = await tool.execute(
+			{
+				tasks: "invalid-json",
+			} as unknown as ExecuteArgs,
+			mockToolContext(),
+		);
 
 		const parsed = JSON.parse(result);
 		expect(parsed.error).toBeDefined();
@@ -56,9 +74,12 @@ describe("swarm tools", () => {
 			prompt: "Do X",
 		}));
 		type ExecuteArgs = Parameters<typeof tool.execute>[0];
-		const result = await tool.execute({
-			tasks: JSON.stringify(tasks),
-		} as unknown as ExecuteArgs);
+		const result = await tool.execute(
+			{
+				tasks: JSON.stringify(tasks),
+			} as unknown as ExecuteArgs,
+			mockToolContext(),
+		);
 
 		const parsed = JSON.parse(result);
 		expect(parsed.error).toContain("Invalid tasks input");
@@ -71,9 +92,12 @@ describe("swarm tools", () => {
 		);
 		const tasks = [{ id: "t1" }]; // missing agent and prompt
 		type ExecuteArgs = Parameters<typeof tool.execute>[0];
-		const result = await tool.execute({
-			tasks: JSON.stringify(tasks),
-		} as unknown as ExecuteArgs);
+		const result = await tool.execute(
+			{
+				tasks: JSON.stringify(tasks),
+			} as unknown as ExecuteArgs,
+			mockToolContext(),
+		);
 
 		const parsed = JSON.parse(result);
 		expect(parsed.error).toContain("Invalid tasks input");
@@ -85,9 +109,12 @@ describe("swarm tools", () => {
 			"/tmp/test-project",
 		);
 		type ExecuteArgs = Parameters<typeof tool.execute>[0];
-		const result = await tool.execute({
-			tasks: "[]",
-		} as unknown as ExecuteArgs);
+		const result = await tool.execute(
+			{
+				tasks: "[]",
+			} as unknown as ExecuteArgs,
+			mockToolContext(),
+		);
 
 		const parsed = JSON.parse(result);
 		expect(parsed.error).toContain("Invalid tasks input");
@@ -95,7 +122,10 @@ describe("swarm tools", () => {
 
 	it("should return error for unknown swarmId in status tool", async () => {
 		const tool = createPlatformSwarmStatusTool();
-		const result = await tool.execute({ swarmId: "unknown" });
+		const result = await tool.execute(
+			{ swarmId: "unknown" },
+			mockToolContext(),
+		);
 
 		const parsed = JSON.parse(result);
 		expect(parsed.error).toContain("No swarm found");
@@ -109,13 +139,19 @@ describe("swarm tools", () => {
 		);
 		const tasks = [{ id: "t1", agent: "ghost", prompt: "Do X" }];
 		type ExecuteArgs = Parameters<typeof dispatchTool.execute>[0];
-		const dispatchResult = await dispatchTool.execute({
-			tasks: JSON.stringify(tasks),
-		} as unknown as ExecuteArgs);
+		const dispatchResult = await dispatchTool.execute(
+			{
+				tasks: JSON.stringify(tasks),
+			} as unknown as ExecuteArgs,
+			mockToolContext(),
+		);
 		const { swarmId } = JSON.parse(dispatchResult);
 
 		const statusTool = createPlatformSwarmStatusTool();
-		const statusResult = await statusTool.execute({ swarmId });
+		const statusResult = await statusTool.execute(
+			{ swarmId },
+			mockToolContext(),
+		);
 		const status = JSON.parse(statusResult);
 
 		expect(status.swarmId).toBe(swarmId);
@@ -126,9 +162,9 @@ describe("swarm tools", () => {
 	it("should clear registry with resetActiveSwarms", () => {
 		resetActiveSwarms();
 		const tool = createPlatformSwarmStatusTool();
-		expect(tool.execute({ swarmId: "any" })).resolves.toContain(
-			"No swarm found",
-		);
+		expect(
+			tool.execute({ swarmId: "any" }, mockToolContext()),
+		).resolves.toContain("No swarm found");
 	});
 
 	// Immediate cleanup test
@@ -140,9 +176,12 @@ describe("swarm tools", () => {
 		);
 		const tasks = [{ id: "t1", agent: "ghost", prompt: "Do X" }];
 		type ExecuteArgs = Parameters<typeof dispatchTool.execute>[0];
-		const dispatchResult = await dispatchTool.execute({
-			tasks: JSON.stringify(tasks),
-		} as unknown as ExecuteArgs);
+		const dispatchResult = await dispatchTool.execute(
+			{
+				tasks: JSON.stringify(tasks),
+			} as unknown as ExecuteArgs,
+			mockToolContext(),
+		);
 		const { swarmId } = JSON.parse(dispatchResult);
 
 		// Wait for polling to detect idle and mark completed
@@ -150,7 +189,10 @@ describe("swarm tools", () => {
 
 		// Swarm should be cleaned up immediately after terminal event
 		const statusTool = createPlatformSwarmStatusTool();
-		const statusResult = await statusTool.execute({ swarmId });
+		const statusResult = await statusTool.execute(
+			{ swarmId },
+			mockToolContext(),
+		);
 		const status = JSON.parse(statusResult);
 		expect(status.error).toContain("No swarm found with ID");
 		expect(status.swarmId).toBeUndefined();
@@ -165,17 +207,23 @@ describe("swarm tools", () => {
 		);
 		const tasks = [{ id: "t1", agent: "ghost", prompt: "Do X" }];
 		type ExecuteArgs = Parameters<typeof dispatchTool.execute>[0];
-		const dispatchResult = await dispatchTool.execute({
-			tasks: JSON.stringify(tasks),
-		} as unknown as ExecuteArgs);
+		const dispatchResult = await dispatchTool.execute(
+			{
+				tasks: JSON.stringify(tasks),
+			} as unknown as ExecuteArgs,
+			mockToolContext(),
+		);
 		const { swarmId } = JSON.parse(dispatchResult);
 
 		const waitTool = createPlatformSwarmWaitTool();
 		// Wait with generous timeout — polling should detect idle within 3s
-		const waitResult = await waitTool.execute({
-			swarmId,
-			timeout: 10_000,
-		});
+		const waitResult = await waitTool.execute(
+			{
+				swarmId,
+				timeout: 10_000,
+			},
+			mockToolContext(),
+		);
 
 		const result = JSON.parse(waitResult);
 		expect(result.swarmId).toBe(swarmId);
@@ -209,16 +257,22 @@ describe("swarm tools", () => {
 		);
 		const tasks = [{ id: "t1", agent: "ghost", prompt: "Do X" }];
 		type ExecuteArgs = Parameters<typeof dispatchTool.execute>[0];
-		const dispatchResult = await dispatchTool.execute({
-			tasks: JSON.stringify(tasks),
-		} as unknown as ExecuteArgs);
+		const dispatchResult = await dispatchTool.execute(
+			{
+				tasks: JSON.stringify(tasks),
+			} as unknown as ExecuteArgs,
+			mockToolContext(),
+		);
 		const { swarmId } = JSON.parse(dispatchResult);
 
 		const waitTool = createPlatformSwarmWaitTool();
-		const waitResult = await waitTool.execute({
-			swarmId,
-			timeout: 1000,
-		});
+		const waitResult = await waitTool.execute(
+			{
+				swarmId,
+				timeout: 1000,
+			},
+			mockToolContext(),
+		);
 
 		const result = JSON.parse(waitResult);
 		expect(result.error).toBeDefined();
@@ -270,9 +324,12 @@ describe("swarm tools — worktree features", () => {
 		);
 		const tasks = [{ id: "../evil", agent: "ghost", prompt: "Do X" }];
 		type ExecuteArgs = Parameters<typeof tool.execute>[0];
-		const result = await tool.execute({
-			tasks: JSON.stringify(tasks),
-		} as unknown as ExecuteArgs);
+		const result = await tool.execute(
+			{
+				tasks: JSON.stringify(tasks),
+			} as unknown as ExecuteArgs,
+			mockToolContext(),
+		);
 
 		const parsed = JSON.parse(result);
 		expect(parsed.error).toBeDefined();
@@ -286,9 +343,12 @@ describe("swarm tools — worktree features", () => {
 		);
 		const tasks = [{ id: "task one", agent: "ghost", prompt: "Do X" }];
 		type ExecuteArgs = Parameters<typeof tool.execute>[0];
-		const result = await tool.execute({
-			tasks: JSON.stringify(tasks),
-		} as unknown as ExecuteArgs);
+		const result = await tool.execute(
+			{
+				tasks: JSON.stringify(tasks),
+			} as unknown as ExecuteArgs,
+			mockToolContext(),
+		);
 
 		const parsed = JSON.parse(result);
 		expect(parsed.error).toBeDefined();
@@ -302,9 +362,12 @@ describe("swarm tools — worktree features", () => {
 		);
 		const tasks = [{ id: "task.1", agent: "ghost", prompt: "Do X" }];
 		type ExecuteArgs = Parameters<typeof tool.execute>[0];
-		const result = await tool.execute({
-			tasks: JSON.stringify(tasks),
-		} as unknown as ExecuteArgs);
+		const result = await tool.execute(
+			{
+				tasks: JSON.stringify(tasks),
+			} as unknown as ExecuteArgs,
+			mockToolContext(),
+		);
 
 		const parsed = JSON.parse(result);
 		expect(parsed.error).toBeDefined();
@@ -318,9 +381,12 @@ describe("swarm tools — worktree features", () => {
 		);
 		const tasks = [{ id: "task/1", agent: "ghost", prompt: "Do X" }];
 		type ExecuteArgs = Parameters<typeof tool.execute>[0];
-		const result = await tool.execute({
-			tasks: JSON.stringify(tasks),
-		} as unknown as ExecuteArgs);
+		const result = await tool.execute(
+			{
+				tasks: JSON.stringify(tasks),
+			} as unknown as ExecuteArgs,
+			mockToolContext(),
+		);
 
 		const parsed = JSON.parse(result);
 		expect(parsed.error).toBeDefined();
@@ -337,9 +403,12 @@ describe("swarm tools — worktree features", () => {
 		for (const id of validIds) {
 			const tasks = [{ id, agent: "ghost", prompt: "Do X" }];
 			type ExecuteArgs = Parameters<typeof tool.execute>[0];
-			const result = await tool.execute({
-				tasks: JSON.stringify(tasks),
-			} as unknown as ExecuteArgs);
+			const result = await tool.execute(
+				{
+					tasks: JSON.stringify(tasks),
+				} as unknown as ExecuteArgs,
+				mockToolContext(),
+			);
 
 			const parsed = JSON.parse(result);
 			expect(parsed.error).toBeUndefined();
@@ -354,10 +423,13 @@ describe("swarm tools — worktree features", () => {
 		);
 		const tasks = [{ id: "t1", agent: "ghost", prompt: "Do X" }];
 		type ExecuteArgs = Parameters<typeof tool.execute>[0];
-		const result = await tool.execute({
-			tasks: JSON.stringify(tasks),
-			worktrees: true,
-		} as unknown as ExecuteArgs);
+		const result = await tool.execute(
+			{
+				tasks: JSON.stringify(tasks),
+				worktrees: true,
+			} as unknown as ExecuteArgs,
+			mockToolContext(),
+		);
 
 		const parsed = JSON.parse(result);
 		expect(parsed.worktreesEnabled).toBe(true);
@@ -378,9 +450,12 @@ describe("swarm tools — worktree features", () => {
 			},
 		];
 		type ExecuteArgs = Parameters<typeof tool.execute>[0];
-		const result = await tool.execute({
-			tasks: JSON.stringify(tasks),
-		} as unknown as ExecuteArgs);
+		const result = await tool.execute(
+			{
+				tasks: JSON.stringify(tasks),
+			} as unknown as ExecuteArgs,
+			mockToolContext(),
+		);
 
 		const parsed = JSON.parse(result);
 		expect(parsed.error).toBeUndefined();
@@ -394,13 +469,19 @@ describe("swarm tools — worktree features", () => {
 		);
 		const tasks = [{ id: "t1", agent: "ghost", prompt: "Do X" }];
 		type ExecuteArgs = Parameters<typeof dispatchTool.execute>[0];
-		const dispatchResult = await dispatchTool.execute({
-			tasks: JSON.stringify(tasks),
-		} as unknown as ExecuteArgs);
+		const dispatchResult = await dispatchTool.execute(
+			{
+				tasks: JSON.stringify(tasks),
+			} as unknown as ExecuteArgs,
+			mockToolContext(),
+		);
 		const { swarmId } = JSON.parse(dispatchResult);
 
 		const statusTool = createPlatformSwarmStatusTool();
-		const statusResult = await statusTool.execute({ swarmId });
+		const statusResult = await statusTool.execute(
+			{ swarmId },
+			mockToolContext(),
+		);
 		const status = JSON.parse(statusResult);
 
 		expect(status.tasks).toBeDefined();
@@ -419,16 +500,22 @@ describe("swarm tools — worktree features", () => {
 		);
 		const tasks = [{ id: "t1", agent: "ghost", prompt: "Do X" }];
 		type ExecuteArgs = Parameters<typeof dispatchTool.execute>[0];
-		const dispatchResult = await dispatchTool.execute({
-			tasks: JSON.stringify(tasks),
-		} as unknown as ExecuteArgs);
+		const dispatchResult = await dispatchTool.execute(
+			{
+				tasks: JSON.stringify(tasks),
+			} as unknown as ExecuteArgs,
+			mockToolContext(),
+		);
 		const { swarmId } = JSON.parse(dispatchResult);
 
 		const waitTool = createPlatformSwarmWaitTool();
-		const waitResult = await waitTool.execute({
-			swarmId,
-			timeout: 10_000,
-		});
+		const waitResult = await waitTool.execute(
+			{
+				swarmId,
+				timeout: 10_000,
+			},
+			mockToolContext(),
+		);
 
 		const result = JSON.parse(waitResult);
 		expect(result.tasks).toBeDefined();
@@ -438,5 +525,85 @@ describe("swarm tools — worktree features", () => {
 		expect(result.tasks[0]).toHaveProperty("worktreeBranch");
 		expect(result.tasks[0].worktreePath).toBeNull();
 		expect(result.tasks[0].worktreeBranch).toBeNull();
+	});
+});
+
+describe("swarm tools — agent enforcement", () => {
+	const mockClient = {
+		session: {
+			create: mock(async () => ({ data: { id: "mock-session" } })),
+			get: mock(async () => ({ data: { status: { type: "idle" } } })),
+			status: mock(async () => ({
+				data: { "mock-session": { type: "idle" } },
+			})),
+			abort: mock(async () => ({})),
+			promptAsync: mock(async () => ({})),
+		},
+		tui: {
+			showToast: mock(async () => ({})),
+		},
+	} as unknown as OpencodeClient;
+
+	it("dispatch denies non-ghost agent", async () => {
+		const tool = createPlatformSwarmDispatchTool(
+			mockClient,
+			"/tmp/test-project",
+		);
+		const tasks = [{ id: "t1", agent: "ghost", prompt: "Do X" }];
+		type ExecuteArgs = Parameters<typeof tool.execute>[0];
+		const result = await tool.execute(
+			{ tasks: JSON.stringify(tasks) } as unknown as ExecuteArgs,
+			mockToolContext("cortex"),
+		);
+		const parsed = JSON.parse(result);
+		expect(parsed.error).toContain("restricted to the ghost agent");
+		expect(parsed.agent).toBe("cortex");
+	});
+
+	it("status denies non-ghost agent", async () => {
+		const tool = createPlatformSwarmStatusTool();
+		const result = await tool.execute(
+			{ swarmId: "any" },
+			mockToolContext("blueprint"),
+		);
+		const parsed = JSON.parse(result);
+		expect(parsed.error).toContain("restricted to the ghost agent");
+	});
+
+	it("abort denies non-ghost agent", async () => {
+		const tool = createPlatformSwarmAbortTool();
+		const result = await tool.execute(
+			{ swarmId: "any" },
+			mockToolContext("hardline"),
+		);
+		const parsed = JSON.parse(result);
+		expect(parsed.error).toContain("restricted to the ghost agent");
+	});
+
+	it("wait denies non-ghost agent", async () => {
+		const tool = createPlatformSwarmWaitTool();
+		const result = await tool.execute(
+			{ swarmId: "any" },
+			mockToolContext("dataweaver"),
+		);
+		const parsed = JSON.parse(result);
+		expect(parsed.error).toContain("restricted to the ghost agent");
+	});
+
+	it("dispatch allows ghost agent", async () => {
+		resetActiveSwarms();
+		const tool = createPlatformSwarmDispatchTool(
+			mockClient,
+			"/tmp/test-project",
+		);
+		const tasks = [{ id: "t1", agent: "ghost", prompt: "Do X" }];
+		type ExecuteArgs = Parameters<typeof tool.execute>[0];
+		const result = await tool.execute(
+			{ tasks: JSON.stringify(tasks) } as unknown as ExecuteArgs,
+			mockToolContext("ghost"),
+		);
+		const parsed = JSON.parse(result);
+		expect(parsed.error).toBeUndefined();
+		expect(parsed.swarmId).toBeDefined();
 	});
 });

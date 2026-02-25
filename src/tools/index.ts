@@ -140,22 +140,9 @@ export function createPlatformInfoTool(
 
 ## Agents
 - Detected ${agentCount} agents via client.app.agents()
-- Define agents in \`AGENTS.md\` or Markdown files under \`.opencode/agent/\` or \`~/.config/opencode/agent/\`.
 
 ## Skills
-- Detected ${skills.length} skills across project and global locations.
-- Project skills: \`.opencode/skill/<name>/SKILL.md\`
-- Project (Claude-compatible) skills: \`.claude/skills/<name>/SKILL.md\`
-- Global skills: \`~/.config/opencode/skill/<name>/SKILL.md\`
-- Global (Claude-compatible) skills: \`~/.claude/skills/<name>/SKILL.md\`
-
-## Tools
-- This plugin adds tools: \`platform_agents\`, \`platform_skills\`, \`platform_info\`, \`platform_createAgent\`, \`platform_cortexAgent\`, \`platform_swarm_dispatch\`, \`platform_swarm_status\`, \`platform_swarm_abort\`, \`platform_swarm_wait\`, and \`sandbox_exec\`.
-
-## KERNEL-92//CORTEX Orchestrator Agent
-- Use \`platform_cortexAgent\` to get a built-in primary orchestrator agent configuration.
-- cortex analyzes requests and routes them to specialized agents.
-- The agent dynamically includes a table of all discovered agents in its prompt.`;
+- Detected ${skills.length} skills across project and global locations.`;
 
 				return summary;
 			} catch (err) {

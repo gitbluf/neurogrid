@@ -2,6 +2,7 @@ import { tool } from "@opencode-ai/plugin";
 import type { createOpencodeClient } from "@opencode-ai/sdk";
 import { z } from "zod";
 import { type AgentTask, SwarmOrchestrator } from "../swarm";
+import { enforceAgent } from "./agent-guard";
 
 type Client = ReturnType<typeof createOpencodeClient>;
 
@@ -69,7 +70,10 @@ export function createPlatformSwarmDispatchTool(
 					"Enable git worktree isolation per task (default: false). Each task gets its own worktree and branch.",
 				),
 		},
-		async execute(args) {
+		async execute(args, context) {
+			const denied = enforceAgent(context, "ghost", "platform_swarm_dispatch");
+			if (denied) return denied;
+
 			try {
 				const parsed = JSON.parse(args.tasks);
 
@@ -142,7 +146,10 @@ export function createPlatformSwarmStatusTool() {
 				.min(1)
 				.describe("The swarm ID returned from platform_swarm_dispatch"),
 		},
-		async execute(args) {
+		async execute(args, context) {
+			const denied = enforceAgent(context, "ghost", "platform_swarm_status");
+			if (denied) return denied;
+
 			try {
 				const orchestrator = activeSwarms.get(args.swarmId);
 				if (!orchestrator) {
@@ -200,7 +207,10 @@ export function createPlatformSwarmAbortTool() {
 		args: {
 			swarmId: tool.schema.string().min(1).describe("The swarm ID to abort"),
 		},
-		async execute(args) {
+		async execute(args, context) {
+			const denied = enforceAgent(context, "ghost", "platform_swarm_abort");
+			if (denied) return denied;
+
 			try {
 				const orchestrator = activeSwarms.get(args.swarmId);
 				if (!orchestrator) {
@@ -237,7 +247,10 @@ export function createPlatformSwarmWaitTool() {
 				.optional()
 				.describe("Max wait time in milliseconds (default: 600000 = 10 min)"),
 		},
-		async execute(args) {
+		async execute(args, context) {
+			const denied = enforceAgent(context, "ghost", "platform_swarm_wait");
+			if (denied) return denied;
+
 			try {
 				const orchestrator = activeSwarms.get(args.swarmId);
 				if (!orchestrator) {
