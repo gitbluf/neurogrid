@@ -52,7 +52,7 @@ All agents inherit the system-wide model by default, and you can override the mo
 }
 ```
 
-Model IDs depend on your configured provider (e.g. anthropic/claude-sonnet-4-20250514, openai/gpt-4o). Only `model`, `temperature`, `disable`, and `tools` can be overridden — the agent prompt and core behavior are managed by the plugin.
+Model IDs depend on your configured provider (e.g. anthropic/claude-sonnet-4-20250514, openai/gpt-4o). Only `model`, `temperature`, `disable`, can be overridden — the agent prompt and core behavior are managed by the plugin.
 
 ## 📦 What You Get
 
@@ -175,12 +175,6 @@ Completed swarms are automatically recorded to `.ai/.swarm-records.json` with fu
 | **Scope** | Multi-step, multi-file changes | Single focused change |
 | **Example** | `/synth auth-module` | `/apply fix the null check in src/auth.ts` |
 
-## 🧠 Built-in Skills
-
-- **complexity-analyzer** — Big‑O time/space analysis and optimization ideas
-- **security-audit** — Input validation, injection risks, auth/authz, secrets, errors
-- **git-commit-flow** — Staging, splitting, and creating high‑quality commits
-
 ## 🔧 Platform Tools
 
 - `platform_agents` — List available agents
@@ -195,43 +189,21 @@ Completed swarms are automatically recorded to `.ai/.swarm-records.json` with fu
 
 ## 📥 Installation Options
 
-### Option 1: npm package (recommended)
-
-```bash
-cd .opencode
-echo "@gitbluf:registry=https://npm.pkg.github.com" >> .npmrc
-npm install @gitbluf/neurogrid@0.1.0
-```
-
 Register the plugin:
 
 ```json
 {
   "$schema": "https://opencode.ai/config.json",
-  "plugin": ["@gitbluf/neurogrid"]
+  "plugin": ["@gitbluf/neurogrid@<version>"]
 }
 ```
-
-### Option 2: Local plugin
-
-```bash
-cp node_modules/@gitbluf/neurogrid/dist/index.js .opencode/plugin/neurogrid.js
-```
-
-Plugins in `.opencode/plugin/` are auto-loaded.
 
 > Note: GitHub Packages requires authentication even for public packages. Configure a GitHub PAT with `read:packages` in your `.npmrc` as:
 > `//npm.pkg.github.com/:_authToken=TOKEN`
 
 ## ✅ Requirements
 
-- **OpenCode v1.1.56+**
-- **Node.js 18+**
-
-## 📦 Dependencies
-
-- **@opencode-ai/plugin** `>=1.1.56`
-- **@opencode-ai/sdk** (peer dependency)
+- **OpenCode v1.2.10+**
 
 ## 🧱 Design Principles
 
@@ -242,19 +214,13 @@ Plugins in `.opencode/plugin/` are auto-loaded.
 5. **Specialization** — each agent does one job well
 6. **No Scope Creep** — ghost implements only what the plan says
 
-## 🤝 Contributing
-
-This README is for consumers. If you want to contribute or develop locally, see **AGENTS.md** for the workflow and guidance.
-
 ## Development
 
 ```bash
 bun install
 bun run build      # Compile to dist/
 bun run clean      # Remove dist/
+bun run test:all   # Run lint, format and tests
 npm pack --dry-run # Preview npm package contents
 ```
 
-## 📄 License
-
-AGPL-3.0

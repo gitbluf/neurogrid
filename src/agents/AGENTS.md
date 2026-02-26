@@ -129,9 +129,3 @@ Agent capabilities are controlled via the `permission` object. The `tools` field
 1. `bun run lint` — must pass with 0 warnings and 0 errors
 2. `bun run build` — must compile with no new errors
 3. `bun test` — must pass with 0 failures
-
-## NOTES
-- **Security**: No security impact — `permission` objects are kept exactly as-is; they are the runtime enforcement layer
-- **Performance**: No performance impact — removing dead code only
-- **Caveat (Step 5)**: If removing the `AgentConfig` import from `overrides.ts` causes a build failure (because `AgentFactorySpec.factory` return type depends on it), revert Step 5 and keep the import
-- **`tool-bash-redirect.ts`**: This hook is intentionally kept unchanged — it intercepts bash tool calls at the execution layer and provides better error messages directing agents to use `sandbox_exec`
