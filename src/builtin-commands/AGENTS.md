@@ -84,6 +84,7 @@ export function createBuiltinCommands(): BuiltinCommand[] {
 | **clean**  | `command-clean.ts`     | —       | Hook-only: removes `.ai/*.md` files natively        |
 | **commit** | —                      | —       | Model override (`claude-haiku-4.5`); LLM generates commit message |
 | **apply**  | `command-apply.ts`     | `ghost` | Agent required: direct code edits need LLM reasoning; no plan file |
+| **dispatch** | `command-dispatch.ts` | `cortex` | Agent required: swarm dispatch needs cortex to call platform_swarm_dispatch |
 
 ## Rules
 

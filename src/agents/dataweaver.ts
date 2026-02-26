@@ -1,6 +1,6 @@
 // src/agents/dataweaver.ts
 import type { AgentConfig } from "@opencode-ai/sdk";
-import { createBuiltinDefinition, mergeAgentTools } from "./overrides";
+import { createBuiltinDefinition } from "./overrides";
 
 function buildDataweaverPrompt(): string {
 	return `<agent name="dataweaver" mode="subagent" role="reconnaissance">
@@ -251,31 +251,10 @@ export function createDataweaverAgent(
 	model: string | undefined,
 	overrides?: {
 		temperature?: number;
-		tools?: Partial<AgentConfig["tools"]>;
 	},
 ): AgentConfig {
 	const prompt = buildDataweaverPrompt();
 	const resolvedModel = model ?? "github-copilot/claude-haiku-4.5";
-
-	const tools = mergeAgentTools(
-		{
-			read: true,
-			glob: true,
-			grep: true,
-			write: false,
-			edit: false,
-			bash: false,
-			task: false,
-			skill: false,
-			platform_agents: false,
-			platform_skills: false,
-			webfetch: false,
-			sandbox_exec: false,
-			todowrite: false,
-			todoread: false,
-		},
-		overrides?.tools,
-	);
 
 	return {
 		description:
@@ -283,14 +262,21 @@ export function createDataweaverAgent(
 		mode: "subagent",
 		model: resolvedModel,
 		temperature: overrides?.temperature ?? 0.1,
-		tools,
 		permission: {
+			read: "allow",
+			glob: "allow",
+			grep: "allow",
+			write: "deny",
 			edit: "deny",
+			skill: "deny",
 			bash: {
 				"*": "deny",
 			},
 			webfetch: "deny",
-		},
+			task: "deny",
+			sandbox_exec: "deny",
+			"platform_swarm_*": "deny",
+		} as unknown as AgentConfig["permission"],
 		prompt,
 	};
 }

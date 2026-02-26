@@ -6,7 +6,6 @@ import type { AvailableAgent, BuiltinAgentDefinition } from "./types";
 export type BuiltinAgentOverrides = {
 	model?: string;
 	temperature?: number;
-	tools?: Partial<AgentConfig["tools"]>;
 };
 
 export type BuiltinAgentOverrideResult = {
@@ -19,7 +18,6 @@ type RawAgentEntry = {
 	disable?: boolean;
 	model?: unknown;
 	temperature?: unknown;
-	tools?: unknown;
 	prompt?: unknown;
 };
 
@@ -54,37 +52,7 @@ export function resolveBuiltinAgentOverrides(
 		overrides.temperature = raw.temperature;
 	}
 
-	if (isRecord(raw.tools)) {
-		const tools: Partial<AgentConfig["tools"]> = {};
-		for (const [toolName, value] of Object.entries(raw.tools)) {
-			if (typeof value === "boolean") {
-				tools[toolName as keyof AgentConfig["tools"]] = value;
-			}
-		}
-		if (Object.keys(tools).length > 0) {
-			overrides.tools = tools;
-		}
-	}
-
 	return { disabled, isUserDefined, overrides };
-}
-
-export function mergeAgentTools(
-	baseTools: AgentConfig["tools"],
-	overrides?: BuiltinAgentOverrides["tools"],
-): AgentConfig["tools"] {
-	if (!overrides || Object.keys(overrides).length === 0) {
-		return baseTools;
-	}
-
-	const merged: AgentConfig["tools"] = { ...baseTools };
-	for (const [toolName, value] of Object.entries(overrides)) {
-		if (typeof value === "boolean") {
-			merged[toolName as keyof AgentConfig["tools"]] = value;
-		}
-	}
-
-	return merged;
 }
 
 export type AgentFactorySpec = {

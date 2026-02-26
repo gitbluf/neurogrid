@@ -1,6 +1,6 @@
 // src/agents/blueprint.ts
 import type { AgentConfig } from "@opencode-ai/sdk";
-import { createBuiltinDefinition, mergeAgentTools } from "./overrides";
+import { createBuiltinDefinition } from "./overrides";
 
 function buildBlueprintPrompt(): string {
 	return `<agent name="blueprint" mode="subagent" role="planner">
@@ -313,30 +313,9 @@ export function createBlueprintAgent(
 	model: string | undefined,
 	overrides?: {
 		temperature?: number;
-		tools?: Partial<AgentConfig["tools"]>;
 	},
 ): AgentConfig {
 	const prompt = buildBlueprintPrompt();
-
-	const tools = mergeAgentTools(
-		{
-			read: true,
-			write: true,
-			edit: true,
-			bash: false,
-			glob: true,
-			grep: true,
-			task: true,
-			skill: true,
-			platform_agents: false,
-			platform_skills: true,
-			sandbox_exec: false,
-			webfetch: false,
-			todowrite: true,
-			todoread: true,
-		},
-		overrides?.tools,
-	);
 
 	return {
 		description:
@@ -344,20 +323,28 @@ export function createBlueprintAgent(
 		mode: "subagent",
 		model,
 		temperature: overrides?.temperature ?? 0.1,
-		tools,
 		permission: {
-			edit: {
-				".ai/plan-*.md": "allow",
-				"*": "deny",
-			},
+			read: "allow",
 			write: {
-				".ai/plan-*.md": "allow",
+				".ai/*": "allow",
 				"*": "deny",
 			},
+			edit: {
+				".ai/*": "allow",
+				"*": "deny",
+			},
+			glob: "allow",
+			grep: "allow",
 			bash: {
 				"*": "deny",
 			},
 			webfetch: "deny",
+			task: "allow",
+			skill: "allow",
+			todowrite: "allow",
+			todoread: "allow",
+			sandbox_exec: "deny",
+			"platform_swarm_*": "deny",
 		} as unknown as AgentConfig["permission"],
 		prompt,
 	};
@@ -365,5 +352,6 @@ export function createBlueprintAgent(
 
 export const blueprintDefinition = createBuiltinDefinition({
 	name: "blueprint",
-	factory: ({ model, overrides }) => createBlueprintAgent(model, overrides),
+	factory: ({ model, overrides }) =>
+		createBlueprintAgent(model ?? "github-copilot/gpt-5.2-codex", overrides),
 });

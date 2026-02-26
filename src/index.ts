@@ -3,17 +3,21 @@ import type { Plugin } from "@opencode-ai/plugin";
 import { registerBuiltinAgents } from "./agents";
 import { registerBuiltinCommands } from "./builtin-commands/register";
 import {
+	createChatMessageToastHook,
 	createCommandExecuteBeforeHook,
 	createSessionToastHook,
-	createChatMessageToastHook,
 	createToolExecuteBeforeHook,
 } from "./hooks";
 import {
 	createPlatformAgentsTool,
-	createPlatformSkillsTool,
-	createPlatformInfoTool,
-	createPlatformCreateAgentTool,
 	createPlatformCortexAgentTool,
+	createPlatformCreateAgentTool,
+	createPlatformInfoTool,
+	createPlatformSkillsTool,
+	createPlatformSwarmAbortTool,
+	createPlatformSwarmDispatchTool,
+	createPlatformSwarmStatusTool,
+	createPlatformSwarmWaitTool,
 	createSandboxExecTool,
 } from "./tools";
 
@@ -23,6 +27,13 @@ const PlatformPlugin: Plugin = async ({ client, directory }) => {
 	const platformInfo = createPlatformInfoTool(client, directory);
 	const platformCreateAgent = createPlatformCreateAgentTool(directory);
 	const platformCortexAgent = createPlatformCortexAgentTool(client);
+	const platformSwarmDispatch = createPlatformSwarmDispatchTool(
+		client,
+		directory,
+	);
+	const platformSwarmStatus = createPlatformSwarmStatusTool();
+	const platformSwarmAbort = createPlatformSwarmAbortTool();
+	const platformSwarmWait = createPlatformSwarmWaitTool();
 	const sandboxExec = createSandboxExecTool(directory);
 
 	return {
@@ -32,6 +43,10 @@ const PlatformPlugin: Plugin = async ({ client, directory }) => {
 			platform_info: platformInfo,
 			platform_createAgent: platformCreateAgent,
 			platform_cortexAgent: platformCortexAgent,
+			platform_swarm_dispatch: platformSwarmDispatch,
+			platform_swarm_status: platformSwarmStatus,
+			platform_swarm_abort: platformSwarmAbort,
+			platform_swarm_wait: platformSwarmWait,
 			sandbox_exec: sandboxExec,
 		},
 

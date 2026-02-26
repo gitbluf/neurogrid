@@ -1,9 +1,9 @@
-import { describe, it, expect } from "bun:test";
-import { createCortexOrchestratorAgent } from "./cortex";
-import { createBlueprintAgent } from "./blueprint";
+import { describe, expect, it } from "bun:test";
 import { createBlackiceAgent } from "./blackice";
-import { createGhostAgent } from "./ghost";
+import { createBlueprintAgent } from "./blueprint";
+import { createCortexOrchestratorAgent } from "./cortex";
 import { createDataweaverAgent } from "./dataweaver";
+import { createGhostAgent } from "./ghost";
 import { createHardlineAgent } from "./hardline";
 
 describe("createCortexOrchestratorAgent", () => {
@@ -13,7 +13,6 @@ describe("createCortexOrchestratorAgent", () => {
 		expect(agent.mode).toBeDefined();
 		expect(agent.model).toBeDefined();
 		expect(agent.temperature).toBeDefined();
-		expect(agent.tools).toBeDefined();
 		expect(agent.prompt).toBeDefined();
 		expect(agent.permission).toBeDefined();
 	});
@@ -53,16 +52,6 @@ describe("createCortexOrchestratorAgent", () => {
 		expect(agent.temperature).toBe(0.1);
 	});
 
-	it("applies tool override", () => {
-		const agent = createCortexOrchestratorAgent(
-			"github-copilot/claude-opus-4.6",
-			[],
-			[],
-			{ tools: { write: true } },
-		);
-		expect(agent.tools?.write).toBe(true);
-	});
-
 	it("includes available agents in prompt", () => {
 		const agent = createCortexOrchestratorAgent(
 			"github-copilot/claude-opus-4.6",
@@ -96,7 +85,6 @@ describe("createBlueprintAgent", () => {
 		expect(agent.mode).toBeDefined();
 		expect(agent.model).toBeDefined();
 		expect(agent.temperature).toBeDefined();
-		expect(agent.tools).toBeDefined();
 		expect(agent.prompt).toBeDefined();
 		expect(agent.permission).toBeDefined();
 	});
@@ -120,11 +108,6 @@ describe("createBlueprintAgent", () => {
 		const agent = createBlueprintAgent("model");
 		expect(agent.temperature).toBe(0.1);
 	});
-
-	it("applies tool override", () => {
-		const agent = createBlueprintAgent("model", { tools: { bash: true } });
-		expect(agent.tools?.bash).toBe(true);
-	});
 });
 
 describe("createBlackiceAgent", () => {
@@ -134,7 +117,6 @@ describe("createBlackiceAgent", () => {
 		expect(agent.mode).toBeDefined();
 		expect(agent.model).toBeDefined();
 		expect(agent.temperature).toBeDefined();
-		expect(agent.tools).toBeDefined();
 		expect(agent.prompt).toBeDefined();
 		expect(agent.permission).toBeDefined();
 	});
@@ -158,11 +140,6 @@ describe("createBlackiceAgent", () => {
 		const agent = createBlackiceAgent("model", { temperature: 0.7 });
 		expect(agent.temperature).toBe(0.7);
 	});
-
-	it("applies tool override", () => {
-		const agent = createBlackiceAgent("model", { tools: { read: false } });
-		expect(agent.tools?.read).toBe(false);
-	});
 });
 
 describe("createGhostAgent", () => {
@@ -172,7 +149,6 @@ describe("createGhostAgent", () => {
 		expect(agent.mode).toBeDefined();
 		expect(agent.model).toBeDefined();
 		expect(agent.temperature).toBeDefined();
-		expect(agent.tools).toBeDefined();
 		expect(agent.prompt).toBeDefined();
 		expect(agent.permission).toBeDefined();
 	});
@@ -196,11 +172,6 @@ describe("createGhostAgent", () => {
 		const agent = createGhostAgent("model", { temperature: 0.4 });
 		expect(agent.temperature).toBe(0.4);
 	});
-
-	it("applies tool override", () => {
-		const agent = createGhostAgent("model", { tools: { write: false } });
-		expect(agent.tools?.write).toBe(false);
-	});
 });
 
 describe("createDataweaverAgent", () => {
@@ -210,7 +181,6 @@ describe("createDataweaverAgent", () => {
 		expect(agent.mode).toBeDefined();
 		expect(agent.model).toBeDefined();
 		expect(agent.temperature).toBeDefined();
-		expect(agent.tools).toBeDefined();
 		expect(agent.prompt).toBeDefined();
 		expect(agent.permission).toBeDefined();
 	});
@@ -239,11 +209,6 @@ describe("createDataweaverAgent", () => {
 		const agent = createDataweaverAgent("model", { temperature: 0.6 });
 		expect(agent.temperature).toBe(0.6);
 	});
-
-	it("applies tool override", () => {
-		const agent = createDataweaverAgent("model", { tools: { read: false } });
-		expect(agent.tools?.read).toBe(false);
-	});
 });
 
 describe("createHardlineAgent", () => {
@@ -253,7 +218,6 @@ describe("createHardlineAgent", () => {
 		expect(agent.mode).toBeDefined();
 		expect(agent.model).toBeDefined();
 		expect(agent.temperature).toBeDefined();
-		expect(agent.tools).toBeDefined();
 		expect(agent.prompt).toBeDefined();
 		expect(agent.permission).toBeDefined();
 	});
@@ -270,7 +234,7 @@ describe("createHardlineAgent", () => {
 
 	it("uses fallback model when undefined passed", () => {
 		const agent = createHardlineAgent(undefined);
-		expect(agent.model).toBe("github-copilot/claude-haiku-4.5");
+		expect(agent.model).toBe("github-copilot/gpt-5-mini");
 	});
 
 	it("default temperature is 0.1", () => {
@@ -282,22 +246,79 @@ describe("createHardlineAgent", () => {
 		const agent = createHardlineAgent("model", { temperature: 0.9 });
 		expect(agent.temperature).toBe(0.9);
 	});
+});
 
-	it("applies tool override", () => {
-		const agent = createHardlineAgent("model", {
-			tools: { sandbox_exec: false },
-		});
-		expect(agent.tools?.sandbox_exec).toBe(false);
+describe("permission tests", () => {
+	it("ghost permission allows swarm", () => {
+		const agent = createGhostAgent("model");
+		const permission = agent.permission as Record<string, unknown>;
+		expect(permission["platform_swarm_*"]).toBe("allow");
 	});
 
-	it("has sandbox_exec enabled by default", () => {
-		const agent = createHardlineAgent("model");
-		expect(agent.tools?.sandbox_exec).toBe(true);
+	it("cortex permission denies swarm", () => {
+		const agent = createCortexOrchestratorAgent();
+		const permission = agent.permission as Record<string, unknown>;
+		expect(permission["platform_swarm_*"]).toBe("deny");
 	});
 
-	it("has bash disabled by default", () => {
+	it("blueprint permission denies swarm", () => {
+		const agent = createBlueprintAgent("model");
+		const permission = agent.permission as Record<string, unknown>;
+		expect(permission["platform_swarm_*"]).toBe("deny");
+	});
+
+	it("blackice permission denies swarm", () => {
+		const agent = createBlackiceAgent("model");
+		const permission = agent.permission as Record<string, unknown>;
+		expect(permission["platform_swarm_*"]).toBe("deny");
+	});
+
+	it("dataweaver permission denies swarm", () => {
+		const agent = createDataweaverAgent("model");
+		const permission = agent.permission as Record<string, unknown>;
+		expect(permission["platform_swarm_*"]).toBe("deny");
+	});
+
+	it("hardline permission denies swarm", () => {
 		const agent = createHardlineAgent("model");
-		expect(agent.tools?.bash).toBe(false);
+		const permission = agent.permission as Record<string, unknown>;
+		expect(permission["platform_swarm_*"]).toBe("deny");
+	});
+
+	it("hardline permission allows sandbox_exec", () => {
+		const agent = createHardlineAgent("model");
+		const permission = agent.permission as Record<string, unknown>;
+		expect(permission.sandbox_exec).toBe("allow");
+	});
+
+	it("cortex permission denies sandbox_exec", () => {
+		const agent = createCortexOrchestratorAgent();
+		const permission = agent.permission as Record<string, unknown>;
+		expect(permission.sandbox_exec).toBe("deny");
+	});
+
+	it("ghost permission denies sandbox_exec", () => {
+		const agent = createGhostAgent("model");
+		const permission = agent.permission as Record<string, unknown>;
+		expect(permission.sandbox_exec).toBe("deny");
+	});
+
+	it("blueprint permission denies sandbox_exec", () => {
+		const agent = createBlueprintAgent("model");
+		const permission = agent.permission as Record<string, unknown>;
+		expect(permission.sandbox_exec).toBe("deny");
+	});
+
+	it("blackice permission denies sandbox_exec", () => {
+		const agent = createBlackiceAgent("model");
+		const permission = agent.permission as Record<string, unknown>;
+		expect(permission.sandbox_exec).toBe("deny");
+	});
+
+	it("dataweaver permission denies sandbox_exec", () => {
+		const agent = createDataweaverAgent("model");
+		const permission = agent.permission as Record<string, unknown>;
+		expect(permission.sandbox_exec).toBe("deny");
 	});
 });
 

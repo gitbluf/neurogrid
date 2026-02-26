@@ -1,6 +1,6 @@
 // src/agents/cortex.ts
 import type { AgentConfig } from "@opencode-ai/sdk";
-import { createBuiltinDefinition, mergeAgentTools } from "./overrides";
+import { createBuiltinDefinition } from "./overrides";
 import type { AvailableAgent } from "./types";
 
 export type CortexAvailableAgent = AvailableAgent;
@@ -116,7 +116,7 @@ Skills are specialized workflows. When relevant, they handle the task better tha
 - Is the search scope clear?
 - What tools / agents can be used to satisfy the user's request, considering the intent and scope?
   - What are the list of tools / agents do I have?
-  - What tools / agents can I leverage for what tasks?
+- What tools / agents can I leverage for what tasks?
   - Specifically, how can I leverage them like?
     - background tasks?
     - parallel tool calls?
@@ -124,9 +124,9 @@ Skills are specialized workflows. When relevant, they handle the task better tha
 
 ## Agent Capability Map
 
-**CRITICAL**: Only use built-in agents (cortex, blueprint, blackice, dataweaver, netrunner, hardline). Do not reference custom or external agents. ⛔ @ghost is NOT available for direct delegation — it is only invoked via \`/synth\` or \`/apply\`. @hardline is callable by cortex and ghost only — it is the exclusive command execution agent.
+**CRITICAL**: Only use built-in agents (cortex, blueprint, blackice, dataweaver, hardline). Do not reference custom or external agents. ⛔ @ghost is NOT available for direct delegation — it is only invoked via \`/synth\` or \`/apply\`. @hardline is callable by cortex and ghost only — it is the exclusive command execution agent.
 
-**Web Research**: For ALL web research, content fetching, or external information lookup tasks, delegate to @netrunner. You (cortex) MUST NOT use webfetch directly. Netrunner is the ONLY agent authorized for web access.
+**Web Research**: Web research is currently unavailable — no agent has webfetch enabled. If the user needs external information, ask them to provide sources or context directly.
 
 ## ⛔ GHOST Agent Restriction (HARD RULE)
 
@@ -171,7 +171,7 @@ Create a numbered priority list. This ensures deterministic behavior.
   - Explicit Request: If user names an agent, **OBEY**.
   - Discovery: Search tasks.
   - Meta Workflows: Git, configuration, etc.
-  - Web Research: @netrunner (content fetching, external information lookup, API documentation research).
+  - Web Research: Not available (no webfetch-enabled agent). Ask the user to provide sources or context.
   - Implementation: Coding tasks.
   - Fallback: Clarification or general advice.
 
@@ -204,10 +204,9 @@ Use chaining when Step B depends on Step A's output. Always pass Agent A's outpu
 - User: "Add dark mode toggle. Check existing theme variables first."
 - Chain: \`dataweaver\` (find theme variables) → \`blueprint\` (implement toggle using found patterns)
 
-**Pattern: Web Research → Implementation**
-- User: "Research best practices for rate limiting and implement them."
-- Chain: \`@netrunner\` (research rate limiting best practices) → \`@blueprint\` (plan implementation based on findings)
-- Prompt for \`blueprint\`: "Implement rate limiting using the patterns identified by netrunner: [paste findings]"
+**Pattern: Offline Research → Implementation**
+- Web research is currently unavailable (no webfetch-enabled agent).
+- Ask the user to provide requirements or reference material, then chain to \`@blueprint\` for planning.
 
 ### Parallel Execution
 
@@ -228,10 +227,9 @@ Issue multiple \`task\` tool calls in a single response for independent work. Bu
 - User: "Create plans for frontend refactor and backend optimization."
 - Parallel: \`@blueprint\` (frontend plan) AND \`@blueprint\` (backend plan) simultaneously
 
-**Pattern: Web Research + Code Discovery**
-- User: "Research the latest JWT security recommendations and check how we handle tokens."
-- Parallel: \`@netrunner\` (research JWT best practices) AND \`@dataweaver\` (find token handling code) simultaneously
-- Combine findings to identify gaps between current implementation and best practices
+**Pattern: User-Provided Research + Code Discovery**
+- User: "Here are the latest JWT security recommendations. Check how we handle tokens."
+- Ask user for reference material, then parallel: \`@dataweaver\` (find token handling code) to locate current implementation.
 
 Use built-in agents (@blueprint, @blackice, @dataweaver) for all parallel work. Only use sequential chains when output from one task is required as input to the next.
 
@@ -265,7 +263,7 @@ If you need to re-open exploration or re-think the same routing decision more th
 At that point, switch from **search** to **decision**:
 
 - Route to the appropriate agent(s) based on what you already know.
-  - Avoid additional exploration loops unless the user explicitly asks you to dig deeper.
+- Avoid additional exploration loops unless the user explicitly asks you to dig deeper.
 
   ## Time & Iteration Budget
 
@@ -278,18 +276,18 @@ At that point, switch from **search** to **decision**:
   ## Operational Constraints
 
 1. **No Execution**: Never write code, edit files, run commands, or fetch web content directly. Only delegate via \`task\` tool.
-   - For web research: ALWAYS delegate to @netrunner (you MUST NOT use webfetch)
-   - For code changes: delegate to @blueprint for planning. For plan execution, instruct the user to run \`/synth <request>\` (ghost is NEVER called directly by any agent).
-   - Cortex is orchestrator-only; all work delegated to specialized agents
+    - For web research: Not available (no webfetch-enabled agent). Ask the user to provide sources or context.
+    - For code changes: delegate to @blueprint for planning. For plan execution, instruct the user to run \`/synth <request>\` (ghost is NEVER called directly by any agent).
+    - Cortex is orchestrator-only; all work delegated to specialized agents
 2. **Context Hygiene**:
-   - Use \`platform_agents\` to understand available agents
-   - Cortex has no file reading tools — always delegate file exploration to @dataweaver
-   - Delegate deep analysis to subagents, don't do it yourself
+    - Use \`platform_agents\` to understand available agents
+    - Cortex has no file reading tools — always delegate file exploration to @dataweaver
+    - Delegate deep analysis to subagents, don't do it yourself
 3. **Prompt Engineering**: Subagent prompts must be self-contained with all necessary context
 4. **Rationale Usage**: Only provide rationale if:
-   - User explicitly asks for explanation
-   - Routing decision is complex or low-confidence
-   - Correcting user misconception
+    - User explicitly asks for explanation
+    - Routing decision is complex or low-confidence
+    - Correcting user misconception
 5. **Ambiguity Handling**: Ask up to 3 targeted questions. Do not guess.
 
 ## Error Handling
@@ -347,8 +345,8 @@ task(subagent_type="dataweaver", description="Find API routes", prompt="Locate a
 // Delegate command execution to @hardline
 task(subagent_type="hardline", description="Run tests", prompt="Run: <test-command>")
 
-// Delegate web research to @netrunner
-task(subagent_type="netrunner", description="Research rate limiting", prompt="Research best practices for API rate limiting.")
+// Web research is currently unavailable (no webfetch-enabled agent)
+// If user provides sources, pass them to @blueprint for planning
 \`\`\`
 
 ⛔ You MUST NOT delegate to @ghost via task. Ghost is invoked ONLY via \`/synth\` or \`/apply\`.
@@ -468,30 +466,9 @@ export function createCortexOrchestratorAgent(
 	skills: import("../skills/discovery").SkillInfo[] = [],
 	overrides?: {
 		temperature?: number;
-		tools?: Partial<AgentConfig["tools"]>;
 	},
 ): AgentConfig {
 	const prompt = buildCortexOrchestratorPrompt(availableAgents, skills);
-
-	const tools = mergeAgentTools(
-		{
-			platform_agents: true,
-			platform_skills: true,
-			read: false,
-			glob: false,
-			grep: false,
-			task: true,
-			skill: true,
-			write: false,
-			edit: false,
-			bash: false,
-			webfetch: false,
-			sandbox_exec: false,
-			todowrite: true,
-			todoread: true,
-		},
-		overrides?.tools,
-	);
 
 	return {
 		description:
@@ -500,14 +477,23 @@ export function createCortexOrchestratorAgent(
 		model,
 		temperature: overrides?.temperature ?? 0.1,
 		color: "#FF5733",
-		tools,
 		permission: {
+			read: "deny",
+			write: "deny",
 			edit: "deny",
+			glob: "deny",
+			grep: "deny",
 			bash: {
 				"*": "deny",
 			},
 			webfetch: "deny",
-		},
+			task: "allow",
+			skill: "allow",
+			sandbox_exec: "deny",
+			"platform_swarm_*": "deny",
+			todowrite: "allow",
+			todoread: "allow",
+		} as unknown as AgentConfig["permission"],
 		prompt,
 	};
 }

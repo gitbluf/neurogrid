@@ -1,8 +1,9 @@
-import { tool } from "@opencode-ai/plugin";
 import { realpathSync } from "node:fs";
 import * as path from "node:path";
-import { detectBackend } from "./detect";
+import { tool } from "@opencode-ai/plugin";
+import { enforceAgent } from "../agent-guard";
 import { executeSandboxed } from "./backends";
+import { detectBackend } from "./detect";
 import { resolveProfile } from "./profiles";
 
 const DEFAULT_TIMEOUT = 30;
@@ -35,7 +36,10 @@ export function createSandboxExecTool(directory: string) {
 				.optional()
 				.describe("Additional environment variables to set inside the sandbox"),
 		},
-		async execute(args) {
+		async execute(args, context) {
+			const denied = enforceAgent(context, "hardline", "sandbox_exec");
+			if (denied) return denied;
+
 			try {
 				const profile = resolveProfile();
 				const timeout = args.timeout ?? DEFAULT_TIMEOUT;
@@ -65,7 +69,19 @@ export function createSandboxExecTool(directory: string) {
 				try {
 					projectDirReal = realpathSync(directory);
 				} catch {
-					projectDirReal = directory;
+					return JSON.stringify(
+						{
+							error: `Unable to resolve project directory: "${directory}". The path must exist and be accessible.`,
+							exitCode: null,
+							sandboxBackend: backend,
+							profile,
+							duration_ms: 0,
+							truncated: false,
+							warnings: [],
+						},
+						null,
+						2,
+					);
 				}
 
 				const resolvedCwd = args.cwd
@@ -76,7 +92,19 @@ export function createSandboxExecTool(directory: string) {
 				try {
 					resolvedCwdReal = realpathSync(resolvedCwd);
 				} catch {
-					resolvedCwdReal = resolvedCwd;
+					return JSON.stringify(
+						{
+							error: `Unable to resolve working directory: "${resolvedCwd}". The path must exist and be accessible within the project.`,
+							exitCode: null,
+							sandboxBackend: backend,
+							profile,
+							duration_ms: 0,
+							truncated: false,
+							warnings: [],
+						},
+						null,
+						2,
+					);
 				}
 
 				const relativeCwd = path.relative(projectDirReal, resolvedCwdReal);

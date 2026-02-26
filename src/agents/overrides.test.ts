@@ -1,10 +1,8 @@
-import { describe, it, expect } from "bun:test";
+import { describe, expect, it } from "bun:test";
 import {
-	resolveBuiltinAgentOverrides,
-	mergeAgentTools,
 	createBuiltinDefinition,
+	resolveBuiltinAgentOverrides,
 } from "./overrides";
-import type { AgentConfig } from "@opencode-ai/sdk";
 
 describe("resolveBuiltinAgentOverrides", () => {
 	it("returns defaults when no agent config exists", () => {
@@ -68,16 +66,6 @@ describe("resolveBuiltinAgentOverrides", () => {
 		expect(result.overrides.temperature).toBe(0.5);
 	});
 
-	it("extracts tools overrides (boolean values only)", () => {
-		const result = resolveBuiltinAgentOverrides(
-			{
-				agent: { cortex: { tools: { read: false, bash: true, invalid: "x" } } },
-			},
-			"cortex",
-		);
-		expect(result.overrides.tools).toEqual({ read: false, bash: true });
-	});
-
 	it("ignores invalid model (non-string)", () => {
 		const result = resolveBuiltinAgentOverrides(
 			{ agent: { cortex: { model: 123 } } },
@@ -95,26 +83,6 @@ describe("resolveBuiltinAgentOverrides", () => {
 	});
 });
 
-describe("mergeAgentTools", () => {
-	it("returns base tools when no overrides", () => {
-		const base = { read: true, write: false } as AgentConfig["tools"];
-		const result = mergeAgentTools(base, undefined);
-		expect(result).toEqual(base);
-	});
-
-	it("returns base tools when overrides is empty object", () => {
-		const base = { read: true, write: false } as AgentConfig["tools"];
-		const result = mergeAgentTools(base, {});
-		expect(result).toEqual(base);
-	});
-
-	it("merges boolean overrides into base", () => {
-		const base = { read: true, write: false } as AgentConfig["tools"];
-		const result = mergeAgentTools(base, { write: true });
-		expect(result).toEqual({ read: true, write: true });
-	});
-});
-
 describe("createBuiltinDefinition", () => {
 	it("returns null when agent is disabled", () => {
 		const definition = createBuiltinDefinition({
@@ -124,7 +92,6 @@ describe("createBuiltinDefinition", () => {
 				mode: "subagent",
 				model: model ?? "default",
 				temperature: 0.1,
-				tools: { read: true } as AgentConfig["tools"],
 				permission: { edit: "deny", bash: { "*": "deny" }, webfetch: "deny" },
 				prompt: "prompt",
 			}),
@@ -145,7 +112,6 @@ describe("createBuiltinDefinition", () => {
 				mode: "subagent",
 				model: model ?? "default",
 				temperature: 0.1,
-				tools: { read: true } as AgentConfig["tools"],
 				permission: { edit: "deny", bash: { "*": "deny" }, webfetch: "deny" },
 				prompt: "prompt",
 			}),
@@ -169,7 +135,6 @@ describe("createBuiltinDefinition", () => {
 					mode: "subagent",
 					model: model ?? "default",
 					temperature: 0.1,
-					tools: { read: true } as AgentConfig["tools"],
 					permission: { edit: "deny", bash: { "*": "deny" }, webfetch: "deny" },
 					prompt: "prompt",
 				};
@@ -199,7 +164,6 @@ describe("createBuiltinDefinition", () => {
 					mode: "subagent",
 					model: model ?? "default",
 					temperature: 0.1,
-					tools: { read: true } as AgentConfig["tools"],
 					permission: { edit: "deny", bash: { "*": "deny" }, webfetch: "deny" },
 					prompt: "prompt",
 				};
@@ -226,7 +190,6 @@ describe("createBuiltinDefinition", () => {
 					mode: "subagent",
 					model: model ?? "default",
 					temperature: 0.1,
-					tools: { read: true } as AgentConfig["tools"],
 					permission: { edit: "deny", bash: { "*": "deny" }, webfetch: "deny" },
 					prompt: "prompt",
 				};
@@ -248,7 +211,6 @@ describe("createBuiltinDefinition", () => {
 					mode: "subagent",
 					model: model ?? "default",
 					temperature: 0.1,
-					tools: { read: true } as AgentConfig["tools"],
 					permission: { edit: "deny", bash: { "*": "deny" }, webfetch: "deny" },
 					prompt: "prompt",
 				};
@@ -332,16 +294,6 @@ describe("resolveBuiltinAgentOverrides — negative cases", () => {
 	});
 });
 
-describe("mergeAgentTools — negative cases", () => {
-	it("handles undefined baseTools — merged with overrides", () => {
-		const result = mergeAgentTools(
-			undefined as unknown as AgentConfig["tools"],
-			{ read: true },
-		);
-		expect(result).toEqual({ read: true });
-	});
-});
-
 describe("createBuiltinDefinition — negative cases", () => {
 	it("factory receives empty agents object — returns [] for availableAgents", () => {
 		let seenAgents: string[] = [];
@@ -355,7 +307,6 @@ describe("createBuiltinDefinition — negative cases", () => {
 					mode: "subagent",
 					model: model ?? "default",
 					temperature: 0.1,
-					tools: { read: true } as AgentConfig["tools"],
 					permission: { edit: "deny", bash: { "*": "deny" }, webfetch: "deny" },
 					prompt: "prompt",
 				};

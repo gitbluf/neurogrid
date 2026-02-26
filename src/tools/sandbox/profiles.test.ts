@@ -1,10 +1,11 @@
-import { describe, it, expect, beforeEach, afterEach, spyOn } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
 import {
-	resolveProfile,
-	filterProjectEnvDenies,
-	buildSandboxExecProfile,
-	buildBwrapArgs,
 	ALLOWED_BASE_ENV_VARS,
+	buildBwrapArgs,
+	buildSandboxExecProfile,
+	filterProjectEnvDenies,
+	resolveProfile,
+	validateSandboxPath,
 } from "./profiles";
 
 describe("resolveProfile", () => {
@@ -275,14 +276,10 @@ describe("special characters in paths", () => {
 		}
 	});
 
-	it("filterProjectEnvDenies handles path with special regex characters", () => {
-		const result = filterProjectEnvDenies("/Users/foo/project (copy)");
-		expect(result.literal).toEqual(
-			expect.arrayContaining(["/Users/foo/project (copy)/.env"]),
+	it("filterProjectEnvDenies throws for path with SBPL metacharacters", () => {
+		expect(() => filterProjectEnvDenies("/Users/foo/project (copy)")).toThrow(
+			/SBPL metacharacters/,
 		);
-		for (const pattern of result.regex) {
-			expect(pattern).toContain("\\(copy\\)");
-		}
 	});
 });
 
@@ -351,15 +348,14 @@ describe("snapshot tests", () => {
 });
 
 describe("property-based tests", () => {
-	const diversePaths = [
+	const safeDiversePaths = [
 		"/project/normal",
 		"/project/with spaces",
 		"/project/with'quotes",
 		'/project/with"double-quotes',
 		"/project/with\\backslash",
 		"/project/with\ttab",
-		"/project/with\nnewline",
-		"/project/special!@#$%^&*()",
+		"/project/special!@$%^&",
 		"/project/ünîcödé",
 		"/project/emoji-🚀",
 		"/a",
@@ -367,8 +363,16 @@ describe("property-based tests", () => {
 		"/project/.hidden/dir",
 	];
 
-	it("buildSandboxExecProfile does not crash for diverse paths", () => {
-		for (const p of diversePaths) {
+	const unsafeSbplPaths = [
+		"/project/evil(path)",
+		"/project/with#hash",
+		"/project/with;semicolon",
+		"/project/combo(#;)",
+		"/project/with\nnewline",
+	];
+
+	it("buildSandboxExecProfile does not crash for safe diverse paths", () => {
+		for (const p of safeDiversePaths) {
 			expect(() =>
 				buildSandboxExecProfile("default", {
 					projectDir: p,
@@ -378,14 +382,40 @@ describe("property-based tests", () => {
 		}
 	});
 
-	it("filterProjectEnvDenies does not crash for diverse paths", () => {
-		for (const p of diversePaths) {
+	it("buildSandboxExecProfile throws for paths with SBPL metacharacters", () => {
+		for (const p of unsafeSbplPaths) {
+			expect(() =>
+				buildSandboxExecProfile("default", {
+					projectDir: p,
+					homeDir: "/home/user",
+				}),
+			).toThrow(/SBPL metacharacters/);
+		}
+	});
+
+	it("buildSandboxExecProfile throws when homeDir contains SBPL metacharacters", () => {
+		expect(() =>
+			buildSandboxExecProfile("default", {
+				projectDir: "/project",
+				homeDir: "/home/user(evil)",
+			}),
+		).toThrow(/SBPL metacharacters/);
+	});
+
+	it("filterProjectEnvDenies does not crash for safe diverse paths", () => {
+		for (const p of safeDiversePaths) {
 			expect(() => filterProjectEnvDenies(p)).not.toThrow();
 		}
 	});
 
+	it("filterProjectEnvDenies throws for paths with SBPL metacharacters", () => {
+		for (const p of unsafeSbplPaths) {
+			expect(() => filterProjectEnvDenies(p)).toThrow(/SBPL metacharacters/);
+		}
+	});
+
 	it("filterProjectEnvDenies invariants: literals always end with /.env or /.env.local", () => {
-		for (const p of diversePaths) {
+		for (const p of safeDiversePaths) {
 			const result = filterProjectEnvDenies(p);
 			for (const literal of result.literal) {
 				const endsCorrectly =
@@ -397,7 +427,7 @@ describe("property-based tests", () => {
 
 	it("filterProjectEnvDenies literal count is consistent across paths", () => {
 		const expectedCount = filterProjectEnvDenies("/baseline").literal.length;
-		for (const p of diversePaths) {
+		for (const p of safeDiversePaths) {
 			const result = filterProjectEnvDenies(p);
 			expect(result.literal.length).toBe(expectedCount);
 		}
@@ -405,7 +435,7 @@ describe("property-based tests", () => {
 
 	it("filterProjectEnvDenies regex count is consistent across paths", () => {
 		const expectedCount = filterProjectEnvDenies("/baseline").regex.length;
-		for (const p of diversePaths) {
+		for (const p of safeDiversePaths) {
 			const result = filterProjectEnvDenies(p);
 			expect(result.regex.length).toBe(expectedCount);
 		}
@@ -455,5 +485,51 @@ describe("property-based tests", () => {
 		expect(setenvPairs).toContain("_UNDERSCORE");
 		expect(setenvPairs).not.toContain("invalid-key");
 		expect(setenvPairs).not.toContain("123_START");
+	});
+});
+
+describe("validateSandboxPath", () => {
+	it("accepts normal paths", () => {
+		expect(() => validateSandboxPath("/usr/local/bin")).not.toThrow();
+		expect(() => validateSandboxPath("/home/user/my project")).not.toThrow();
+		expect(() =>
+			validateSandboxPath("/path/with-dashes_and.dots"),
+		).not.toThrow();
+	});
+
+	it("throws for path with parentheses", () => {
+		expect(() => validateSandboxPath("/path/with(parens)")).toThrow(
+			/SBPL metacharacters/,
+		);
+	});
+
+	it("throws for path with hash", () => {
+		expect(() => validateSandboxPath("/path/with#hash")).toThrow(
+			/SBPL metacharacters/,
+		);
+	});
+
+	it("throws for path with semicolon", () => {
+		expect(() => validateSandboxPath("/path/with;semicolon")).toThrow(
+			/SBPL metacharacters/,
+		);
+	});
+
+	it("throws with descriptive error message", () => {
+		expect(() => validateSandboxPath("/evil(path)")).toThrow(
+			/Characters \(, \), #, ;, and newline characters are not allowed/,
+		);
+	});
+
+	it("throws for path with newline", () => {
+		expect(() => validateSandboxPath("/path/with\nnewline")).toThrow(
+			/SBPL metacharacters/,
+		);
+	});
+
+	it("throws for path with carriage return", () => {
+		expect(() => validateSandboxPath("/path/with\rreturn")).toThrow(
+			/SBPL metacharacters/,
+		);
 	});
 });

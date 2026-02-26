@@ -17,53 +17,6 @@ This is a source code repository for OpenCode agents/commands. The primary workf
     - SDK: https://opencode.ai/docs/sdk/
     - Plugin: https://opencode.ai/docs/plugins/
 
-## Repository structure
-```bash
-src
-├── agents
-│   ├── AGENTS.md
-│   ├── blackice.ts
-│   ├── blueprint.ts
-│   ├── cortex.ts
-│   ├── dataweaver.ts
-│   ├── ghost.ts
-│   ├── index.ts
-│   ├── overrides.ts
-│   └── types.ts
-├── builtin-commands
-│   ├── AGENTS.md
-│   ├── commands.ts
-│   ├── index.ts
-│   ├── register.ts
-│   └── types.ts
-├── builtin-skills
-│   ├── AGENTS.md
-│   ├── index.ts
-│   ├── skills.ts
-│   └── types.ts
-├── hooks
-│   ├── AGENTS.md
-│   ├── command-apply.ts
-│   ├── command-clean.ts
-│   ├── command-plans.ts
-│   ├── command-synth.ts
-│   ├── index.ts
-│   ├── session-toast.ts
-│   ├── tool-plan-register.ts
-│   └── types.ts
-├── index.ts
-├── registry
-│   ├── AGENTS.md
-│   ├── index.ts
-│   └── session-plans.ts
-├── skills
-│   ├── AGENTS.md
-│   └── discovery.ts
-└── tools
-    ├── AGENTS.md
-    └── index.ts
-```
-
 ## Component Guides
 
 | Component | Guide | Read when... |
@@ -75,6 +28,11 @@ src
 | `src/registry/` | `src/registry/AGENTS.md` | Extending session-plan registry or adding a new registry |
 | `src/skills/` | `src/skills/AGENTS.md` | Adding a disk-based skill or extending discovery |
 | `src/tools/` | `src/tools/AGENTS.md` | Adding a new platform tool |
+
+
+## Conventions
+
+Convention guidelines can be found in `CONVENTIONS.md`
 
 ## Mandatory Checks
 

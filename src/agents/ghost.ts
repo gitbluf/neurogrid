@@ -1,6 +1,6 @@
 // src/agents/ghost.ts
 import type { AgentConfig } from "@opencode-ai/sdk";
-import { createBuiltinDefinition, mergeAgentTools } from "./overrides";
+import { createBuiltinDefinition } from "./overrides";
 
 function buildGhostPrompt(): string {
 	return `<agent name="ghost" mode="subagent" role="plan-executor">
@@ -236,30 +236,9 @@ export function createGhostAgent(
 	model: string | undefined,
 	overrides?: {
 		temperature?: number;
-		tools?: Partial<AgentConfig["tools"]>;
 	},
 ): AgentConfig {
 	const prompt = buildGhostPrompt();
-
-	const tools = mergeAgentTools(
-		{
-			read: true,
-			glob: true,
-			grep: true,
-			write: true,
-			edit: true,
-			bash: false,
-			sandbox_exec: false,
-			task: true,
-			skill: true,
-			platform_agents: false,
-			platform_skills: true,
-			webfetch: false,
-			todowrite: false,
-			todoread: false,
-		},
-		overrides?.tools,
-	);
 
 	return {
 		description:
@@ -267,12 +246,19 @@ export function createGhostAgent(
 		mode: "subagent",
 		model,
 		temperature: overrides?.temperature ?? 0.1,
-		tools,
 		permission: {
+			read: "allow",
+			write: "allow",
 			edit: "allow",
+			glob: "allow",
+			grep: "allow",
 			bash: { "*": "deny" },
 			webfetch: "deny",
-		},
+			task: "allow",
+			skill: "allow",
+			sandbox_exec: "deny",
+			"platform_swarm_*": "allow",
+		} as unknown as AgentConfig["permission"],
 		prompt,
 	};
 }
@@ -280,5 +266,6 @@ export function createGhostAgent(
 export const ghostDefinition = createBuiltinDefinition({
 	name: "ghost",
 	factory: ({ model, overrides }) =>
-		createGhostAgent(model ?? "github-copilot/gpt-5.2-codex", overrides),
+		createGhostAgent(model ?? "github-copilot/claude-sonnet-4.5", overrides),
 });
+// # gpt-5.2-codex

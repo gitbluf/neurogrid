@@ -1,4 +1,4 @@
-import { describe, it, expect } from "bun:test";
+import { describe, expect, it } from "bun:test";
 import { registerBuiltinCommands } from "./register";
 
 describe("registerBuiltinCommands", () => {
@@ -10,7 +10,7 @@ describe("registerBuiltinCommands", () => {
 			Record<string, unknown>
 		>;
 		expect(new Set(Object.keys(commandConfig))).toEqual(
-			new Set(["synth", "plans", "clean", "commit", "apply"]),
+			new Set(["synth", "plans", "clean", "commit", "apply", "dispatch"]),
 		);
 	});
 
@@ -57,6 +57,6 @@ describe("registerBuiltinCommands", () => {
 			string,
 			Record<string, unknown>
 		>;
-		expect(commandConfig.commit.model).toBe("github-copilot/claude-haiku-4.5");
+		expect(commandConfig.commit.model).toBe("github-copilot/claude-haiku-4.6");
 	});
 });
