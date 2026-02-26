@@ -1,6 +1,6 @@
 // src/agents/cortex.ts
 import type { AgentConfig } from "@opencode-ai/sdk";
-import { createBuiltinDefinition, mergeAgentTools } from "./overrides";
+import { createBuiltinDefinition } from "./overrides";
 import type { AvailableAgent } from "./types";
 
 export type CortexAvailableAgent = AvailableAgent;
@@ -466,34 +466,9 @@ export function createCortexOrchestratorAgent(
 	skills: import("../skills/discovery").SkillInfo[] = [],
 	overrides?: {
 		temperature?: number;
-		tools?: Partial<AgentConfig["tools"]>;
 	},
 ): AgentConfig {
 	const prompt = buildCortexOrchestratorPrompt(availableAgents, skills);
-
-	const tools = mergeAgentTools(
-		{
-			platform_agents: true,
-			platform_skills: true,
-			platform_swarm_dispatch: false,
-			platform_swarm_status: false,
-			platform_swarm_wait: false,
-			platform_swarm_abort: false,
-			read: false,
-			glob: false,
-			grep: false,
-			task: true,
-			skill: true,
-			write: false,
-			edit: false,
-			bash: false,
-			webfetch: false,
-			todowrite: true,
-			todoread: true,
-			sandbox_exec: false,
-		},
-		overrides?.tools,
-	);
 
 	return {
 		description:
@@ -502,7 +477,6 @@ export function createCortexOrchestratorAgent(
 		model,
 		temperature: overrides?.temperature ?? 0.1,
 		color: "#FF5733",
-		tools,
 		permission: {
 			read: "deny",
 			write: "deny",

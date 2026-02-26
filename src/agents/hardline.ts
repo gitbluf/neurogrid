@@ -1,6 +1,6 @@
 // src/agents/hardline.ts
 import type { AgentConfig } from "@opencode-ai/sdk";
-import { createBuiltinDefinition, mergeAgentTools } from "./overrides";
+import { createBuiltinDefinition } from "./overrides";
 
 function buildHardlinePrompt(): string {
 	return `⚡ EXECUTE IMMEDIATELY. NO TEXT BEFORE TOOL CALL. ⚡
@@ -77,35 +77,10 @@ export function createHardlineAgent(
 	model: string | undefined,
 	overrides?: {
 		temperature?: number;
-		tools?: Partial<AgentConfig["tools"]>;
 	},
 ): AgentConfig {
 	const prompt = buildHardlinePrompt();
 	const resolvedModel = model ?? "github-copilot/gpt-5-mini";
-
-	const tools = mergeAgentTools(
-		{
-			bash: false,
-			sandbox_exec: true,
-			read: false,
-			glob: false,
-			grep: false,
-			write: false,
-			edit: false,
-			webfetch: false,
-			task: false,
-			skill: false,
-			platform_agents: false,
-			platform_skills: false,
-			platform_swarm_dispatch: false,
-			platform_swarm_status: false,
-			platform_swarm_wait: false,
-			platform_swarm_abort: false,
-			todowrite: false,
-			todoread: false,
-		},
-		overrides?.tools,
-	);
 
 	return {
 		description:
@@ -113,7 +88,6 @@ export function createHardlineAgent(
 		mode: "subagent",
 		model: resolvedModel,
 		temperature: overrides?.temperature ?? 0.1,
-		tools,
 		permission: {
 			read: "deny",
 			write: "deny",

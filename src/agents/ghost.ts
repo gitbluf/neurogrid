@@ -1,6 +1,6 @@
 // src/agents/ghost.ts
 import type { AgentConfig } from "@opencode-ai/sdk";
-import { createBuiltinDefinition, mergeAgentTools } from "./overrides";
+import { createBuiltinDefinition } from "./overrides";
 
 function buildGhostPrompt(): string {
 	return `<agent name="ghost" mode="subagent" role="plan-executor">
@@ -236,34 +236,9 @@ export function createGhostAgent(
 	model: string | undefined,
 	overrides?: {
 		temperature?: number;
-		tools?: Partial<AgentConfig["tools"]>;
 	},
 ): AgentConfig {
 	const prompt = buildGhostPrompt();
-
-	const tools = mergeAgentTools(
-		{
-			read: true,
-			glob: true,
-			grep: true,
-			write: true,
-			edit: true,
-			bash: false,
-			task: true,
-			skill: true,
-			platform_agents: false,
-			platform_skills: true,
-			webfetch: false,
-			todowrite: false,
-			todoread: false,
-			platform_swarm_dispatch: true,
-			platform_swarm_status: true,
-			platform_swarm_wait: true,
-			platform_swarm_abort: true,
-			sandbox_exec: false,
-		},
-		overrides?.tools,
-	);
 
 	return {
 		description:
@@ -271,7 +246,6 @@ export function createGhostAgent(
 		mode: "subagent",
 		model,
 		temperature: overrides?.temperature ?? 0.1,
-		tools,
 		permission: {
 			read: "allow",
 			write: "allow",

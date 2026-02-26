@@ -1,6 +1,6 @@
 // src/agents/blueprint.ts
 import type { AgentConfig } from "@opencode-ai/sdk";
-import { createBuiltinDefinition, mergeAgentTools } from "./overrides";
+import { createBuiltinDefinition } from "./overrides";
 
 function buildBlueprintPrompt(): string {
 	return `<agent name="blueprint" mode="subagent" role="planner">
@@ -313,34 +313,9 @@ export function createBlueprintAgent(
 	model: string | undefined,
 	overrides?: {
 		temperature?: number;
-		tools?: Partial<AgentConfig["tools"]>;
 	},
 ): AgentConfig {
 	const prompt = buildBlueprintPrompt();
-
-	const tools = mergeAgentTools(
-		{
-			read: true,
-			write: true,
-			edit: true,
-			bash: false,
-			glob: true,
-			grep: true,
-			task: true,
-			skill: true,
-			platform_agents: false,
-			platform_skills: true,
-			platform_swarm_dispatch: false,
-			platform_swarm_status: false,
-			platform_swarm_wait: false,
-			platform_swarm_abort: false,
-			webfetch: false,
-			sandbox_exec: false,
-			todowrite: true,
-			todoread: true,
-		},
-		overrides?.tools,
-	);
 
 	return {
 		description:
@@ -348,9 +323,12 @@ export function createBlueprintAgent(
 		mode: "subagent",
 		model,
 		temperature: overrides?.temperature ?? 0.1,
-		tools,
 		permission: {
 			read: "allow",
+			write: {
+				".ai/*": "allow",
+				"*": "deny",
+			},
 			edit: {
 				".ai/*": "allow",
 				"*": "deny",

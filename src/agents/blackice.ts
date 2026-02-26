@@ -1,6 +1,6 @@
 // src/agents/blackice.ts
 import type { AgentConfig } from "@opencode-ai/sdk";
-import { createBuiltinDefinition, mergeAgentTools } from "./overrides";
+import { createBuiltinDefinition } from "./overrides";
 
 function buildBlackicePrompt(): string {
 	return `<agent name="blackice" mode="subagent" role="code-reviewer">
@@ -177,34 +177,9 @@ export function createBlackiceAgent(
 	model: string | undefined,
 	overrides?: {
 		temperature?: number;
-		tools?: Partial<AgentConfig["tools"]>;
 	},
 ): AgentConfig {
 	const prompt = buildBlackicePrompt();
-
-	const tools = mergeAgentTools(
-		{
-			read: true,
-			glob: true,
-			grep: true,
-			platform_agents: false,
-			platform_skills: true,
-			platform_swarm_dispatch: false,
-			platform_swarm_status: false,
-			platform_swarm_wait: false,
-			platform_swarm_abort: false,
-			skill: true,
-			write: false,
-			edit: false,
-			bash: false,
-			webfetch: false,
-			task: false,
-			todowrite: false,
-			todoread: false,
-			sandbox_exec: false,
-		},
-		overrides?.tools,
-	);
 
 	return {
 		description:
@@ -212,7 +187,6 @@ export function createBlackiceAgent(
 		mode: "subagent",
 		model,
 		temperature: overrides?.temperature ?? 0.2,
-		tools,
 		permission: {
 			read: "allow",
 			glob: "allow",
