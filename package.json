@@ -39,7 +39,7 @@
 		"registry": "https://npm.pkg.github.com"
 	},
 	"dependencies": {
-		"@opencode-ai/plugin": "1.2.10",
+		"@opencode-ai/plugin": "1.2.15",
 		"@opencode-ai/sdk": "1.2.10"
 	},
 	"devDependencies": {
