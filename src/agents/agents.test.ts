@@ -249,10 +249,10 @@ describe("createHardlineAgent", () => {
 });
 
 describe("permission tests", () => {
-	it("ghost permission allows swarm", () => {
+	it("ghost permission denies swarm", () => {
 		const agent = createGhostAgent("model");
 		const permission = agent.permission as Record<string, unknown>;
-		expect(permission["platform_swarm_*"]).toBe("allow");
+		expect(permission["platform_swarm_*"]).toBe("deny");
 	});
 
 	it("cortex permission denies swarm", () => {

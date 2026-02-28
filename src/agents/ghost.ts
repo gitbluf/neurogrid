@@ -268,4 +268,3 @@ export const ghostDefinition = createBuiltinDefinition({
 	factory: ({ model, overrides }) =>
 		createGhostAgent(model ?? "github-copilot/claude-sonnet-4.5", overrides),
 });
-
