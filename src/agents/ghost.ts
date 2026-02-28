@@ -252,12 +252,12 @@ export function createGhostAgent(
 			edit: "allow",
 			glob: "allow",
 			grep: "allow",
-			bash: { "*": "deny" },
+			bash: "deny",
 			webfetch: "deny",
 			task: "allow",
 			skill: "allow",
 			sandbox_exec: "deny",
-			"platform_swarm_*": "allow",
+			"platform_swarm_*": "deny",
 		} as unknown as AgentConfig["permission"],
 		prompt,
 	};
@@ -268,4 +268,3 @@ export const ghostDefinition = createBuiltinDefinition({
 	factory: ({ model, overrides }) =>
 		createGhostAgent(model ?? "github-copilot/claude-sonnet-4.5", overrides),
 });
-// # gpt-5.2-codex
