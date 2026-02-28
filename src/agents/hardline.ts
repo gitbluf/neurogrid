@@ -100,7 +100,7 @@ export function createHardlineAgent(
 			edit: "deny",
 			glob: "deny",
 			grep: "deny",
-			bash: { "*": "deny" },
+			bash: "deny",
 			sandbox_exec: "allow",
 			webfetch: "deny",
 			skill: "deny",
