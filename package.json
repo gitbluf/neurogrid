@@ -40,7 +40,7 @@
 	},
 	"dependencies": {
 		"@opencode-ai/plugin": "1.2.10",
-		"@opencode-ai/sdk": "1.2.10"
+		"@opencode-ai/sdk": "1.2.15"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^2.4.1",
@@ -48,7 +48,7 @@
 		"typescript": "^5.0.0"
 	},
 	"peerDependencies": {
-		"@opencode-ai/sdk": "1.2.10"
+		"@opencode-ai/sdk": "1.2.15"
 	},
 	"repository": {
 		"type": "git",
