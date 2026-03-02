@@ -1,120 +1,19 @@
 import { spawn } from "node:child_process";
-import type { SandboxBackend } from "./detect";
 import type { SecurityProfile } from "./profiles";
-import {
-	ALLOWED_BASE_ENV_VARS,
-	buildBwrapArgs,
-	buildSandboxExecProfile,
-} from "./profiles";
+import { ALLOWED_BASE_ENV_VARS } from "./profiles";
 
 export type SandboxResult = {
 	exitCode: number | null;
 	stdout: string;
 	stderr: string;
-	sandboxBackend: SandboxBackend;
+	sandboxBackend: "srt";
 	profile: SecurityProfile;
 	duration_ms: number;
 	truncated: boolean;
 	warnings: string[];
 };
 
-type ExecOptions = {
-	command: string;
-	profile: SecurityProfile;
-	timeout: number;
-	cwd: string;
-	env: Record<string, string>;
-	projectDir: string;
-	backend: SandboxBackend;
-};
-
-const OUTPUT_LIMIT_BYTES = 1_048_576;
-const KILL_GRACE_MS = 5_000;
-
-export async function executeSandboxed(
-	opts: ExecOptions,
-): Promise<SandboxResult> {
-	const startedAt = Date.now();
-	const warnings: string[] = [];
-
-	if (opts.backend === "sandbox-exec") {
-		return executeSandboxExec(opts, startedAt, warnings);
-	}
-
-	if (opts.backend === "bwrap") {
-		return executeBwrap(opts, startedAt, warnings);
-	}
-
-	return {
-		exitCode: null,
-		stdout: "",
-		stderr: "",
-		sandboxBackend: opts.backend,
-		profile: opts.profile,
-		duration_ms: Date.now() - startedAt,
-		truncated: false,
-		warnings: ["Execution refused: no sandbox backend detected."],
-	};
-}
-
-async function executeSandboxExec(
-	opts: ExecOptions,
-	startedAt: number,
-	warnings: string[],
-): Promise<SandboxResult> {
-	const profileText = buildSandboxExecProfile(opts.profile, {
-		projectDir: opts.projectDir,
-		homeDir:
-			process.env.HOME ??
-			(() => {
-				throw new Error(
-					"[sandbox] HOME environment variable is not set. Cannot determine home directory for sandbox profile deny rules.",
-				);
-			})(),
-	});
-
-	const args = ["-p", profileText, "/usr/bin/env", "bash", "-c", opts.command];
-
-	return runCommand({
-		command: "sandbox-exec",
-		args,
-		cwd: opts.cwd,
-		env: opts.env,
-		timeout: opts.timeout,
-		startedAt,
-		warnings,
-		backend: "sandbox-exec",
-		profile: opts.profile,
-	});
-}
-
-async function executeBwrap(
-	opts: ExecOptions,
-	startedAt: number,
-	warnings: string[],
-): Promise<SandboxResult> {
-	const bwrapArgs = buildBwrapArgs(opts.profile, {
-		projectDir: opts.projectDir,
-		cwd: opts.cwd,
-		env: opts.env,
-	});
-
-	bwrapArgs.push("--", "/usr/bin/env", "bash", "-c", opts.command);
-
-	return runCommand({
-		command: "bwrap",
-		args: bwrapArgs,
-		cwd: opts.cwd,
-		env: opts.env,
-		timeout: opts.timeout,
-		startedAt,
-		warnings,
-		backend: "bwrap",
-		profile: opts.profile,
-	});
-}
-
-type RunCommandOptions = {
+export type RunCommandOptions = {
 	command: string;
 	args: string[];
 	cwd: string;
@@ -122,9 +21,12 @@ type RunCommandOptions = {
 	timeout: number;
 	startedAt: number;
 	warnings: string[];
-	backend: SandboxBackend;
+	backend: "srt";
 	profile: SecurityProfile;
 };
+
+const OUTPUT_LIMIT_BYTES = 1_048_576;
+const KILL_GRACE_MS = 5_000;
 
 /**
  * Build a sanitized environment for the sandbox child process.
@@ -138,7 +40,7 @@ type RunCommandOptions = {
  * is the primary defense layer. Callers should avoid constructing shell
  * commands from env var values when possible.
  */
-function buildSandboxEnv(
+export function buildSandboxEnv(
 	userEnv: Record<string, string>,
 ): Record<string, string> {
 	const result: Record<string, string> = {};
@@ -169,7 +71,7 @@ function buildSandboxEnv(
  * trimming without splitting a multi-byte UTF-8 sequence mid-character.
  * This avoids corrupted text (U+FFFD replacement characters) sent to the LLM.
  */
-function truncateUtf8(buf: Buffer, maxBytes: number): string {
+export function truncateUtf8(buf: Buffer, maxBytes: number): string {
 	if (buf.length <= maxBytes) {
 		return buf.toString("utf8");
 	}
@@ -197,7 +99,36 @@ function truncateUtf8(buf: Buffer, maxBytes: number): string {
 	return buf.subarray(0, end).toString("utf8");
 }
 
-async function runCommand(options: RunCommandOptions): Promise<SandboxResult> {
+/**
+ * Heuristic binary detection on raw bytes.
+ * Checks for null bytes in the first 8KB — a reliable indicator of binary data.
+ */
+export function looksLikeBinary(buf: Buffer): boolean {
+	const checkLen = Math.min(buf.length, 8192);
+	for (let i = 0; i < checkLen; i++) {
+		if (buf[i] === 0) {
+			return true;
+		}
+	}
+	return false;
+}
+
+export function formatOutput(output: string, rawBuf?: Buffer): string {
+	const trimmed = output.trimEnd();
+	if (trimmed.length === 0) {
+		return "";
+	}
+
+	if (rawBuf && looksLikeBinary(rawBuf)) {
+		return `<binary output, ${rawBuf.length} bytes>`;
+	}
+
+	return trimmed;
+}
+
+export async function runCommand(
+	options: RunCommandOptions,
+): Promise<SandboxResult> {
 	const { command, args, cwd, env, timeout, startedAt, warnings } = options;
 	const controller = new AbortController();
 	const timeoutId = setTimeout(() => controller.abort(), timeout * 1000);
@@ -293,31 +224,4 @@ async function runCommand(options: RunCommandOptions): Promise<SandboxResult> {
 		truncated: stdoutTruncated || stderrTruncated,
 		warnings,
 	};
-}
-
-/**
- * Heuristic binary detection on raw bytes.
- * Checks for null bytes in the first 8KB — a reliable indicator of binary data.
- */
-function looksLikeBinary(buf: Buffer): boolean {
-	const checkLen = Math.min(buf.length, 8192);
-	for (let i = 0; i < checkLen; i++) {
-		if (buf[i] === 0) {
-			return true;
-		}
-	}
-	return false;
-}
-
-function formatOutput(output: string, rawBuf?: Buffer): string {
-	const trimmed = output.trimEnd();
-	if (trimmed.length === 0) {
-		return "";
-	}
-
-	if (rawBuf && looksLikeBinary(rawBuf)) {
-		return `<binary output, ${rawBuf.length} bytes>`;
-	}
-
-	return trimmed;
 }

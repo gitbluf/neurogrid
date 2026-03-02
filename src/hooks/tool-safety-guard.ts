@@ -2,6 +2,11 @@
 
 import type { Hooks } from "@opencode-ai/plugin";
 
+// Defense-in-depth only. Primary defense is SBPL (deny process-exec) rules.
+// This regex is trivially bypassable via subshells, backticks, env prefix,
+// full paths (/usr/bin/sudo), variable expansion, etc.
+const PRIVILEGE_ESCALATION_PATTERN = /\b(sudo|su|doas|pkexec|runuser)\b/;
+
 /** Patterns that must never execute in any shell tool. */
 const DESTRUCTIVE_PATTERNS: RegExp[] = [
 	/rm\s+-rf\s+[^/\s]/,
@@ -9,6 +14,7 @@ const DESTRUCTIVE_PATTERNS: RegExp[] = [
 	/git\s+reset\s+--hard\s+HEAD~[2-9]/,
 	/DROP\s+TABLE/i,
 	/>\s*\/dev\/(sd[a-z]|nvme)/,
+	PRIVILEGE_ESCALATION_PATTERN,
 ];
 
 /** File extensions that indicate secrets. */
