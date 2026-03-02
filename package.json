@@ -1,6 +1,6 @@
 {
 	"name": "@gitbluf/neurogrid",
-	"version": "0.1.0-alpha.5",
+	"version": "0.1.0-alpha.6",
 	"description": "Neurogrid – OpenCode plugin providing AI agent orchestration system with specialized agents for planning, code review, reconnaissance, and execution.",
 	"license": "AGPL-3.0-only",
 	"type": "module",
@@ -33,17 +33,20 @@
 		"ci:dependabot-lockfile": "./scripts/dependabot-lockfile",
 		"lint": "biome lint .",
 		"format": "biome format --write .",
-		"test:all": "bun run lint && bun run format && bun test"
+		"test:all": "bun run lint && bun run format && bun test",
+		"validate:agent": "bun install && bun build --target=node . && bun run lint && bun run format && bun test"
 	},
 	"publishConfig": {
 		"registry": "https://npm.pkg.github.com"
 	},
 	"dependencies": {
-		"@opencode-ai/plugin": "1.2.10",
-		"@opencode-ai/sdk": "1.2.10"
+		"@anthropic-ai/sandbox-runtime": "0.0.39",
+		"@opencode-ai/plugin": "1.2.15",
+		"@opencode-ai/sdk": "1.2.15",
+		"zod": "4.1.8"
 	},
 	"devDependencies": {
-		"@biomejs/biome": "^2.4.1",
+		"@biomejs/biome": "^2.4.4",
 		"bun-types": "latest",
 		"typescript": "^5.0.0"
 	},
@@ -53,5 +56,8 @@
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/gitbluf/neurogrid"
+	},
+	"overrides": {
+		"zod": "4.1.8"
 	}
 }

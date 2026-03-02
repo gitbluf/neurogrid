@@ -41,34 +41,7 @@ Convention guidelines can be found in `CONVENTIONS.md`
 Run all checks in this order after every change:
 
 ```bash
-bun run lint     # Must pass with 0 warnings and 0 errors
-bun run build    # Must compile with no new errors
-bun test         # Must pass with 0 failures
-```
-
-If any check fails, fix the issue before proceeding. Do not commit, push, or submit a PR with failing checks.
-
-### Build
-```bash
-bun install        # Install/update dependencies
-bun run build      # Compile TypeScript (tsc)
-```
-
-### Lint
-```bash
-bun run lint       # Run Biome linter — 0 warnings, 0 errors required
-```
-
-### Format
-```bash
-bun run format     # Auto-format with Biome (--write)
-```
-
-### Tests
-```bash
-bun test                  # Run full test suite
-bun test path/to/test     # Run a specific test file
-bun test -t "test name"   # Run a specific test by name
+bun run validate:agent # located in package.json
 ```
 
 Tests are colocated with source files using the naming convention `<module>.test.ts` (e.g., `session-plans.ts` → `session-plans.test.ts`). When adding or modifying source code, add or update the corresponding test file in the same directory.

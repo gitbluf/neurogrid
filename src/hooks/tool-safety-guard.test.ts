@@ -31,6 +31,64 @@ describe("tool-safety-guard", () => {
 			);
 		});
 
+		it("blocks sudo commands", async () => {
+			const input = { tool: "bash", sessionID: "s1", callID: "c1" };
+			const output = { args: { command: "sudo apt-get install foo" } };
+			await expect(hook(input, output)).rejects.toThrow(
+				"Blocked destructive command",
+			);
+		});
+
+		it("blocks su commands", async () => {
+			const input = { tool: "sandbox_exec", sessionID: "s1", callID: "c1" };
+			const output = { args: { command: "su - root" } };
+			await expect(hook(input, output)).rejects.toThrow(
+				"Blocked destructive command",
+			);
+		});
+
+		it("blocks doas commands", async () => {
+			const input = { tool: "bash", sessionID: "s1", callID: "c1" };
+			const output = { args: { command: "doas pkg_add foo" } };
+			await expect(hook(input, output)).rejects.toThrow(
+				"Blocked destructive command",
+			);
+		});
+
+		it("blocks pkexec commands", async () => {
+			const input = { tool: "sandbox_exec", sessionID: "s1", callID: "c1" };
+			const output = { args: { command: "pkexec systemctl restart nginx" } };
+			await expect(hook(input, output)).rejects.toThrow(
+				"Blocked destructive command",
+			);
+		});
+
+		it("blocks runuser commands", async () => {
+			const input = { tool: "bash", sessionID: "s1", callID: "c1" };
+			const output = { args: { command: "runuser -u admin -- whoami" } };
+			await expect(hook(input, output)).rejects.toThrow(
+				"Blocked destructive command",
+			);
+		});
+
+		it("allows sudoku (false positive avoidance)", async () => {
+			const input = { tool: "bash", sessionID: "s1", callID: "c1" };
+			const output = { args: { command: "play-sudoku" } };
+			await expect(hook(input, output)).resolves.toBeUndefined();
+		});
+
+		it("allows tissue (false positive avoidance)", async () => {
+			const input = { tool: "bash", sessionID: "s1", callID: "c1" };
+			const output = { args: { command: "grep tissue file.txt" } };
+			await expect(hook(input, output)).resolves.toBeUndefined();
+		});
+
+		it("allows filenames containing sudo", async () => {
+			const input = { tool: "bash", sessionID: "s1", callID: "c1" };
+			const output = { args: { command: "cat pseudo.txt" } };
+			await expect(hook(input, output)).resolves.toBeUndefined();
+		});
+
 		it("allows safe commands", async () => {
 			const input = { tool: "sandbox_exec", sessionID: "s1", callID: "c1" };
 			const output = { args: { command: "ls -la" } };

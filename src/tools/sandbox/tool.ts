@@ -2,12 +2,32 @@ import { realpathSync } from "node:fs";
 import * as path from "node:path";
 import { tool } from "@opencode-ai/plugin";
 import { enforceAgent } from "../agent-guard";
-import { executeSandboxed } from "./backends";
-import { detectBackend } from "./detect";
+import type { SecurityProfile } from "./profiles";
 import { resolveProfile } from "./profiles";
+import { executeSrt } from "./srt-executor";
+import { loadSrt } from "./srt-loader";
 
-const DEFAULT_TIMEOUT = 30;
 const MAX_TIMEOUT = 300;
+
+function sandboxError(
+	error: string,
+	profile: SecurityProfile,
+	warnings: string[] = [],
+): string {
+	return JSON.stringify(
+		{
+			error,
+			exitCode: null,
+			sandboxBackend: "srt" as const,
+			profile,
+			duration_ms: 0,
+			truncated: false,
+			warnings,
+		},
+		null,
+		2,
+	);
+}
 
 export function createSandboxExecTool(directory: string) {
 	return tool({
@@ -40,28 +60,19 @@ export function createSandboxExecTool(directory: string) {
 			const denied = enforceAgent(context, "hardline", "sandbox_exec");
 			if (denied) return denied;
 
-			try {
-				const profile = resolveProfile();
-				const timeout = args.timeout ?? DEFAULT_TIMEOUT;
-				const backend = await detectBackend();
+			const profile = resolveProfile();
 
-				if (backend === "none") {
-					return JSON.stringify(
-						{
-							error:
-								"No sandbox backend available. On macOS, sandbox-exec should be available by default. On Linux, install bubblewrap (bwrap).",
-							exitCode: null,
-							sandboxBackend: "none",
-							profile,
-							duration_ms: 0,
-							truncated: false,
-							warnings: [
-								"Execution refused: no sandbox backend detected.",
-								"Install bubblewrap (Linux: apt install bubblewrap) or verify sandbox-exec is available (macOS) to enable sandboxed execution.",
-							],
-						},
-						null,
-						2,
+			try {
+				const srt = await loadSrt();
+
+				if (!srt) {
+					return sandboxError(
+						"srt is required but not available. Please ensure @anthropic-ai/sandbox-runtime is installed.",
+						profile,
+						[
+							"Execution refused: srt backend not available.",
+							"Install @anthropic-ai/sandbox-runtime to enable sandboxed execution.",
+						],
 					);
 				}
 
@@ -69,18 +80,9 @@ export function createSandboxExecTool(directory: string) {
 				try {
 					projectDirReal = realpathSync(directory);
 				} catch {
-					return JSON.stringify(
-						{
-							error: `Unable to resolve project directory: "${directory}". The path must exist and be accessible.`,
-							exitCode: null,
-							sandboxBackend: backend,
-							profile,
-							duration_ms: 0,
-							truncated: false,
-							warnings: [],
-						},
-						null,
-						2,
+					return sandboxError(
+						`Unable to resolve project directory: "${directory}". The path must exist and be accessible.`,
+						profile,
 					);
 				}
 
@@ -92,18 +94,9 @@ export function createSandboxExecTool(directory: string) {
 				try {
 					resolvedCwdReal = realpathSync(resolvedCwd);
 				} catch {
-					return JSON.stringify(
-						{
-							error: `Unable to resolve working directory: "${resolvedCwd}". The path must exist and be accessible within the project.`,
-							exitCode: null,
-							sandboxBackend: backend,
-							profile,
-							duration_ms: 0,
-							truncated: false,
-							warnings: [],
-						},
-						null,
-						2,
+					return sandboxError(
+						`Unable to resolve working directory: "${resolvedCwd}". The path must exist and be accessible within the project.`,
+						profile,
 					);
 				}
 
@@ -112,35 +105,24 @@ export function createSandboxExecTool(directory: string) {
 					relativeCwd === "" ||
 					(!relativeCwd.startsWith("..") && !path.isAbsolute(relativeCwd));
 				if (!isWithinProject) {
-					return JSON.stringify(
-						{
-							error: "cwd must be within the project directory",
-							exitCode: null,
-							sandboxBackend: backend,
-							profile,
-							duration_ms: 0,
-							truncated: false,
-							warnings: [],
-						},
-						null,
-						2,
+					return sandboxError(
+						"cwd must be within the project directory",
+						profile,
 					);
 				}
 
-				const result = await executeSandboxed({
-					command: args.command,
+				const result = await executeSrt(
+					args.command,
+					[],
 					profile,
-					timeout,
-					cwd: resolvedCwdReal,
-					env: args.env ?? {},
-					projectDir: projectDirReal,
-					backend,
-				});
+					resolvedCwdReal,
+					args.env ?? {},
+				);
 
 				return JSON.stringify(result, null, 2);
 			} catch (err) {
 				const msg = err instanceof Error ? err.message : String(err);
-				return JSON.stringify({ error: msg }, null, 2);
+				return sandboxError(msg, profile);
 			}
 		},
 	});
