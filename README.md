@@ -22,11 +22,18 @@ Install in your OpenCode config and start using agents right away.
 
 That’s it—OpenCode will load the plugin on next run.
 
-## 🚧 Planned Features
+## 🔒 Sandbox Isolation
 
-| Feature | Status | Description |
-| --- | --- | --- |
-| **Sandboxing** | 🔜 | Running each agent task in a sandboxed/controlled environment for isolation and safety. |
+All commands are executed inside an OS-level sandbox powered by **@anthropic-ai/sandbox-runtime** (srt). The design is **fail-closed**: if the sandbox cannot be initialized, commands are never executed.
+
+**Security profiles** (set via `OPENCODE_SANDBOX_PROFILE`):
+- **`default`** — no network access, read all files, write to project + `/tmp` only
+- **`network-allow`** — GitHub/GitLab domains only (`github.com`, `*.github.com`, `api.github.com`, `raw.githubusercontent.com`, `gitlab.com`, `*.gitlab.com`, `*.gitlab-static.net`), read all, write project + `/tmp`
+- **`readonly`** — no network, read-only everywhere
+
+**Always denied**: `~/.ssh`, `~/.aws`, `~/.gnupg`, `.env` files, and other sensitive paths.
+
+Only the **hardline** agent can execute sandboxed commands. See [docs/SANDBOX_ARCHITECTURE.md](docs/SANDBOX_ARCHITECTURE.md) for full technical details.
 
 ## ⚙️ Model Configuration
 
@@ -60,6 +67,7 @@ Model IDs depend on your configured provider (e.g. anthropic/claude-sonnet-4-202
 - **6 built-in commands** (`/synth`, `/apply`, `/dispatch`, `/plans`, `/clean`, `/commit`)
 - **3 built-in skills** (complexity, security, git commit flow)
 - **Platform tools** for agent/skill discovery, configuration, and multi-agent swarm orchestration
+- **OS-level sandbox isolation** for all shell commands (fail-closed, network restrictions, sensitive path denial)
 
 ## 🤖 Agents (At a Glance)
 
@@ -70,7 +78,7 @@ Model IDs depend on your configured provider (e.g. anthropic/claude-sonnet-4-202
 | **BLACKICE** | Code reviewer | Reviews for correctness, security, performance | ❌ |
 | **DATAWEAVER** | Codebase reconnaissance | Finds files, searches, extracts info | ❌ |
 | **GHOST** | Plan executor | Implements plans and quick edits | ✅ (via `/synth`, `/apply`) |
-| **HARDLINE** | Command executor | Runs scripts, builds, installs, diagnostics, and system ops | ❌ |
+| **HARDLINE** | Command executor | Runs scripts, builds, installs, diagnostics, and system ops inside the OS-level sandbox | ❌ |
 
 ### Agent Hierarchy
 
@@ -211,8 +219,9 @@ Register the plugin:
 2. **Quick‑Apply Escape Hatch** — `/apply` allows small edits without plan overhead
 3. **Skills‑First** — skills are checked before manual work
 4. **Safety Rails** — strict tool permissions and scope limits
-5. **Specialization** — each agent does one job well
-6. **No Scope Creep** — ghost implements only what the plan says
+5. **Fail‑Closed Sandbox** — commands never execute without sandbox protection
+6. **Specialization** — each agent does one job well
+7. **No Scope Creep** — ghost implements only what the plan says
 
 ## Development
 
