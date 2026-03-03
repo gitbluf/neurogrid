@@ -1,6 +1,7 @@
 // src/agents/cortex.ts
 import type { AgentConfig } from "@opencode-ai/sdk";
 import { createBuiltinDefinition } from "./overrides";
+import { withPermissions } from "./permissions";
 import type { AvailableAgent } from "./types";
 
 export type CortexAvailableAgent = AvailableAgent;
@@ -477,23 +478,12 @@ export function createCortexOrchestratorAgent(
 		model,
 		temperature: overrides?.temperature ?? 0.1,
 		color: "#FF5733",
-		permission: {
-			read: "deny",
-			write: "deny",
-			edit: "deny",
-			glob: "deny",
-			grep: "deny",
-			bash: {
-				"*": "deny",
-			},
-			webfetch: "deny",
+		permission: withPermissions({
 			task: "allow",
 			skill: "allow",
-			sandbox_exec: "deny",
-			"platform_swarm_*": "deny",
 			todowrite: "allow",
 			todoread: "allow",
-		} as unknown as AgentConfig["permission"],
+		}),
 		prompt,
 	};
 }

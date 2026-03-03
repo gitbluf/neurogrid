@@ -1,6 +1,7 @@
 // src/agents/blackice.ts
 import type { AgentConfig } from "@opencode-ai/sdk";
 import { createBuiltinDefinition } from "./overrides";
+import { withPermissions } from "./permissions";
 
 function buildBlackicePrompt(): string {
 	return `<agent name="blackice" mode="subagent" role="code-reviewer">
@@ -187,21 +188,12 @@ export function createBlackiceAgent(
 		mode: "subagent",
 		model,
 		temperature: overrides?.temperature ?? 0.2,
-		permission: {
+		permission: withPermissions({
 			read: "allow",
 			glob: "allow",
 			grep: "allow",
-			write: "deny",
-			edit: "deny",
-			bash: {
-				"*": "deny",
-			},
-			webfetch: "deny",
-			task: "deny",
 			skill: "allow",
-			sandbox_exec: "deny",
-			"platform_swarm_*": "deny",
-		} as unknown as AgentConfig["permission"],
+		}),
 		prompt,
 	};
 }

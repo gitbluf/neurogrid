@@ -1,6 +1,7 @@
 // src/agents/ghost.ts
 import type { AgentConfig } from "@opencode-ai/sdk";
 import { createBuiltinDefinition } from "./overrides";
+import { withPermissions } from "./permissions";
 
 function buildGhostPrompt(): string {
 	return `<agent name="ghost" mode="subagent" role="plan-executor">
@@ -246,19 +247,15 @@ export function createGhostAgent(
 		mode: "subagent",
 		model,
 		temperature: overrides?.temperature ?? 0.1,
-		permission: {
+		permission: withPermissions({
 			read: "allow",
 			write: "allow",
 			edit: "allow",
 			glob: "allow",
 			grep: "allow",
-			bash: "deny",
-			webfetch: "deny",
 			task: "allow",
 			skill: "allow",
-			sandbox_exec: "deny",
-			"platform_swarm_*": "deny",
-		} as unknown as AgentConfig["permission"],
+		}),
 		prompt,
 	};
 }

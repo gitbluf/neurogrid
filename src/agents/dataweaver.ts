@@ -1,6 +1,7 @@
 // src/agents/dataweaver.ts
 import type { AgentConfig } from "@opencode-ai/sdk";
 import { createBuiltinDefinition } from "./overrides";
+import { withPermissions } from "./permissions";
 
 function buildDataweaverPrompt(): string {
 	return `<agent name="dataweaver" mode="subagent" role="reconnaissance">
@@ -262,21 +263,11 @@ export function createDataweaverAgent(
 		mode: "subagent",
 		model: resolvedModel,
 		temperature: overrides?.temperature ?? 0.1,
-		permission: {
+		permission: withPermissions({
 			read: "allow",
 			glob: "allow",
 			grep: "allow",
-			write: "deny",
-			edit: "deny",
-			skill: "deny",
-			bash: {
-				"*": "deny",
-			},
-			webfetch: "deny",
-			task: "deny",
-			sandbox_exec: "deny",
-			"platform_swarm_*": "deny",
-		} as unknown as AgentConfig["permission"],
+		}),
 		prompt,
 	};
 }

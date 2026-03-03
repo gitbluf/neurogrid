@@ -1,6 +1,7 @@
 // src/agents/blueprint.ts
 import type { AgentConfig } from "@opencode-ai/sdk";
 import { createBuiltinDefinition } from "./overrides";
+import { withPermissions } from "./permissions";
 
 function buildBlueprintPrompt(): string {
 	return `<agent name="blueprint" mode="subagent" role="planner">
@@ -323,25 +324,16 @@ export function createBlueprintAgent(
 		mode: "subagent",
 		model,
 		temperature: overrides?.temperature ?? 0.1,
-		permission: {
+		permission: withPermissions({
 			read: "allow",
-			edit: {
-				"*": "deny",
-				".ai/*": "allow",
-			},
+			edit: { "*": "deny", ".ai/*": "allow" },
 			glob: "allow",
 			grep: "allow",
-			bash: {
-				"*": "deny",
-			},
-			webfetch: "deny",
 			task: "allow",
 			skill: "allow",
 			todowrite: "allow",
 			todoread: "allow",
-			sandbox_exec: "deny",
-			"platform_swarm_*": "deny",
-		} as unknown as AgentConfig["permission"],
+		}),
 		prompt,
 	};
 }

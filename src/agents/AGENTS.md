@@ -4,10 +4,11 @@
 
 ```
 src/agents/
-  types.ts        # BuiltinAgentDefinition, AvailableAgent
-  overrides.ts    # createBuiltinDefinition, AgentFactorySpec
-  index.ts        # builtinAgentDefinitions array, BuiltinAgentName union
-  my-agent.ts     # One file per agent (you create this)
+  types.ts         # BuiltinAgentDefinition, AvailableAgent
+  overrides.ts     # createBuiltinDefinition, AgentFactorySpec
+  permissions.ts   # DEFAULT_PERMISSIONS, withPermissions() helper
+  index.ts         # builtinAgentDefinitions array, BuiltinAgentName union
+  my-agent.ts      # One file per agent (you create this)
 ```
 
 ## Type Signatures
@@ -34,6 +35,7 @@ type AgentFactorySpec = {
 ```typescript
 import type { AgentConfig } from "@opencode-ai/sdk"
 import { createBuiltinDefinition } from "./overrides"
+import { withPermissions } from "./permissions"
 
 export function createMyAgentAgent(
   model: string | undefined,
@@ -45,19 +47,13 @@ export function createMyAgentAgent(
     model,
     temperature: overrides?.temperature ?? 0.1,
     color: "#AABBCC",
-    permission: {
+    permission: withPermissions({
       read: "allow",
       glob: "allow",
       grep: "allow",
-      write: "deny",
-      edit: "deny",
-      bash: { "*": "deny" },
-      webfetch: "deny",
-      task: "deny",
-      skill: "deny",
-      sandbox_exec: "deny",
-      "platform_swarm_*": "deny",
-    } as unknown as AgentConfig["permission"],
+      // write, edit, bash, webfetch, task, skill, sandbox_exec, todowrite, todoread, platform_swarm_*
+      // are all "deny" by default. Only override what you need.
+    }),
     prompt: `
 `,
   }
@@ -100,7 +96,24 @@ bun run build
 
 ## Permissions
 
-Agent capabilities are controlled via the `permission` object. The `tools` field is deprecated (SDK v2 sends all tools to the LLM regardless of `tools` config).
+Agent capabilities are controlled via the `permission` object using the centralized `withPermissions()` helper from `src/agents/permissions.ts`.
+
+### Default-Deny Posture
+
+All agents start with **default-deny** for all permissions. Only explicitly override what your agent needs:
+
+```typescript
+import { withPermissions } from "./permissions"
+
+permission: withPermissions({
+  read: "allow",
+  glob: "allow",
+  grep: "allow",
+  // All other permissions default to "deny"
+})
+```
+
+### Permission Keys
 
 | Permission Key | Values | Description |
 |---|---|---|
@@ -117,12 +130,18 @@ Agent capabilities are controlled via the `permission` object. The `tools` field
 | `todowrite` / `todoread` | `"allow"` / `"deny"` | Manage TODO items |
 | `platform_swarm_*` | `"allow"` / `"deny"` | Swarm dispatch tools |
 
-- `"deny"` blocks the tool entirely
-- `"allow"` permits without confirmation
-- `"ask"` prompts the user for confirmation
-- Pattern objects (e.g., `{ ".ai/*": "allow", "*": "deny" }`) allow path-based control
-- Use `as unknown as AgentConfig["permission"]` cast for extended permission keys not in the SDK type
+### Permission Values
+
+- `"deny"` — blocks the tool entirely (default for all keys)
+- `"allow"` — permits without confirmation
+- `"ask"` — prompts the user for confirmation (bash only)
+- Pattern objects (e.g., `{ ".ai/*": "allow", "*": "deny" }`) — path-based control for write/edit
+
+### Notes
+
+- The `tools` field is deprecated (SDK v2 sends all tools to the LLM regardless of `tools` config)
 - `color`: optional hex string for UI display (e.g. `"#AABBCC"`)
+- New permission keys added to `DEFAULT_PERMISSIONS` are automatically denied for all agents unless explicitly overridden
 
 ## VERIFY
 
