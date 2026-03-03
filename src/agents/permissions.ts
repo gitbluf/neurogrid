@@ -18,6 +18,13 @@ export const DEFAULT_PERMISSIONS = {
 	todowrite: "deny",
 	todoread: "deny",
 	"platform_swarm_*": "deny",
+	list: "deny",
+	external_directory: "deny",
+	question: "deny",
+	websearch: "deny",
+	codesearch: "deny",
+	lsp: "deny",
+	doom_loop: "deny",
 } as const;
 
 export type AgentPermissions = typeof DEFAULT_PERMISSIONS;

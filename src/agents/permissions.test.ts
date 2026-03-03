@@ -17,6 +17,13 @@ describe("DEFAULT_PERMISSIONS", () => {
 		expect(keys).toContain("todowrite");
 		expect(keys).toContain("todoread");
 		expect(keys).toContain("platform_swarm_*");
+		expect(keys).toContain("list");
+		expect(keys).toContain("external_directory");
+		expect(keys).toContain("question");
+		expect(keys).toContain("websearch");
+		expect(keys).toContain("codesearch");
+		expect(keys).toContain("lsp");
+		expect(keys).toContain("doom_loop");
 	});
 
 	it("all simple permissions default to deny", () => {
@@ -33,6 +40,13 @@ describe("DEFAULT_PERMISSIONS", () => {
 			"todowrite",
 			"todoread",
 			"platform_swarm_*",
+			"list",
+			"external_directory",
+			"question",
+			"websearch",
+			"codesearch",
+			"lsp",
+			"doom_loop",
 		] as const;
 		for (const key of simpleKeys) {
 			expect(DEFAULT_PERMISSIONS[key]).toBe("deny");

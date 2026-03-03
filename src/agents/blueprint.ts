@@ -326,6 +326,7 @@ export function createBlueprintAgent(
 		temperature: overrides?.temperature ?? 0.1,
 		permission: withPermissions({
 			read: "allow",
+			write: { "*": "deny", ".ai/*": "allow" },
 			edit: { "*": "deny", ".ai/*": "allow" },
 			glob: "allow",
 			grep: "allow",

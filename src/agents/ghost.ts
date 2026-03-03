@@ -4,7 +4,7 @@ import { createBuiltinDefinition } from "./overrides";
 import { withPermissions } from "./permissions";
 
 function buildGhostPrompt(): string {
-	return `<agent name="ghost" mode="subagent" role="plan-executor">
+  return `<agent name="ghost" mode="subagent" role="plan-executor">
   <meta>
     \`\`\`markdown
     # GHOST-K8 Subagent
@@ -234,34 +234,35 @@ function buildGhostPrompt(): string {
 }
 
 export function createGhostAgent(
-	model: string | undefined,
-	overrides?: {
-		temperature?: number;
-	},
+  model: string | undefined,
+  overrides?: {
+    temperature?: number;
+  },
 ): AgentConfig {
-	const prompt = buildGhostPrompt();
+  const prompt = buildGhostPrompt();
 
-	return {
-		description:
-			"ghost (GHOST-K8) – a subagent that strictly implements code according to plan-<request>.md and nothing else.",
-		mode: "subagent",
-		model,
-		temperature: overrides?.temperature ?? 0.1,
-		permission: withPermissions({
-			read: "allow",
-			write: "allow",
-			edit: "allow",
-			glob: "allow",
-			grep: "allow",
-			task: "allow",
-			skill: "allow",
-		}),
-		prompt,
-	};
+  return {
+    description:
+      "ghost (GHOST-K8) – a subagent that strictly implements code according to plan-<request>.md and nothing else.",
+    mode: "subagent",
+    model,
+    temperature: overrides?.temperature ?? 0.1,
+    permission: withPermissions({
+      read: "allow",
+      write: "allow",
+      edit: "allow",
+      glob: "allow",
+      lsp: "allow",
+      grep: "allow",
+      task: "allow",
+      skill: "allow",
+    }),
+    prompt,
+  };
 }
 
 export const ghostDefinition = createBuiltinDefinition({
-	name: "ghost",
-	factory: ({ model, overrides }) =>
-		createGhostAgent(model ?? "github-copilot/claude-sonnet-4.5", overrides),
+  name: "ghost",
+  factory: ({ model, overrides }) =>
+    createGhostAgent(model ?? "github-copilot/claude-sonnet-4.5", overrides),
 });
