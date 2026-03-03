@@ -5,7 +5,6 @@ describe("DEFAULT_PERMISSIONS", () => {
 	it("has all expected permission keys", () => {
 		const keys = Object.keys(DEFAULT_PERMISSIONS);
 		expect(keys).toContain("read");
-		expect(keys).toContain("write");
 		expect(keys).toContain("edit");
 		expect(keys).toContain("glob");
 		expect(keys).toContain("grep");
@@ -29,7 +28,6 @@ describe("DEFAULT_PERMISSIONS", () => {
 	it("all simple permissions default to deny", () => {
 		const simpleKeys = [
 			"read",
-			"write",
 			"edit",
 			"glob",
 			"grep",
@@ -63,7 +61,6 @@ describe("withPermissions", () => {
 		const result = withPermissions();
 		const perms = result as unknown as Record<string, unknown>;
 		expect(perms.read).toBe("deny");
-		expect(perms.write).toBe("deny");
 		expect(perms.task).toBe("deny");
 		expect(perms.sandbox_exec).toBe("deny");
 	});
@@ -73,7 +70,6 @@ describe("withPermissions", () => {
 		const perms = result as unknown as Record<string, unknown>;
 		expect(perms.read).toBe("allow");
 		expect(perms.task).toBe("allow");
-		expect(perms.write).toBe("deny");
 		expect(perms.sandbox_exec).toBe("deny");
 	});
 

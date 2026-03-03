@@ -6,7 +6,6 @@ import type { AgentConfig } from "@opencode-ai/sdk";
  */
 export const DEFAULT_PERMISSIONS = {
 	read: "deny",
-	write: "deny",
 	edit: "deny",
 	glob: "deny",
 	grep: "deny",
