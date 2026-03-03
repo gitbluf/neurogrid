@@ -1,6 +1,7 @@
 // src/agents/hardline.ts
 import type { AgentConfig } from "@opencode-ai/sdk";
 import { createBuiltinDefinition } from "./overrides";
+import { withPermissions } from "./permissions";
 
 function buildHardlinePrompt(): string {
 	return `<agent name="hardline" mode="all" role="command-executor">
@@ -94,19 +95,9 @@ export function createHardlineAgent(
 		mode: "subagent",
 		model: resolvedModel,
 		temperature: overrides?.temperature ?? 0.1,
-		permission: {
-			read: "deny",
-			write: "deny",
-			edit: "deny",
-			glob: "deny",
-			grep: "deny",
-			bash: "deny",
+		permission: withPermissions({
 			sandbox_exec: "allow",
-			webfetch: "deny",
-			skill: "deny",
-			task: "deny",
-			"platform_swarm_*": "deny",
-		} as unknown as AgentConfig["permission"],
+		}),
 		prompt,
 	};
 }

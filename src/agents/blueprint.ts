@@ -1,6 +1,7 @@
 // src/agents/blueprint.ts
 import type { AgentConfig } from "@opencode-ai/sdk";
 import { createBuiltinDefinition } from "./overrides";
+import { withPermissions } from "./permissions";
 
 function buildBlueprintPrompt(): string {
 	return `<agent name="blueprint" mode="subagent" role="planner">
@@ -78,7 +79,7 @@ function buildBlueprintPrompt(): string {
     - ⛔ MUST NOT create new files outside \`.ai/\`.
     - ⛔ MUST NOT modify existing files outside \`.ai/\`.
     - Reading files for analysis is permitted; writing/editing is NOT.
-    - Use ONLY the \`write\` tool to create or overwrite plan files. The \`edit\` tool is denied for all files.
+    - Use the \`write\` tool to create or overwrite plan files. The \`edit\` tool is allowed only for \`.ai/*\` paths (plan revisions).
 
     If you are tempted to make a code change, STOP. Put it in the plan instead.
     Plan execution is the responsibility of the user (via \`/synth\`) or the @ghost agent — never blueprint.
@@ -184,7 +185,7 @@ function buildBlueprintPrompt(): string {
     0. Call @dataweaver to gather all of the needed files and directories.
     1. Draft a plan conforming to the schema above.
     2. Self-validate the plan against the field rules.
-    3. Save the plan to \`.ai/plan-<request>.md\` using the write tool only (edit is denied).
+    3. Save the plan to \`.ai/plan-<request>.md\` using the write tool (edit is allowed only for \`.ai/*\` paths).
     4. Call @blackice to review the plan content.
     5. Iterate on the plan based on feedback for up to 3 cycles (draft -> review -> revise).
     6. Return the final plan and a brief summary of review feedback to the caller.
@@ -323,25 +324,16 @@ export function createBlueprintAgent(
 		mode: "subagent",
 		model,
 		temperature: overrides?.temperature ?? 0.1,
-		permission: {
+		permission: withPermissions({
 			read: "allow",
-			edit: {
-				"*": "deny",
-				".ai/*": "allow",
-			},
+			edit: { "*": "deny", ".ai/*": "allow" },
 			glob: "allow",
 			grep: "allow",
-			bash: {
-				"*": "deny",
-			},
-			webfetch: "deny",
 			task: "allow",
 			skill: "allow",
 			todowrite: "allow",
 			todoread: "allow",
-			sandbox_exec: "deny",
-			"platform_swarm_*": "deny",
-		} as unknown as AgentConfig["permission"],
+		}),
 		prompt,
 	};
 }
