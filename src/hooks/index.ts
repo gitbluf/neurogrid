@@ -7,6 +7,7 @@ import { createCommandSwarmStatusHook } from "./command-swarm-status";
 import { createCommandSwarmTaskHook } from "./command-swarm-task";
 import { createCommandSynthHook } from "./command-synth";
 import { createToolBashRedirectHook } from "./tool-bash-redirect";
+import { createToolGrepPathGuardHook } from "./tool-grep-path-guard";
 import { createToolPlanRegisterHook } from "./tool-plan-register";
 import { createToolSafetyGuardHook } from "./tool-safety-guard";
 import type { CommandExecuteBeforeHook } from "./types";
@@ -41,6 +42,7 @@ export function createCommandExecuteBeforeHook(
 export function createToolExecuteBeforeHook(directory: string) {
 	const planRegisterHook = createToolPlanRegisterHook(directory);
 	const bashRedirectHook = createToolBashRedirectHook();
+	const grepPathGuardHook = createToolGrepPathGuardHook(directory);
 	const safetyGuardHook = createToolSafetyGuardHook();
 
 	return async (
@@ -48,6 +50,7 @@ export function createToolExecuteBeforeHook(directory: string) {
 		output: { args: unknown },
 	) => {
 		await bashRedirectHook(input, output);
+		await grepPathGuardHook(input, output);
 		await safetyGuardHook(input, output);
 		await planRegisterHook(input, output);
 	};
