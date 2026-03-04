@@ -491,14 +491,13 @@ describe("snapshot tests", () => {
 			"Step 1",
 			"Step 2",
 			"Step 3",
-			"Agent Capability Map",
 			"GHOST Agent Restriction",
+			"Hardline Delegation Rules",
+			"Dataweaver Delegation Rules",
 			"Routing Logic",
+			"Time & Iteration Budget",
 			"Chaining & Parallelization",
 			"Operational Constraints",
-			"Error Handling",
-			"Response Format",
-			"Ambiguity Protocol",
 			"Examples",
 		];
 
