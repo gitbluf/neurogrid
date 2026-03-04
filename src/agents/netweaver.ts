@@ -47,35 +47,19 @@ function buildNetweaverPrompt(): string {
 
     ## Task Prompt Template
 
-    Each dispatched task should use this prompt structure:
+    Each dispatched task should follow this structure:
 
     ---
-    You are cortex operating in an isolated git worktree.
-
     **Task**: [specific subtask description]
-
-    **Instructions**:
-    1. Use @dataweaver to explore the codebase and understand the relevant files
-    2. Delegate to @blueprint to create an implementation plan
-    3. Once the plan is ready at \`.ai/plan-<name>.md\`, run \`/synth <name>\` to execute it
-    4. Use @hardline for any shell commands needed (builds, tests, etc.)
-    5. Verify your changes work correctly
-
-    **Constraints**:
-    - You are in an isolated worktree — do NOT merge back to main
-    - Do NOT modify files outside your task scope
-    - Run tests relevant to your changes before finishing
+    **Instructions**: Use @dataweaver to explore files → delegate to @blueprint to create a plan → run \`/synth <name>\` to execute it. Use @hardline for shell commands.
+    **Constraints**: You are in an isolated git worktree — do NOT merge back to main. Run relevant tests before finishing.
     ---
   </workflow>
 
   <constraints>
     ## Operational Constraints
 
-    - You MUST use \`platform_swarm_dispatch\` to launch tasks (not \`task\` tool)
-    - You MUST set \`worktrees: true\` unless explicitly told otherwise
-    - Each subtask MUST use \`agent: "cortex"\` — never dispatch to ghost or other agents directly
-    - Keep task count reasonable (2-10 tasks typically)
-    - Set task IDs as kebab-case descriptive names (e.g., "auth-refactor", "add-tests")
+    - MUST use \`platform_swarm_dispatch\` with \`worktrees: true\` and \`agent: "cortex"\`
     - Monitor with \`platform_swarm_wait\` after dispatch
     - If a task description is ambiguous, ask the user before dispatching
   </constraints>
