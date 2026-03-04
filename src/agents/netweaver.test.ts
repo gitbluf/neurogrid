@@ -69,4 +69,16 @@ describe("netweaver agent", () => {
 		const custom = createNetweaverAgent("test-model", { temperature: 0.5 });
 		expect(custom.temperature).toBe(0.5);
 	});
+
+	it("should have default thinking level 'medium'", () => {
+		const agent = createNetweaverAgent("test-model");
+		expect(agent.model).toBe("test-model");
+		expect(agent.variant).toBe("medium");
+	});
+
+	it("should respect thinking override", () => {
+		const custom = createNetweaverAgent("test-model", { thinking: "max" });
+		expect(custom.model).toBe("test-model");
+		expect(custom.variant).toBe("max");
+	});
 });

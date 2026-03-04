@@ -2,6 +2,8 @@
 import type { AgentConfig } from "@opencode-ai/sdk";
 import { createBuiltinDefinition } from "./overrides";
 import { withPermissions } from "./permissions";
+import { resolveTextVerbosity, type TextVerbosity } from "./text-verbosity";
+import { resolveThinkingVariant, type ThinkingLevel } from "./thinking";
 
 function buildDataweaverPrompt(): string {
 	return `<agent name="dataweaver" mode="subagent" role="reconnaissance">
@@ -252,17 +254,23 @@ export function createDataweaverAgent(
 	model: string | undefined,
 	overrides?: {
 		temperature?: number;
+		thinking?: ThinkingLevel;
+		textVerbosity?: TextVerbosity;
 	},
 ): AgentConfig {
 	const prompt = buildDataweaverPrompt();
 	const resolvedModel = model ?? "github-copilot/claude-haiku-4.5";
+	const thinking: ThinkingLevel = overrides?.thinking ?? "low";
+	const textVerbosityLevel: TextVerbosity = overrides?.textVerbosity ?? "low";
 
 	return {
 		description:
 			"dataweaver (DATAWEAVER) – a specialized reconnaissance agent for codebase navigation. Locates files, searches code content, and reads file contents. Called by other agents when file discovery is needed.",
 		mode: "subagent",
 		model: resolvedModel,
+		variant: resolveThinkingVariant(thinking),
 		temperature: overrides?.temperature ?? 0.1,
+		textVerbosity: resolveTextVerbosity(textVerbosityLevel),
 		permission: withPermissions({
 			read: "allow",
 			glob: "allow",

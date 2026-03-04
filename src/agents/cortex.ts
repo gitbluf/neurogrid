@@ -2,6 +2,11 @@
 import type { AgentConfig } from "@opencode-ai/sdk";
 import { createBuiltinDefinition } from "./overrides";
 import { withPermissions } from "./permissions";
+import {
+	DEFAULT_THINKING,
+	resolveThinkingVariant,
+	type ThinkingLevel,
+} from "./thinking";
 import type { AvailableAgent } from "./types";
 
 export type CortexAvailableAgent = AvailableAgent;
@@ -467,15 +472,18 @@ export function createCortexOrchestratorAgent(
 	skills: import("../skills/discovery").SkillInfo[] = [],
 	overrides?: {
 		temperature?: number;
+		thinking?: ThinkingLevel;
 	},
 ): AgentConfig {
 	const prompt = buildCortexOrchestratorPrompt(availableAgents, skills);
+	const thinking = overrides?.thinking ?? DEFAULT_THINKING;
 
 	return {
 		description:
 			"cortex (KERNEL-92//CORTEX) – a built-in primary orchestrator agent that analyzes user requests and routes them to the most appropriate specialized agent(s). It never executes tasks itself and always delegates to subagents.",
 		mode: "primary",
 		model,
+		variant: resolveThinkingVariant(thinking),
 		temperature: overrides?.temperature ?? 0.1,
 		color: "#FF5733",
 		permission: withPermissions({

@@ -1,11 +1,17 @@
 // src/agents/overrides.ts
 import type { AgentConfig } from "@opencode-ai/sdk";
 import type { SkillInfo } from "../skills/discovery";
+import type { TextVerbosity } from "./text-verbosity";
+import { isValidTextVerbosity } from "./text-verbosity";
+import type { ThinkingLevel } from "./thinking";
+import { isValidThinkingLevel } from "./thinking";
 import type { AvailableAgent, BuiltinAgentDefinition } from "./types";
 
 export type BuiltinAgentOverrides = {
 	model?: string;
 	temperature?: number;
+	thinking?: ThinkingLevel;
+	textVerbosity?: TextVerbosity;
 };
 
 export type BuiltinAgentOverrideResult = {
@@ -18,6 +24,8 @@ type RawAgentEntry = {
 	disable?: boolean;
 	model?: unknown;
 	temperature?: unknown;
+	thinking?: unknown;
+	textVerbosity?: unknown;
 	prompt?: unknown;
 };
 
@@ -48,8 +56,21 @@ export function resolveBuiltinAgentOverrides(
 		overrides.model = raw.model;
 	}
 
-	if (typeof raw.temperature === "number" && !Number.isNaN(raw.temperature)) {
+	if (
+		typeof raw.temperature === "number" &&
+		Number.isFinite(raw.temperature) &&
+		raw.temperature >= 0 &&
+		raw.temperature <= 2
+	) {
 		overrides.temperature = raw.temperature;
+	}
+
+	if (isValidThinkingLevel(raw.thinking)) {
+		overrides.thinking = raw.thinking;
+	}
+
+	if (isValidTextVerbosity(raw.textVerbosity)) {
+		overrides.textVerbosity = raw.textVerbosity;
 	}
 
 	return { disabled, isUserDefined, overrides };

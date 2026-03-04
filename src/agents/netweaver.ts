@@ -2,6 +2,11 @@
 import type { AgentConfig } from "@opencode-ai/sdk";
 import { createBuiltinDefinition } from "./overrides";
 import { withPermissions } from "./permissions";
+import {
+	DEFAULT_THINKING,
+	resolveThinkingVariant,
+	type ThinkingLevel,
+} from "./thinking";
 
 function buildNetweaverPrompt(): string {
 	return `<agent name="netweaver" mode="subagent" role="swarm-orchestrator">
@@ -81,15 +86,19 @@ export function createNetweaverAgent(
 	model: string | undefined,
 	overrides?: {
 		temperature?: number;
+		thinking?: ThinkingLevel;
 	},
 ): AgentConfig {
 	const prompt = buildNetweaverPrompt();
+	const resolvedModel = model ?? "github-copilot/claude-haiku-4.5";
+	const thinking = overrides?.thinking ?? DEFAULT_THINKING;
 
 	return {
 		description:
 			"netweaver (NETWEAVER-7) – swarm orchestrator that decomposes requests into parallel subtasks running in isolated git worktrees.",
 		mode: "subagent",
-		model,
+		model: resolvedModel,
+		variant: resolveThinkingVariant(thinking),
 		temperature: overrides?.temperature ?? 0.1,
 		permission: withPermissions({
 			"platform_swarm_*": "allow",

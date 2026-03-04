@@ -36,15 +36,22 @@ type AgentFactorySpec = {
 import type { AgentConfig } from "@opencode-ai/sdk"
 import { createBuiltinDefinition } from "./overrides"
 import { withPermissions } from "./permissions"
+import type { ThinkingLevel } from "./thinking"
+import { resolveThinkingVariant } from "./thinking"
 
 export function createMyAgentAgent(
   model: string | undefined,
-  overrides?: { temperature?: number },
+  overrides?: { temperature?: number; thinking?: ThinkingLevel },
 ): AgentConfig {
+  const defaultThinking: ThinkingLevel = "medium"
+  const thinking = overrides?.thinking ?? defaultThinking
+  const variant = resolveThinkingVariant(thinking)
+
   return {
     description: "<one-line description>",
     mode: "subagent",
-    model,
+    model: model ?? "default-model-id",
+    variant,
     temperature: overrides?.temperature ?? 0.1,
     color: "#AABBCC",
     permission: withPermissions({
@@ -142,6 +149,146 @@ permission: withPermissions({
 - The `tools` field is deprecated (SDK v2 sends all tools to the LLM regardless of `tools` config)
 - `color`: optional hex string for UI display (e.g. `"#AABBCC"`)
 - New permission keys added to `DEFAULT_PERMISSIONS` are automatically denied for all agents unless explicitly overridden
+
+## Thinking (Model Variant) Configuration
+
+Agents support per-agent "thinking" configuration to control model reasoning depth via model variant suffixes.
+
+### ThinkingLevel Type
+
+```typescript
+type ThinkingLevel = "off" | "minimal" | "low" | "medium" | "high" | "xhigh" | "max"
+```
+
+- `"off"` — maps to variant `"none"`
+- `"minimal"` — maps to variant `"minimal"`
+- `"low"` — maps to variant `"low"`
+- `"medium"` — maps to variant `"medium"` (default)
+- `"high"` — maps to variant `"high"`
+- `"xhigh"` — maps to variant `"xhigh"`
+- `"max"` — maps to variant `"max"`
+
+> **Provider compatibility note:** Not all providers support all thinking levels. For example, Anthropic supports `high` (default) and `max`; OpenAI supports `none` through `xhigh`; Google supports `low` and `high`. Unrecognized variants fall back to provider defaults at runtime.
+
+### Default Thinking Levels by Agent
+
+| Agent | Default Thinking | Rationale |
+|-------|------------------|-----------|
+| `blackice` | `"max"` | Code review benefits from deep reasoning |
+| `dataweaver` | `"low"` | Search/discovery is fast-path, minimal reasoning |
+| `hardline` | `"off"` | Command execution doesn't benefit from thinking |
+| `blueprint` | `"medium"` | Planning requires balanced reasoning |
+| `cortex` | `"medium"` | Orchestration requires balanced reasoning |
+| `ghost` | `"medium"` | Implementation requires balanced reasoning |
+| `netweaver` | `"medium"` | Swarm orchestration requires balanced reasoning |
+
+### Implementation Pattern
+
+```typescript
+import type { ThinkingLevel } from "./thinking"
+import { resolveThinkingVariant } from "./thinking"
+
+export function createMyAgentAgent(
+  model: string | undefined,
+  overrides?: { temperature?: number; thinking?: ThinkingLevel },
+): AgentConfig {
+  const defaultThinking: ThinkingLevel = "medium"  // or "off", "low", "max"
+  const thinking = overrides?.thinking ?? defaultThinking
+  const variant = resolveThinkingVariant(thinking)
+
+  return {
+    // ...
+    model: model ?? "default-model",
+    variant,
+    // ...
+  }
+}
+```
+
+### Configuration via .opencode/config.yaml
+
+Users can override thinking levels per agent:
+
+```yaml
+agent:
+  blackice:
+    thinking: low  # Override default "max"
+  dataweaver:
+    thinking: off  # Override default "low"
+```
+
+### Helpers in `src/agents/thinking.ts`
+
+- `isValidThinkingLevel(value: unknown): value is ThinkingLevel` — Type guard for validation
+- `resolveThinkingVariant(thinking: ThinkingLevel): string` — Resolves thinking level to OpenCode model variant string
+- `DEFAULT_THINKING: ThinkingLevel = "medium"` — System-wide default
+- `THINKING_VARIANT_MAP: Record<ThinkingLevel, string>` — Maps thinking levels to bare variant name strings
+
+## Text Verbosity Configuration
+
+Agents support per-agent "textVerbosity" configuration to control the amount of explanatory text in agent responses.
+
+### TextVerbosity Type
+
+```typescript
+type TextVerbosity = "off" | "low" | "medium" | "high"
+```
+
+- `"off"` — minimal or no explanatory text
+- `"low"` — brief explanations only
+- `"medium"` — balanced explanations (default)
+- `"high"` — detailed explanations
+
+### Default Text Verbosity Levels by Agent
+
+| Agent | Default Text Verbosity | Rationale |
+|-------|------------------------|-----------|
+| `blueprint` | `"low"` | Planning output is structured, minimal prose needed |
+| `hardline` | `"low"` | Command execution needs minimal explanations |
+| `dataweaver` | `"low"` | Search results should be concise |
+| `blackice` | `undefined` | Code review benefits from full explanations |
+| `cortex` | `undefined` | Orchestration needs full context |
+| `ghost` | `undefined` | Implementation needs full explanations |
+| `netweaver` | `undefined` | Swarm orchestration needs full context |
+
+### Implementation Pattern
+
+```typescript
+import type { TextVerbosity } from "./text-verbosity"
+import { resolveTextVerbosity } from "./text-verbosity"
+
+export function createMyAgentAgent(
+  model: string | undefined,
+  overrides?: { temperature?: number; thinking?: ThinkingLevel; textVerbosity?: TextVerbosity },
+): AgentConfig {
+  const textVerbosityLevel: TextVerbosity = overrides?.textVerbosity ?? "low"  // or "medium", "high", "off"
+
+  return {
+    // ...
+    textVerbosity: resolveTextVerbosity(textVerbosityLevel),
+    // ...
+  }
+}
+```
+
+### Configuration via .opencode/config.yaml
+
+Users can override text verbosity levels per agent:
+
+```yaml
+agent:
+  blueprint:
+    textVerbosity: high  # Override default "low"
+  dataweaver:
+    textVerbosity: off  # Override default "low"
+```
+
+### Helpers in `src/agents/text-verbosity.ts`
+
+- `isValidTextVerbosity(value: unknown): value is TextVerbosity` — Type guard for validation
+- `resolveTextVerbosity(textVerbosity: TextVerbosity): string` — Resolves text verbosity level to string
+- `DEFAULT_TEXT_VERBOSITY: TextVerbosity = "medium"` — System-wide default
+- `TEXT_VERBOSITY_MAP: Record<TextVerbosity, string>` — Maps text verbosity levels to string values
 
 ## VERIFY
 
