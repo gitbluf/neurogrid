@@ -1,7 +1,7 @@
 dist
 node_modules
 plan-*.md
-
+*.log
 # Session-plan registry (plugin-generated)
 .ai/.session-plans.json
 .ai/*
