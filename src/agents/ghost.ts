@@ -2,6 +2,11 @@
 import type { AgentConfig } from "@opencode-ai/sdk";
 import { createBuiltinDefinition } from "./overrides";
 import { withPermissions } from "./permissions";
+import {
+	DEFAULT_THINKING,
+	resolveThinkingVariant,
+	type ThinkingLevel,
+} from "./thinking";
 
 function buildGhostPrompt(): string {
 	return `<agent name="ghost" mode="subagent" role="plan-executor">
@@ -237,15 +242,19 @@ export function createGhostAgent(
 	model: string | undefined,
 	overrides?: {
 		temperature?: number;
+		thinking?: string;
 	},
 ): AgentConfig {
 	const prompt = buildGhostPrompt();
+	const resolvedModel = model ?? "github-copilot/claude-sonnet-4.5";
+	const thinking = (overrides?.thinking ?? DEFAULT_THINKING) as ThinkingLevel;
 
 	return {
 		description:
 			"ghost (GHOST-K8) – a subagent that strictly implements code according to plan-<request>.md and nothing else.",
 		mode: "subagent",
-		model,
+		model: resolvedModel,
+		variant: resolveThinkingVariant(thinking),
 		temperature: overrides?.temperature ?? 0.1,
 		permission: withPermissions({
 			read: "allow",

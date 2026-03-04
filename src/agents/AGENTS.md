@@ -36,15 +36,22 @@ type AgentFactorySpec = {
 import type { AgentConfig } from "@opencode-ai/sdk"
 import { createBuiltinDefinition } from "./overrides"
 import { withPermissions } from "./permissions"
+import type { ThinkingLevel } from "./thinking"
+import { resolveThinkingVariant } from "./thinking"
 
 export function createMyAgentAgent(
   model: string | undefined,
-  overrides?: { temperature?: number },
+  overrides?: { temperature?: number; thinking?: ThinkingLevel },
 ): AgentConfig {
+  const defaultThinking: ThinkingLevel = "medium"
+  const thinking = overrides?.thinking ?? defaultThinking
+  const variant = resolveThinkingVariant(thinking)
+
   return {
     description: "<one-line description>",
     mode: "subagent",
-    model,
+    model: model ?? "default-model-id",
+    variant,
     temperature: overrides?.temperature ?? 0.1,
     color: "#AABBCC",
     permission: withPermissions({
@@ -142,6 +149,77 @@ permission: withPermissions({
 - The `tools` field is deprecated (SDK v2 sends all tools to the LLM regardless of `tools` config)
 - `color`: optional hex string for UI display (e.g. `"#AABBCC"`)
 - New permission keys added to `DEFAULT_PERMISSIONS` are automatically denied for all agents unless explicitly overridden
+
+## Thinking (Model Variant) Configuration
+
+Agents support per-agent "thinking" configuration to control model reasoning depth via model variant suffixes.
+
+### ThinkingLevel Type
+
+```typescript
+type ThinkingLevel = "off" | "low" | "medium" | "high" | "xhigh" | "max"
+```
+
+- `"off"` — maps to variant `"think/off"`
+- `"low"` — maps to variant `"think/low"`
+- `"medium"` — maps to variant `"think"` (default)
+- `"high"` — maps to variant `"think/high"`
+- `"xhigh"` — maps to variant `"think/xhigh"`
+- `"max"` — maps to variant `"think/max"`
+
+### Default Thinking Levels by Agent
+
+| Agent | Default Thinking | Rationale |
+|-------|------------------|-----------|
+| `blackice` | `"max"` | Code review benefits from deep reasoning |
+| `dataweaver` | `"low"` | Search/discovery is fast-path, minimal reasoning |
+| `hardline` | `"off"` | Command execution doesn't benefit from thinking |
+| `blueprint` | `"medium"` | Planning requires balanced reasoning |
+| `cortex` | `"medium"` | Orchestration requires balanced reasoning |
+| `ghost` | `"medium"` | Implementation requires balanced reasoning |
+| `netweaver` | `"medium"` | Swarm orchestration requires balanced reasoning |
+
+### Implementation Pattern
+
+```typescript
+import type { ThinkingLevel } from "./thinking"
+import { resolveThinkingVariant } from "./thinking"
+
+export function createMyAgentAgent(
+  model: string | undefined,
+  overrides?: { temperature?: number; thinking?: ThinkingLevel },
+): AgentConfig {
+  const defaultThinking: ThinkingLevel = "medium"  // or "off", "low", "max"
+  const thinking = overrides?.thinking ?? defaultThinking
+  const variant = resolveThinkingVariant(thinking)
+
+  return {
+    // ...
+    model: model ?? "default-model",
+    variant,
+    // ...
+  }
+}
+```
+
+### Configuration via .opencode/config.yaml
+
+Users can override thinking levels per agent:
+
+```yaml
+agent:
+  blackice:
+    thinking: low  # Override default "max"
+  dataweaver:
+    thinking: off  # Override default "low"
+```
+
+### Helpers in `src/agents/thinking.ts`
+
+- `isValidThinkingLevel(value: unknown): value is ThinkingLevel` — Type guard for validation
+- `resolveThinkingVariant(thinking: ThinkingLevel): string` — Resolves thinking level to OpenCode model variant string
+- `DEFAULT_THINKING: ThinkingLevel = "medium"` — System-wide default
+- `THINKING_VARIANT_MAP: Record<ThinkingLevel, string>` — Variant mapping
 
 ## VERIFY
 

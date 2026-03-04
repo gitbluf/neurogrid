@@ -2,6 +2,7 @@
 import type { AgentConfig } from "@opencode-ai/sdk";
 import { createBuiltinDefinition } from "./overrides";
 import { withPermissions } from "./permissions";
+import { resolveThinkingVariant, type ThinkingLevel } from "./thinking";
 
 function buildHardlinePrompt(): string {
 	return `<agent name="hardline" mode="all" role="command-executor">
@@ -84,16 +85,19 @@ export function createHardlineAgent(
 	model: string | undefined,
 	overrides?: {
 		temperature?: number;
+		thinking?: string;
 	},
 ): AgentConfig {
 	const prompt = buildHardlinePrompt();
 	const resolvedModel = model ?? "github-copilot/gpt-5-mini";
+	const thinking = (overrides?.thinking ?? "off") as ThinkingLevel;
 
 	return {
 		description:
 			"hardline (HARDLINE) – a sandboxed command execution specialist. Runs scripts, builds, installs, diagnostics, and system operations.",
 		mode: "subagent",
 		model: resolvedModel,
+		variant: resolveThinkingVariant(thinking),
 		temperature: overrides?.temperature ?? 0.1,
 		permission: withPermissions({
 			sandbox_exec: "allow",

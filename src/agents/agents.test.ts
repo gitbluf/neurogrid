@@ -30,6 +30,7 @@ describe("createCortexOrchestratorAgent", () => {
 	it("uses default model when none specified", () => {
 		const agent = createCortexOrchestratorAgent();
 		expect(agent.model).toBe("github-copilot/claude-opus-4.6");
+		expect(agent.variant).toBe("think");
 	});
 
 	it("uses specified model", () => {
@@ -45,6 +46,25 @@ describe("createCortexOrchestratorAgent", () => {
 			{ temperature: 0.8 },
 		);
 		expect(agent.temperature).toBe(0.8);
+	});
+
+	it("applies thinking override", () => {
+		const agent = createCortexOrchestratorAgent(
+			"github-copilot/claude-opus-4.6",
+			[],
+			[],
+			{ thinking: "max" },
+		);
+		expect(agent.model).toBe("github-copilot/claude-opus-4.6");
+		expect(agent.variant).toBe("think/max");
+	});
+
+	it("default thinking is 'medium'", () => {
+		const agent = createCortexOrchestratorAgent(
+			"github-copilot/claude-opus-4.6",
+		);
+		expect(agent.model).toBe("github-copilot/claude-opus-4.6");
+		expect(agent.variant).toBe("think");
 	});
 
 	it("default temperature is 0.1", () => {
@@ -108,6 +128,18 @@ describe("createBlueprintAgent", () => {
 		const agent = createBlueprintAgent("model");
 		expect(agent.temperature).toBe(0.1);
 	});
+
+	it("applies thinking override", () => {
+		const agent = createBlueprintAgent("model", { thinking: "low" });
+		expect(agent.model).toBe("model");
+		expect(agent.variant).toBe("think/low");
+	});
+
+	it("default thinking is 'medium'", () => {
+		const agent = createBlueprintAgent("model");
+		expect(agent.model).toBe("model");
+		expect(agent.variant).toBe("think");
+	});
 });
 
 describe("createBlackiceAgent", () => {
@@ -139,6 +171,18 @@ describe("createBlackiceAgent", () => {
 	it("applies temperature override", () => {
 		const agent = createBlackiceAgent("model", { temperature: 0.7 });
 		expect(agent.temperature).toBe(0.7);
+	});
+
+	it("applies thinking override", () => {
+		const agent = createBlackiceAgent("model", { thinking: "low" });
+		expect(agent.model).toBe("model");
+		expect(agent.variant).toBe("think/low");
+	});
+
+	it("default thinking is 'max'", () => {
+		const agent = createBlackiceAgent("model");
+		expect(agent.model).toBe("model");
+		expect(agent.variant).toBe("think/max");
 	});
 });
 
@@ -172,6 +216,18 @@ describe("createGhostAgent", () => {
 		const agent = createGhostAgent("model", { temperature: 0.4 });
 		expect(agent.temperature).toBe(0.4);
 	});
+
+	it("applies thinking override", () => {
+		const agent = createGhostAgent("model", { thinking: "max" });
+		expect(agent.model).toBe("model");
+		expect(agent.variant).toBe("think/max");
+	});
+
+	it("default thinking is 'medium'", () => {
+		const agent = createGhostAgent("model");
+		expect(agent.model).toBe("model");
+		expect(agent.variant).toBe("think");
+	});
 });
 
 describe("createDataweaverAgent", () => {
@@ -198,6 +254,7 @@ describe("createDataweaverAgent", () => {
 	it("uses fallback model when undefined passed", () => {
 		const agent = createDataweaverAgent(undefined);
 		expect(agent.model).toBe("github-copilot/claude-haiku-4.5");
+		expect(agent.variant).toBe("think/low");
 	});
 
 	it("default temperature is 0.1", () => {
@@ -208,6 +265,18 @@ describe("createDataweaverAgent", () => {
 	it("applies temperature override", () => {
 		const agent = createDataweaverAgent("model", { temperature: 0.6 });
 		expect(agent.temperature).toBe(0.6);
+	});
+
+	it("applies thinking override", () => {
+		const agent = createDataweaverAgent("model", { thinking: "off" });
+		expect(agent.model).toBe("model");
+		expect(agent.variant).toBe("think/off");
+	});
+
+	it("default thinking is 'low'", () => {
+		const agent = createDataweaverAgent("model");
+		expect(agent.model).toBe("model");
+		expect(agent.variant).toBe("think/low");
 	});
 });
 
@@ -235,6 +304,7 @@ describe("createHardlineAgent", () => {
 	it("uses fallback model when undefined passed", () => {
 		const agent = createHardlineAgent(undefined);
 		expect(agent.model).toBe("github-copilot/gpt-5-mini");
+		expect(agent.variant).toBe("think/off");
 	});
 
 	it("default temperature is 0.1", () => {
@@ -245,6 +315,18 @@ describe("createHardlineAgent", () => {
 	it("applies temperature override", () => {
 		const agent = createHardlineAgent("model", { temperature: 0.9 });
 		expect(agent.temperature).toBe(0.9);
+	});
+
+	it("applies thinking override", () => {
+		const agent = createHardlineAgent("model", { thinking: "medium" });
+		expect(agent.model).toBe("model");
+		expect(agent.variant).toBe("think");
+	});
+
+	it("default thinking is 'off'", () => {
+		const agent = createHardlineAgent("model");
+		expect(agent.model).toBe("model");
+		expect(agent.variant).toBe("think/off");
 	});
 });
 

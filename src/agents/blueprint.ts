@@ -2,6 +2,11 @@
 import type { AgentConfig } from "@opencode-ai/sdk";
 import { createBuiltinDefinition } from "./overrides";
 import { withPermissions } from "./permissions";
+import {
+	DEFAULT_THINKING,
+	resolveThinkingVariant,
+	type ThinkingLevel,
+} from "./thinking";
 
 function buildBlueprintPrompt(): string {
 	return `<agent name="blueprint" mode="subagent" role="planner">
@@ -314,15 +319,19 @@ export function createBlueprintAgent(
 	model: string | undefined,
 	overrides?: {
 		temperature?: number;
+		thinking?: string;
 	},
 ): AgentConfig {
 	const prompt = buildBlueprintPrompt();
+	const resolvedModel = model ?? "github-copilot/gpt-5.2-codex";
+	const thinking = (overrides?.thinking ?? DEFAULT_THINKING) as ThinkingLevel;
 
 	return {
 		description:
 			"blueprint (BLUEPRINT-IX) – a planner and plan author focused on drafting implementation plans and coordinating review. Always checks skills first, optimizes for performance (Big-O), and prioritizes security considerations.",
 		mode: "subagent",
-		model,
+		model: resolvedModel,
+		variant: resolveThinkingVariant(thinking),
 		temperature: overrides?.temperature ?? 0.1,
 		permission: withPermissions({
 			read: "allow",

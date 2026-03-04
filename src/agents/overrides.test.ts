@@ -66,6 +66,22 @@ describe("resolveBuiltinAgentOverrides", () => {
 		expect(result.overrides.temperature).toBe(0.5);
 	});
 
+	it("extracts thinking override", () => {
+		const result = resolveBuiltinAgentOverrides(
+			{ agent: { cortex: { thinking: "max" } } },
+			"cortex",
+		);
+		expect(result.overrides.thinking).toBe("max");
+	});
+
+	it("ignores invalid thinking (non-valid level)", () => {
+		const result = resolveBuiltinAgentOverrides(
+			{ agent: { cortex: { thinking: "ultra" } } },
+			"cortex",
+		);
+		expect(result.overrides.thinking).toBeUndefined();
+	});
+
 	it("ignores invalid model (non-string)", () => {
 		const result = resolveBuiltinAgentOverrides(
 			{ agent: { cortex: { model: 123 } } },

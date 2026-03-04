@@ -2,6 +2,7 @@
 import type { AgentConfig } from "@opencode-ai/sdk";
 import { createBuiltinDefinition } from "./overrides";
 import { withPermissions } from "./permissions";
+import { resolveThinkingVariant, type ThinkingLevel } from "./thinking";
 
 function buildBlackicePrompt(): string {
 	return `<agent name="blackice" mode="subagent" role="code-reviewer">
@@ -178,15 +179,19 @@ export function createBlackiceAgent(
 	model: string | undefined,
 	overrides?: {
 		temperature?: number;
+		thinking?: string;
 	},
 ): AgentConfig {
 	const prompt = buildBlackicePrompt();
+	const resolvedModel = model ?? "github-copilot/claude-haiku-4.5";
+	const thinking = (overrides?.thinking ?? "max") as ThinkingLevel;
 
 	return {
 		description:
 			"blackice (BLACKICE-7) – a subagent focused on code review for correctness, maintainability, and performance. Always uses skills first, then provides structured review feedback.",
 		mode: "subagent",
-		model,
+		model: resolvedModel,
+		variant: resolveThinkingVariant(thinking),
 		temperature: overrides?.temperature ?? 0.2,
 		permission: withPermissions({
 			read: "allow",

@@ -1,11 +1,13 @@
 // src/agents/overrides.ts
 import type { AgentConfig } from "@opencode-ai/sdk";
 import type { SkillInfo } from "../skills/discovery";
+import { isValidThinkingLevel } from "./thinking";
 import type { AvailableAgent, BuiltinAgentDefinition } from "./types";
 
 export type BuiltinAgentOverrides = {
 	model?: string;
 	temperature?: number;
+	thinking?: string;
 };
 
 export type BuiltinAgentOverrideResult = {
@@ -18,6 +20,7 @@ type RawAgentEntry = {
 	disable?: boolean;
 	model?: unknown;
 	temperature?: unknown;
+	thinking?: unknown;
 	prompt?: unknown;
 };
 
@@ -50,6 +53,10 @@ export function resolveBuiltinAgentOverrides(
 
 	if (typeof raw.temperature === "number" && !Number.isNaN(raw.temperature)) {
 		overrides.temperature = raw.temperature;
+	}
+
+	if (isValidThinkingLevel(raw.thinking)) {
+		overrides.thinking = raw.thinking;
 	}
 
 	return { disabled, isUserDefined, overrides };
