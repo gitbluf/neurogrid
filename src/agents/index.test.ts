@@ -1,8 +1,8 @@
-import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import { builtinAgentDefinitions, registerBuiltinAgents } from "./index";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { builtinAgentDefinitions, registerBuiltinAgents } from "./index";
 
 describe("builtinAgentDefinitions", () => {
 	it("has one definition per BuiltinAgentName", () => {
@@ -13,6 +13,7 @@ describe("builtinAgentDefinitions", () => {
 			"ghost",
 			"dataweaver",
 			"hardline",
+			"netweaver",
 		];
 		expect(builtinAgentDefinitions).toHaveLength(expectedNames.length);
 	});
@@ -27,6 +28,7 @@ describe("builtinAgentDefinitions", () => {
 				"ghost",
 				"dataweaver",
 				"hardline",
+				"netweaver",
 			]),
 		);
 	});

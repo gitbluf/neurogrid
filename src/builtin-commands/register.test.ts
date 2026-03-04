@@ -10,7 +10,16 @@ describe("registerBuiltinCommands", () => {
 			Record<string, unknown>
 		>;
 		expect(new Set(Object.keys(commandConfig))).toEqual(
-			new Set(["synth", "plans", "clean", "commit", "apply", "dispatch"]),
+			new Set([
+				"synth",
+				"plans",
+				"clean",
+				"commit",
+				"apply",
+				"swarm:task",
+				"swarm:status",
+				"swarm:kill",
+			]),
 		);
 	});
 

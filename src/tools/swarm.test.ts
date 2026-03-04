@@ -17,7 +17,7 @@ import {
 	resetActiveSwarms,
 } from "./swarm";
 
-function mockToolContext(agent = "ghost"): ToolContext {
+function mockToolContext(agent = "netweaver"): ToolContext {
 	return {
 		sessionID: "test-session",
 		messageID: "test-message",
@@ -544,7 +544,7 @@ describe("swarm tools — agent enforcement", () => {
 		},
 	} as unknown as OpencodeClient;
 
-	it("dispatch denies non-ghost agent", async () => {
+	it("dispatch denies non-netweaver agent", async () => {
 		const tool = createPlatformSwarmDispatchTool(
 			mockClient,
 			"/tmp/test-project",
@@ -556,41 +556,41 @@ describe("swarm tools — agent enforcement", () => {
 			mockToolContext("cortex"),
 		);
 		const parsed = JSON.parse(result);
-		expect(parsed.error).toContain("restricted to the ghost agent");
+		expect(parsed.error).toContain("restricted to the netweaver agent");
 		expect(parsed.agent).toBe("cortex");
 	});
 
-	it("status denies non-ghost agent", async () => {
+	it("status denies non-netweaver agent", async () => {
 		const tool = createPlatformSwarmStatusTool();
 		const result = await tool.execute(
 			{ swarmId: "any" },
 			mockToolContext("blueprint"),
 		);
 		const parsed = JSON.parse(result);
-		expect(parsed.error).toContain("restricted to the ghost agent");
+		expect(parsed.error).toContain("restricted to the netweaver agent");
 	});
 
-	it("abort denies non-ghost agent", async () => {
+	it("abort denies non-netweaver agent", async () => {
 		const tool = createPlatformSwarmAbortTool();
 		const result = await tool.execute(
 			{ swarmId: "any" },
 			mockToolContext("hardline"),
 		);
 		const parsed = JSON.parse(result);
-		expect(parsed.error).toContain("restricted to the ghost agent");
+		expect(parsed.error).toContain("restricted to the netweaver agent");
 	});
 
-	it("wait denies non-ghost agent", async () => {
+	it("wait denies non-netweaver agent", async () => {
 		const tool = createPlatformSwarmWaitTool();
 		const result = await tool.execute(
 			{ swarmId: "any" },
 			mockToolContext("dataweaver"),
 		);
 		const parsed = JSON.parse(result);
-		expect(parsed.error).toContain("restricted to the ghost agent");
+		expect(parsed.error).toContain("restricted to the netweaver agent");
 	});
 
-	it("dispatch allows ghost agent", async () => {
+	it("dispatch allows netweaver agent", async () => {
 		resetActiveSwarms();
 		const tool = createPlatformSwarmDispatchTool(
 			mockClient,
@@ -600,7 +600,7 @@ describe("swarm tools — agent enforcement", () => {
 		type ExecuteArgs = Parameters<typeof tool.execute>[0];
 		const result = await tool.execute(
 			{ tasks: JSON.stringify(tasks) } as unknown as ExecuteArgs,
-			mockToolContext("ghost"),
+			mockToolContext("netweaver"),
 		);
 		const parsed = JSON.parse(result);
 		expect(parsed.error).toBeUndefined();

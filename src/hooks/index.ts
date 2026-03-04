@@ -1,8 +1,10 @@
 import type { createOpencodeClient } from "@opencode-ai/sdk";
 import { createCommandApplyHook } from "./command-apply";
 import { createCommandCleanHook } from "./command-clean";
-import { createCommandDispatchHook } from "./command-dispatch";
 import { createCommandPlansHook } from "./command-plans";
+import { createCommandSwarmKillHook } from "./command-swarm-kill";
+import { createCommandSwarmStatusHook } from "./command-swarm-status";
+import { createCommandSwarmTaskHook } from "./command-swarm-task";
 import { createCommandSynthHook } from "./command-synth";
 import { createToolBashRedirectHook } from "./tool-bash-redirect";
 import { createToolPlanRegisterHook } from "./tool-plan-register";
@@ -24,7 +26,9 @@ export function createCommandExecuteBeforeHook(
 		createCommandSynthHook(directory),
 		createCommandPlansHook(directory, client),
 		createCommandApplyHook(directory),
-		createCommandDispatchHook(),
+		createCommandSwarmTaskHook(),
+		createCommandSwarmStatusHook(),
+		createCommandSwarmKillHook(),
 	];
 
 	return async (input, output) => {

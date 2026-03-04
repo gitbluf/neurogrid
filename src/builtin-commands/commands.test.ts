@@ -9,7 +9,9 @@ describe("createBuiltinCommands", () => {
 			"clean",
 			"commit",
 			"apply",
-			"dispatch",
+			"swarm:task",
+			"swarm:status",
+			"swarm:kill",
 		];
 		expect(createBuiltinCommands()).toHaveLength(expectedNames.length);
 	});
@@ -17,7 +19,16 @@ describe("createBuiltinCommands", () => {
 	it("contains correct command names", () => {
 		const names = createBuiltinCommands().map((cmd) => cmd.name);
 		expect(new Set(names)).toEqual(
-			new Set(["synth", "plans", "clean", "commit", "apply", "dispatch"]),
+			new Set([
+				"synth",
+				"plans",
+				"clean",
+				"commit",
+				"apply",
+				"swarm:task",
+				"swarm:status",
+				"swarm:kill",
+			]),
 		);
 	});
 

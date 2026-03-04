@@ -298,6 +298,8 @@ export {
 	createPlatformSwarmDispatchTool,
 	createPlatformSwarmStatusTool,
 	createPlatformSwarmWaitTool,
+	getActiveSwarm,
+	getActiveSwarmIds,
 	resetActiveSwarms,
 } from "./swarm";
 

@@ -121,23 +121,34 @@ $ARGUMENTS
 `,
 };
 
-// Agent required: swarm dispatch needs cortex to call platform_swarm_dispatch
-const dispatchCommand: BuiltinCommand = {
-	name: "dispatch",
+// Agent required: swarm dispatch needs netweaver for intelligent task decomposition
+const swarmTaskCommand: BuiltinCommand = {
+	name: "swarm:task",
 	description:
-		"Dispatch a swarm of concurrent agent sessions. Usage: /dispatch (one task per line, format: agent: task)",
-	agent: "cortex",
+		"Decompose a request into parallel swarm tasks running in isolated git worktrees. Usage: /swarm:task <description>",
+	agent: "netweaver",
 	subtask: true,
-	template: `You are handling a \`/dispatch\` command for swarm orchestration.
+	template: `You are handling a \`/swarm:task\` command for parallel task orchestration.
 
-The user wants to dispatch multiple agent tasks concurrently.
+The user wants to decompose and execute work in parallel.
 
 User input: $ARGUMENTS
 
-Use the \`platform_swarm_dispatch\` tool to execute the swarm.
-After dispatch, use \`platform_swarm_wait\` to wait for completion, then report results.
-If waiting times out, use \`platform_swarm_status\` to check progress.
-Report results back to the user.`,
+Analyze the request, break it into independent subtasks, and dispatch them via platform_swarm_dispatch with worktrees: true.`,
+};
+
+// Hook-only: no agent needed — native status display
+const swarmStatusCommand: BuiltinCommand = {
+	name: "swarm:status",
+	description: "Check status of active swarms. Usage: /swarm:status [swarmId]",
+	template: "$ARGUMENTS",
+};
+
+// Hook-only: no agent needed — native abort
+const swarmKillCommand: BuiltinCommand = {
+	name: "swarm:kill",
+	description: "Abort a running swarm. Usage: /swarm:kill <swarmId>",
+	template: "$ARGUMENTS",
 };
 
 export function createBuiltinCommands(): BuiltinCommand[] {
@@ -147,6 +158,8 @@ export function createBuiltinCommands(): BuiltinCommand[] {
 		cleanCommand,
 		commitCommand,
 		applyCommand,
-		dispatchCommand,
+		swarmTaskCommand,
+		swarmStatusCommand,
+		swarmKillCommand,
 	];
 }

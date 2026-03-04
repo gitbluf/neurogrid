@@ -7,6 +7,7 @@ import { cortexDefinition } from "./cortex";
 import { dataweaverDefinition } from "./dataweaver";
 import { ghostDefinition } from "./ghost";
 import { hardlineDefinition } from "./hardline";
+import { netweaverDefinition } from "./netweaver";
 import type { BuiltinAgentDefinition } from "./types";
 
 export type BuiltinAgentName =
@@ -15,7 +16,8 @@ export type BuiltinAgentName =
 	| "blackice"
 	| "ghost"
 	| "dataweaver"
-	| "hardline";
+	| "hardline"
+	| "netweaver";
 
 /**
  * Array of all built-in agent definitions.
@@ -28,6 +30,7 @@ export const builtinAgentDefinitions: BuiltinAgentDefinition[] = [
 	ghostDefinition,
 	dataweaverDefinition,
 	hardlineDefinition,
+	netweaverDefinition,
 ];
 
 /**

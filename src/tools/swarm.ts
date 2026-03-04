@@ -13,6 +13,16 @@ export function resetActiveSwarms(): void {
 	activeSwarms.clear();
 }
 
+/** Get an active swarm orchestrator by ID */
+export function getActiveSwarm(swarmId: string): SwarmOrchestrator | undefined {
+	return activeSwarms.get(swarmId);
+}
+
+/** Get all active swarm IDs */
+export function getActiveSwarmIds(): string[] {
+	return [...activeSwarms.keys()];
+}
+
 const AgentTaskSchema = z.object({
 	id: z
 		.string()
@@ -71,7 +81,11 @@ export function createPlatformSwarmDispatchTool(
 				),
 		},
 		async execute(args, context) {
-			const denied = enforceAgent(context, "ghost", "platform_swarm_dispatch");
+			const denied = enforceAgent(
+				context,
+				"netweaver",
+				"platform_swarm_dispatch",
+			);
 			if (denied) return denied;
 
 			try {
@@ -147,7 +161,11 @@ export function createPlatformSwarmStatusTool() {
 				.describe("The swarm ID returned from platform_swarm_dispatch"),
 		},
 		async execute(args, context) {
-			const denied = enforceAgent(context, "ghost", "platform_swarm_status");
+			const denied = enforceAgent(
+				context,
+				"netweaver",
+				"platform_swarm_status",
+			);
 			if (denied) return denied;
 
 			try {
@@ -208,7 +226,7 @@ export function createPlatformSwarmAbortTool() {
 			swarmId: tool.schema.string().min(1).describe("The swarm ID to abort"),
 		},
 		async execute(args, context) {
-			const denied = enforceAgent(context, "ghost", "platform_swarm_abort");
+			const denied = enforceAgent(context, "netweaver", "platform_swarm_abort");
 			if (denied) return denied;
 
 			try {
@@ -248,7 +266,7 @@ export function createPlatformSwarmWaitTool() {
 				.describe("Max wait time in milliseconds (default: 600000 = 10 min)"),
 		},
 		async execute(args, context) {
-			const denied = enforceAgent(context, "ghost", "platform_swarm_wait");
+			const denied = enforceAgent(context, "netweaver", "platform_swarm_wait");
 			if (denied) return denied;
 
 			try {
