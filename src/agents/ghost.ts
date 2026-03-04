@@ -242,12 +242,12 @@ export function createGhostAgent(
 	model: string | undefined,
 	overrides?: {
 		temperature?: number;
-		thinking?: string;
+		thinking?: ThinkingLevel;
 	},
 ): AgentConfig {
 	const prompt = buildGhostPrompt();
 	const resolvedModel = model ?? "github-copilot/claude-sonnet-4.5";
-	const thinking = (overrides?.thinking ?? DEFAULT_THINKING) as ThinkingLevel;
+	const thinking = overrides?.thinking ?? DEFAULT_THINKING;
 
 	return {
 		description:

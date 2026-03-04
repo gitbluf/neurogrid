@@ -472,11 +472,11 @@ export function createCortexOrchestratorAgent(
 	skills: import("../skills/discovery").SkillInfo[] = [],
 	overrides?: {
 		temperature?: number;
-		thinking?: string;
+		thinking?: ThinkingLevel;
 	},
 ): AgentConfig {
 	const prompt = buildCortexOrchestratorPrompt(availableAgents, skills);
-	const thinking = (overrides?.thinking ?? DEFAULT_THINKING) as ThinkingLevel;
+	const thinking = overrides?.thinking ?? DEFAULT_THINKING;
 
 	return {
 		description:

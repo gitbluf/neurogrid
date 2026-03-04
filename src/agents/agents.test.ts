@@ -30,7 +30,7 @@ describe("createCortexOrchestratorAgent", () => {
 	it("uses default model when none specified", () => {
 		const agent = createCortexOrchestratorAgent();
 		expect(agent.model).toBe("github-copilot/claude-opus-4.6");
-		expect(agent.variant).toBe("think");
+		expect(agent.variant).toBe("medium");
 	});
 
 	it("uses specified model", () => {
@@ -56,7 +56,7 @@ describe("createCortexOrchestratorAgent", () => {
 			{ thinking: "max" },
 		);
 		expect(agent.model).toBe("github-copilot/claude-opus-4.6");
-		expect(agent.variant).toBe("think/max");
+		expect(agent.variant).toBe("max");
 	});
 
 	it("default thinking is 'medium'", () => {
@@ -64,12 +64,17 @@ describe("createCortexOrchestratorAgent", () => {
 			"github-copilot/claude-opus-4.6",
 		);
 		expect(agent.model).toBe("github-copilot/claude-opus-4.6");
-		expect(agent.variant).toBe("think");
+		expect(agent.variant).toBe("medium");
 	});
 
 	it("default temperature is 0.1", () => {
 		const agent = createCortexOrchestratorAgent();
 		expect(agent.temperature).toBe(0.1);
+	});
+
+	it("textVerbosity is undefined", () => {
+		const agent = createCortexOrchestratorAgent();
+		expect(agent.textVerbosity).toBeUndefined();
 	});
 
 	it("includes available agents in prompt", () => {
@@ -132,13 +137,23 @@ describe("createBlueprintAgent", () => {
 	it("applies thinking override", () => {
 		const agent = createBlueprintAgent("model", { thinking: "low" });
 		expect(agent.model).toBe("model");
-		expect(agent.variant).toBe("think/low");
+		expect(agent.variant).toBe("low");
 	});
 
 	it("default thinking is 'medium'", () => {
 		const agent = createBlueprintAgent("model");
 		expect(agent.model).toBe("model");
-		expect(agent.variant).toBe("think");
+		expect(agent.variant).toBe("medium");
+	});
+
+	it("default textVerbosity is 'low'", () => {
+		const agent = createBlueprintAgent("model");
+		expect(agent.textVerbosity).toBe("low");
+	});
+
+	it("applies textVerbosity override", () => {
+		const agent = createBlueprintAgent("model", { textVerbosity: "high" });
+		expect(agent.textVerbosity).toBe("high");
 	});
 });
 
@@ -176,13 +191,18 @@ describe("createBlackiceAgent", () => {
 	it("applies thinking override", () => {
 		const agent = createBlackiceAgent("model", { thinking: "low" });
 		expect(agent.model).toBe("model");
-		expect(agent.variant).toBe("think/low");
+		expect(agent.variant).toBe("low");
 	});
 
 	it("default thinking is 'max'", () => {
 		const agent = createBlackiceAgent("model");
 		expect(agent.model).toBe("model");
-		expect(agent.variant).toBe("think/max");
+		expect(agent.variant).toBe("max");
+	});
+
+	it("textVerbosity is undefined", () => {
+		const agent = createBlackiceAgent("model");
+		expect(agent.textVerbosity).toBeUndefined();
 	});
 });
 
@@ -220,13 +240,36 @@ describe("createGhostAgent", () => {
 	it("applies thinking override", () => {
 		const agent = createGhostAgent("model", { thinking: "max" });
 		expect(agent.model).toBe("model");
-		expect(agent.variant).toBe("think/max");
+		expect(agent.variant).toBe("max");
 	});
 
 	it("default thinking is 'medium'", () => {
 		const agent = createGhostAgent("model");
 		expect(agent.model).toBe("model");
-		expect(agent.variant).toBe("think");
+		expect(agent.variant).toBe("medium");
+	});
+
+	it("applies thinking override 'high'", () => {
+		const agent = createGhostAgent("model", { thinking: "high" });
+		expect(agent.model).toBe("model");
+		expect(agent.variant).toBe("high");
+	});
+
+	it("applies thinking override 'xhigh'", () => {
+		const agent = createGhostAgent("model", { thinking: "xhigh" });
+		expect(agent.model).toBe("model");
+		expect(agent.variant).toBe("xhigh");
+	});
+
+	it("applies thinking override 'minimal'", () => {
+		const agent = createGhostAgent("model", { thinking: "minimal" });
+		expect(agent.model).toBe("model");
+		expect(agent.variant).toBe("minimal");
+	});
+
+	it("textVerbosity is undefined", () => {
+		const agent = createGhostAgent("model");
+		expect(agent.textVerbosity).toBeUndefined();
 	});
 });
 
@@ -254,7 +297,7 @@ describe("createDataweaverAgent", () => {
 	it("uses fallback model when undefined passed", () => {
 		const agent = createDataweaverAgent(undefined);
 		expect(agent.model).toBe("github-copilot/claude-haiku-4.5");
-		expect(agent.variant).toBe("think/low");
+		expect(agent.variant).toBe("low");
 	});
 
 	it("default temperature is 0.1", () => {
@@ -270,13 +313,23 @@ describe("createDataweaverAgent", () => {
 	it("applies thinking override", () => {
 		const agent = createDataweaverAgent("model", { thinking: "off" });
 		expect(agent.model).toBe("model");
-		expect(agent.variant).toBe("think/off");
+		expect(agent.variant).toBe("none");
 	});
 
 	it("default thinking is 'low'", () => {
 		const agent = createDataweaverAgent("model");
 		expect(agent.model).toBe("model");
-		expect(agent.variant).toBe("think/low");
+		expect(agent.variant).toBe("low");
+	});
+
+	it("default textVerbosity is 'low'", () => {
+		const agent = createDataweaverAgent("model");
+		expect(agent.textVerbosity).toBe("low");
+	});
+
+	it("applies textVerbosity override", () => {
+		const agent = createDataweaverAgent("model", { textVerbosity: "off" });
+		expect(agent.textVerbosity).toBe("off");
 	});
 });
 
@@ -304,7 +357,7 @@ describe("createHardlineAgent", () => {
 	it("uses fallback model when undefined passed", () => {
 		const agent = createHardlineAgent(undefined);
 		expect(agent.model).toBe("github-copilot/gpt-5-mini");
-		expect(agent.variant).toBe("think/off");
+		expect(agent.variant).toBe("none");
 	});
 
 	it("default temperature is 0.1", () => {
@@ -320,13 +373,23 @@ describe("createHardlineAgent", () => {
 	it("applies thinking override", () => {
 		const agent = createHardlineAgent("model", { thinking: "medium" });
 		expect(agent.model).toBe("model");
-		expect(agent.variant).toBe("think");
+		expect(agent.variant).toBe("medium");
 	});
 
 	it("default thinking is 'off'", () => {
 		const agent = createHardlineAgent("model");
 		expect(agent.model).toBe("model");
-		expect(agent.variant).toBe("think/off");
+		expect(agent.variant).toBe("none");
+	});
+
+	it("default textVerbosity is 'low'", () => {
+		const agent = createHardlineAgent("model");
+		expect(agent.textVerbosity).toBe("low");
+	});
+
+	it("applies textVerbosity override", () => {
+		const agent = createHardlineAgent("model", { textVerbosity: "medium" });
+		expect(agent.textVerbosity).toBe("medium");
 	});
 });
 

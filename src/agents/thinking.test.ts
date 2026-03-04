@@ -16,19 +16,21 @@ describe("DEFAULT_THINKING", () => {
 describe("THINKING_VARIANT_MAP", () => {
 	it("maps all levels to correct variant strings", () => {
 		expect(THINKING_VARIANT_MAP).toEqual({
-			off: "think/off",
-			low: "think/low",
-			medium: "think",
-			high: "think/high",
-			xhigh: "think/xhigh",
-			max: "think/max",
+			off: "none",
+			minimal: "minimal",
+			low: "low",
+			medium: "medium",
+			high: "high",
+			xhigh: "xhigh",
+			max: "max",
 		});
 	});
 });
 
 describe("VALID_THINKING_LEVELS", () => {
-	it("contains all four levels", () => {
+	it("contains all valid levels", () => {
 		expect(VALID_THINKING_LEVELS.has("off")).toBe(true);
+		expect(VALID_THINKING_LEVELS.has("minimal")).toBe(true);
 		expect(VALID_THINKING_LEVELS.has("low")).toBe(true);
 		expect(VALID_THINKING_LEVELS.has("medium")).toBe(true);
 		expect(VALID_THINKING_LEVELS.has("high")).toBe(true);
@@ -36,14 +38,20 @@ describe("VALID_THINKING_LEVELS", () => {
 		expect(VALID_THINKING_LEVELS.has("max")).toBe(true);
 	});
 
-	it("has exactly 4 entries", () => {
-		expect(VALID_THINKING_LEVELS.size).toBe(6);
+	it("has exactly 7 entries", () => {
+		expect(VALID_THINKING_LEVELS.size).toBe(7);
+	});
+
+	it("is derived from THINKING_VARIANT_MAP keys", () => {
+		const mapKeys = new Set(Object.keys(THINKING_VARIANT_MAP));
+		expect(VALID_THINKING_LEVELS).toEqual(mapKeys);
 	});
 });
 
 describe("isValidThinkingLevel", () => {
 	it("returns true for valid levels", () => {
 		expect(isValidThinkingLevel("off")).toBe(true);
+		expect(isValidThinkingLevel("minimal")).toBe(true);
 		expect(isValidThinkingLevel("low")).toBe(true);
 		expect(isValidThinkingLevel("medium")).toBe(true);
 		expect(isValidThinkingLevel("high")).toBe(true);
@@ -52,10 +60,12 @@ describe("isValidThinkingLevel", () => {
 	});
 
 	it("returns false for invalid strings", () => {
+		expect(isValidThinkingLevel("ultra")).toBe(false);
 		expect(isValidThinkingLevel("")).toBe(false);
 		expect(isValidThinkingLevel("OFF")).toBe(false);
 		expect(isValidThinkingLevel("Medium")).toBe(false);
 		expect(isValidThinkingLevel("think")).toBe(false);
+		expect(isValidThinkingLevel("think/high")).toBe(false);
 	});
 
 	it("returns false for non-string values", () => {
@@ -68,27 +78,31 @@ describe("isValidThinkingLevel", () => {
 });
 
 describe("resolveThinkingVariant", () => {
-	it("maps 'off' to 'think/off'", () => {
-		expect(resolveThinkingVariant("off")).toBe("think/off");
+	it("maps 'off' to 'none'", () => {
+		expect(resolveThinkingVariant("off")).toBe("none");
 	});
 
-	it("maps 'low' to 'think/low'", () => {
-		expect(resolveThinkingVariant("low")).toBe("think/low");
+	it("maps 'minimal' to 'minimal'", () => {
+		expect(resolveThinkingVariant("minimal")).toBe("minimal");
 	});
 
-	it("maps 'medium' to 'think'", () => {
-		expect(resolveThinkingVariant("medium")).toBe("think");
+	it("maps 'low' to 'low'", () => {
+		expect(resolveThinkingVariant("low")).toBe("low");
 	});
 
-	it("maps 'high' to 'think/high'", () => {
-		expect(resolveThinkingVariant("high")).toBe("think/high");
+	it("maps 'medium' to 'medium'", () => {
+		expect(resolveThinkingVariant("medium")).toBe("medium");
 	});
 
-	it("maps 'xhigh' to 'think/xhigh'", () => {
-		expect(resolveThinkingVariant("xhigh")).toBe("think/xhigh");
+	it("maps 'high' to 'high'", () => {
+		expect(resolveThinkingVariant("high")).toBe("high");
 	});
 
-	it("maps 'max' to 'think/max'", () => {
-		expect(resolveThinkingVariant("max")).toBe("think/max");
+	it("maps 'xhigh' to 'xhigh'", () => {
+		expect(resolveThinkingVariant("xhigh")).toBe("xhigh");
+	});
+
+	it("maps 'max' to 'max'", () => {
+		expect(resolveThinkingVariant("max")).toBe("max");
 	});
 });

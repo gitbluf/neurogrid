@@ -2,6 +2,7 @@
 import type { AgentConfig } from "@opencode-ai/sdk";
 import { createBuiltinDefinition } from "./overrides";
 import { withPermissions } from "./permissions";
+import { resolveTextVerbosity, type TextVerbosity } from "./text-verbosity";
 import {
 	DEFAULT_THINKING,
 	resolveThinkingVariant,
@@ -319,12 +320,14 @@ export function createBlueprintAgent(
 	model: string | undefined,
 	overrides?: {
 		temperature?: number;
-		thinking?: string;
+		thinking?: ThinkingLevel;
+		textVerbosity?: TextVerbosity;
 	},
 ): AgentConfig {
 	const prompt = buildBlueprintPrompt();
 	const resolvedModel = model ?? "github-copilot/gpt-5.2-codex";
-	const thinking = (overrides?.thinking ?? DEFAULT_THINKING) as ThinkingLevel;
+	const thinking = overrides?.thinking ?? DEFAULT_THINKING;
+	const textVerbosityLevel: TextVerbosity = overrides?.textVerbosity ?? "low";
 
 	return {
 		description:
@@ -333,6 +336,7 @@ export function createBlueprintAgent(
 		model: resolvedModel,
 		variant: resolveThinkingVariant(thinking),
 		temperature: overrides?.temperature ?? 0.1,
+		textVerbosity: resolveTextVerbosity(textVerbosityLevel),
 		permission: withPermissions({
 			read: "allow",
 			edit: { "*": "deny", ".ai/*": "allow" },

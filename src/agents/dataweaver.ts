@@ -2,6 +2,7 @@
 import type { AgentConfig } from "@opencode-ai/sdk";
 import { createBuiltinDefinition } from "./overrides";
 import { withPermissions } from "./permissions";
+import { resolveTextVerbosity, type TextVerbosity } from "./text-verbosity";
 import { resolveThinkingVariant, type ThinkingLevel } from "./thinking";
 
 function buildDataweaverPrompt(): string {
@@ -253,12 +254,14 @@ export function createDataweaverAgent(
 	model: string | undefined,
 	overrides?: {
 		temperature?: number;
-		thinking?: string;
+		thinking?: ThinkingLevel;
+		textVerbosity?: TextVerbosity;
 	},
 ): AgentConfig {
 	const prompt = buildDataweaverPrompt();
 	const resolvedModel = model ?? "github-copilot/claude-haiku-4.5";
-	const thinking = (overrides?.thinking ?? "low") as ThinkingLevel;
+	const thinking: ThinkingLevel = overrides?.thinking ?? "low";
+	const textVerbosityLevel: TextVerbosity = overrides?.textVerbosity ?? "low";
 
 	return {
 		description:
@@ -267,6 +270,7 @@ export function createDataweaverAgent(
 		model: resolvedModel,
 		variant: resolveThinkingVariant(thinking),
 		temperature: overrides?.temperature ?? 0.1,
+		textVerbosity: resolveTextVerbosity(textVerbosityLevel),
 		permission: withPermissions({
 			read: "allow",
 			glob: "allow",

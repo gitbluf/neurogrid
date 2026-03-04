@@ -179,12 +179,12 @@ export function createBlackiceAgent(
 	model: string | undefined,
 	overrides?: {
 		temperature?: number;
-		thinking?: string;
+		thinking?: ThinkingLevel;
 	},
 ): AgentConfig {
 	const prompt = buildBlackicePrompt();
 	const resolvedModel = model ?? "github-copilot/claude-haiku-4.5";
-	const thinking = (overrides?.thinking ?? "max") as ThinkingLevel;
+	const thinking: ThinkingLevel = overrides?.thinking ?? "max";
 
 	return {
 		description:

@@ -74,12 +74,55 @@ describe("resolveBuiltinAgentOverrides", () => {
 		expect(result.overrides.thinking).toBe("max");
 	});
 
+	it("extracts textVerbosity override", () => {
+		const result = resolveBuiltinAgentOverrides(
+			{ agent: { cortex: { textVerbosity: "low" } } },
+			"cortex",
+		);
+		expect(result.overrides.textVerbosity).toBe("low");
+	});
+
 	it("ignores invalid thinking (non-valid level)", () => {
 		const result = resolveBuiltinAgentOverrides(
 			{ agent: { cortex: { thinking: "ultra" } } },
 			"cortex",
 		);
 		expect(result.overrides.thinking).toBeUndefined();
+	});
+
+	it("ignores invalid textVerbosity (non-valid level)", () => {
+		const result = resolveBuiltinAgentOverrides(
+			{ agent: { cortex: { textVerbosity: "ultra" } } },
+			"cortex",
+		);
+		expect(result.overrides.textVerbosity).toBeUndefined();
+	});
+
+	it("accepts valid textVerbosity levels", () => {
+		expect(
+			resolveBuiltinAgentOverrides(
+				{ agent: { cortex: { textVerbosity: "off" } } },
+				"cortex",
+			).overrides.textVerbosity,
+		).toBe("off");
+		expect(
+			resolveBuiltinAgentOverrides(
+				{ agent: { cortex: { textVerbosity: "low" } } },
+				"cortex",
+			).overrides.textVerbosity,
+		).toBe("low");
+		expect(
+			resolveBuiltinAgentOverrides(
+				{ agent: { cortex: { textVerbosity: "medium" } } },
+				"cortex",
+			).overrides.textVerbosity,
+		).toBe("medium");
+		expect(
+			resolveBuiltinAgentOverrides(
+				{ agent: { cortex: { textVerbosity: "high" } } },
+				"cortex",
+			).overrides.textVerbosity,
+		).toBe("high");
 	});
 
 	it("ignores invalid model (non-string)", () => {
@@ -277,20 +320,52 @@ describe("resolveBuiltinAgentOverrides — negative cases", () => {
 		});
 	});
 
-	it("handles negative temperature — passes through (not NaN)", () => {
+	it("rejects negative temperature", () => {
 		const result = resolveBuiltinAgentOverrides(
 			{ agent: { cortex: { temperature: -1 } } },
 			"cortex",
 		);
-		expect(result.overrides.temperature).toBe(-1);
+		expect(result.overrides.temperature).toBeUndefined();
 	});
 
-	it("handles Infinity temperature — passes through (not NaN)", () => {
+	it("rejects Infinity temperature", () => {
 		const result = resolveBuiltinAgentOverrides(
 			{ agent: { cortex: { temperature: Infinity } } },
 			"cortex",
 		);
-		expect(result.overrides.temperature).toBe(Infinity);
+		expect(result.overrides.temperature).toBeUndefined();
+	});
+
+	it("accepts temperature at lower boundary (0)", () => {
+		const result = resolveBuiltinAgentOverrides(
+			{ agent: { cortex: { temperature: 0 } } },
+			"cortex",
+		);
+		expect(result.overrides.temperature).toBe(0);
+	});
+
+	it("accepts temperature at upper boundary (2)", () => {
+		const result = resolveBuiltinAgentOverrides(
+			{ agent: { cortex: { temperature: 2 } } },
+			"cortex",
+		);
+		expect(result.overrides.temperature).toBe(2);
+	});
+
+	it("rejects temperature above upper boundary (2.1)", () => {
+		const result = resolveBuiltinAgentOverrides(
+			{ agent: { cortex: { temperature: 2.1 } } },
+			"cortex",
+		);
+		expect(result.overrides.temperature).toBeUndefined();
+	});
+
+	it("rejects temperature below lower boundary (-0.1)", () => {
+		const result = resolveBuiltinAgentOverrides(
+			{ agent: { cortex: { temperature: -0.1 } } },
+			"cortex",
+		);
+		expect(result.overrides.temperature).toBeUndefined();
 	});
 
 	it("handles empty string model — undefined (trimmed length 0)", () => {

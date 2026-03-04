@@ -86,12 +86,12 @@ export function createNetweaverAgent(
 	model: string | undefined,
 	overrides?: {
 		temperature?: number;
-		thinking?: string;
+		thinking?: ThinkingLevel;
 	},
 ): AgentConfig {
 	const prompt = buildNetweaverPrompt();
 	const resolvedModel = model ?? "github-copilot/claude-haiku-4.5";
-	const thinking = (overrides?.thinking ?? DEFAULT_THINKING) as ThinkingLevel;
+	const thinking = overrides?.thinking ?? DEFAULT_THINKING;
 
 	return {
 		description:
