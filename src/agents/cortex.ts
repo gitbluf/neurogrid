@@ -48,7 +48,7 @@ function buildCortexAvailableAgentsSection(
 }
 
 function buildCortexSkillsSection(
-	skills: import("../skills/discovery").SkillInfo[],
+	skills: import("./types").SkillInfo[],
 ): string {
 	if (!skills.length) {
 		return "";
@@ -72,7 +72,7 @@ function buildCortexSkillsSection(
 
 function buildCortexOrchestratorPrompt(
 	availableAgents: AvailableAgent[],
-	skills: import("../skills/discovery").SkillInfo[],
+	skills: import("./types").SkillInfo[],
 ): string {
 	const agentsSection = buildCortexAvailableAgentsSection(availableAgents);
 	const skillsSection = buildCortexSkillsSection(skills);
@@ -236,7 +236,7 @@ cortex MUST NOT create or modify any \`plan-*.md\` files directly; only blueprin
 export function createCortexOrchestratorAgent(
 	model: string = "github-copilot/claude-opus-4.6",
 	availableAgents: AvailableAgent[] = [],
-	skills: import("../skills/discovery").SkillInfo[] = [],
+	skills: import("./types").SkillInfo[] = [],
 	overrides?: {
 		temperature?: number;
 		thinking?: ThinkingLevel;

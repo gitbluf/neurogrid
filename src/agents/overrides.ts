@@ -1,6 +1,6 @@
 // src/agents/overrides.ts
 import type { AgentConfig } from "@opencode-ai/sdk";
-import type { SkillInfo } from "../skills/discovery";
+import type { SkillInfo } from "./types";
 import type { TextVerbosity } from "./text-verbosity";
 import { isValidTextVerbosity } from "./text-verbosity";
 import type { ThinkingLevel } from "./thinking";

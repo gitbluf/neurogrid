@@ -7,6 +7,13 @@ export type AvailableAgent = {
 	mode?: string;
 };
 
+export type SkillInfo = {
+	name: string;
+	description?: string;
+	location: string;
+	path: string;
+};
+
 /**
  * Generic definition for a built-in agent.
  * Each agent module exports one of these.
@@ -20,6 +27,6 @@ export interface BuiltinAgentDefinition {
 	create(
 		config: Record<string, unknown>,
 		existingAgents: Record<string, unknown>,
-		skills: import("../skills/discovery").SkillInfo[],
+		skills: SkillInfo[],
 	): AgentConfig | null;
 }

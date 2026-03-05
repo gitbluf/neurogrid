@@ -1,4 +1,6 @@
 dist
+.validate*
+validate*
 node_modules
 plan-*.md
 *.log
