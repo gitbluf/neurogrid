@@ -23,10 +23,8 @@ This is a source code repository for OpenCode agents/commands. The primary workf
 |-----------|-------|-------------|
 | `src/agents/` | `src/agents/AGENTS.md` | Adding or modifying a built-in agent |
 | `src/builtin-commands/` | `src/builtin-commands/AGENTS.md` | Adding a new slash command |
-| `src/builtin-skills/` | `src/builtin-skills/AGENTS.md` | Adding a new built-in skill |
 | `src/hooks/` | `src/hooks/AGENTS.md` | Adding command, tool, or event hooks |
 | `src/registry/` | `src/registry/AGENTS.md` | Extending session-plan registry or adding a new registry |
-| `src/skills/` | `src/skills/AGENTS.md` | Adding a disk-based skill or extending discovery |
 | `src/tools/` | `src/tools/AGENTS.md` | Adding a new platform tool |
 
 

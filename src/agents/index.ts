@@ -1,6 +1,5 @@
 // src/agents/index.ts
 
-import { getAllSkills } from "../skills/discovery";
 import { blackiceDefinition } from "./blackice";
 import { blueprintDefinition } from "./blueprint";
 import { cortexDefinition } from "./cortex";
@@ -78,15 +77,13 @@ function disableReplacedDefaults(
  */
 export async function registerBuiltinAgents(
 	config: Record<string, unknown>,
-	directory: string,
+	_directory: string,
 ): Promise<void> {
 	const existingAgents =
 		(config.agent as Record<string, unknown> | undefined) ?? {};
 
-	const skills = await getAllSkills(directory);
-
 	for (const def of builtinAgentDefinitions) {
-		const agentConfig = def.create(config, existingAgents, skills);
+		const agentConfig = def.create(config, existingAgents, []);
 		if (agentConfig) {
 			existingAgents[def.name] = agentConfig;
 		}

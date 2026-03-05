@@ -6,7 +6,6 @@ import { tool } from "@opencode-ai/plugin";
 import type { createOpencodeClient } from "@opencode-ai/sdk";
 import type { CortexAvailableAgent } from "../agents";
 import { createCortexOrchestratorAgent } from "../agents";
-import { getAllSkills } from "../skills/discovery";
 import { createSandboxExecTool } from "./sandbox";
 
 type OpencodeClient = ReturnType<typeof createOpencodeClient>;
@@ -90,38 +89,20 @@ export function createPlatformAgentsTool(client: OpencodeClient) {
 	});
 }
 
-export function createPlatformSkillsTool(directory: string) {
+export function createPlatformSkillsTool(_directory: string) {
 	return tool({
 		description:
 			"Discover agent skills from SKILL.md files in project and global config",
 		args: {},
 		async execute() {
-			try {
-				const skills = await getAllSkills(directory);
-
-				return JSON.stringify(
-					{
-						skills: skills.map((skill) => ({
-							name: skill.name,
-							description: skill.description,
-							location: skill.location,
-							path: skill.path,
-						})),
-					},
-					null,
-					2,
-				);
-			} catch (err) {
-				const msg = err instanceof Error ? err.message : String(err);
-				return JSON.stringify({ error: msg }, null, 2);
-			}
+			return JSON.stringify({ skills: [] }, null, 2);
 		},
 	});
 }
 
 export function createPlatformInfoTool(
 	client: OpencodeClient,
-	directory: string,
+	_directory: string,
 ) {
 	return tool({
 		description:
@@ -134,15 +115,13 @@ export function createPlatformInfoTool(
 					(agentsResult as { data?: unknown }).data ?? agentsResult;
 				const agentCount = Array.isArray(agentsRaw) ? agentsRaw.length : 0;
 
-				const skills = await getAllSkills(directory);
-
 				const summary = `# OpenCode Platform Overview
 
 ## Agents
 - Detected ${agentCount} agents via client.app.agents()
 
 ## Skills
-- Detected ${skills.length} skills across project and global locations.`;
+- Skills are managed natively by OpenCode.`;
 
 				return summary;
 			} catch (err) {

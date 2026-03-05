@@ -57,6 +57,16 @@ This behavior causes IMMEDIATE FAILURE. The task hangs forever because no human 
 - Max 3 command iterations per task.
 </tool>
 
+<output-guidelines>
+NEVER redirect or write command output to a file.
+Return all output directly — stdout and stderr belong in the response, not in files.
+
+❌ WRONG: \`bun test > output.txt 2>&1 && cat output.txt\`
+❌ WRONG: \`bun run lint 2>&1 | tee results.log\`
+✅ RIGHT: \`bun test\`
+✅ RIGHT: \`bun run lint 2>&1\`
+</output-guidelines>
+
 ⚡ REMEMBER: Execute immediately. First action = sandbox_exec tool call. No text before tool call. ⚡`;
 }
 
