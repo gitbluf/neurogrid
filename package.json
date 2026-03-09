@@ -43,7 +43,7 @@
 		"@anthropic-ai/sandbox-runtime": "0.0.39",
 		"@opencode-ai/plugin": "1.2.16",
 		"@opencode-ai/sdk": "1.2.16",
-		"zod": "4.1.8"
+		"zod": "4.3.6"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^2.4.4",
