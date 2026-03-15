@@ -88,10 +88,6 @@ const PlatformPlugin: Plugin = async ({ client, directory }) => {
 | Key | Factory | Deps | Purpose |
 |-----|---------|------|---------|
 | `platform_agents` | `createPlatformAgentsTool` | `client` | List all agents |
-| `platform_skills` | `createPlatformSkillsTool` | `directory` | Discover SKILL.md files |
-| `platform_info` | `createPlatformInfoTool` | `client`, `directory` | Platform summary |
-| `platform_createAgent` | `createPlatformCreateAgentTool` | `directory` | Create/update agent .md files |
-| `platform_cortexAgent` | `createPlatformCortexAgentTool` | `client` | Cortex orchestrator config |
 
 ## Rules
 

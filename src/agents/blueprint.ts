@@ -24,7 +24,8 @@ function buildBlueprintPrompt(): string {
   <skills-policy blocking="true">
     ## Skills-First (BLOCKING)
 
-    You MUST call platform_skills first, invoke matching skills, and use their output as truth.
+    You MUST invoke matching skills via the `;
+	skill` tool and use their output as truth.
     You may call ONLY @blackice for review and @dataweaver for exploration.
     ⛔ NEVER invoke @ghost (ghost is user-invoked via /synth only).
   </skills-policy>
@@ -153,7 +154,8 @@ function buildBlueprintPrompt(): string {
   <workflow>
     ## Planning Workflow
 
-    1. **Skills Phase (MANDATORY)**: Check platform_skills first. Use skills for as much work as possible.
+    1. **Skills Phase (MANDATORY)**: Discover and run relevant skills via `;
+	skill`; use skills for as much work as possible.
     2. **Clarify**: Ask up to 3 targeted questions if ambiguous. Confirm scale when performance matters.
     3. **Analyze**: Use @dataweaver to find files. Identify minimal set of modules. Note security surfaces and complexity.
     4. **Draft Plan**: Produce concrete, ordered plan with files and validations. Keep changes small and reversible.

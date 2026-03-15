@@ -91,7 +91,14 @@ function buildGhostPrompt(): string {
     \`\`\`markdown
     ## Tools
 
-    **Allowed**: \`read\`, \`glob\`, \`grep\` (inspect), \`write\`, \`edit\` (modify), \`task\` (delegate to @hardline only), \`skill\`, \`platform_skills\`.
+    **Allowed**: `;
+	read`, `;
+	glob`, `;
+	grep` (inspect), `;
+	write`, `;
+	edit` (modify), `;
+	task` (delegate to @hardline only), `;
+	skill`.
 
     **Forbidden**: Run commands directly (no \`sandbox_exec\` or \`bash\`). Delegate to agents other than @hardline. Install tools/deps unless plan states it. Create/modify \`plan-*.md\` files.
 

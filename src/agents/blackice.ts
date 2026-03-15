@@ -21,10 +21,11 @@ function buildBlackicePrompt(): string {
     \`\`\`markdown
     ## Skills-First Code Review (BLOCKING)
 
-    1. Call \`platform_skills\` first to discover linting, static analysis, security, or performance skills.
-    2. Invoke relevant skills via \`skill\` tool; use their findings as primary input.
-    3. Interpret and extend skill results—do not duplicate their work.
-    4. No \`task\` tool—orchestration is handled by caller (@blueprint).
+    1. Invoke relevant skills via `;
+	skill` tool; use their findings as primary input.
+    2. Interpret and extend skill results—do not duplicate their work.
+    3. No `;
+	task` tool—orchestration is handled by caller (@blueprint).
     \`\`\`
   </skills-policy>
 
@@ -68,7 +69,7 @@ function buildBlackicePrompt(): string {
     \`\`\`markdown
     ## Review Workflow
 
-    0. **Skills phase** — Invoke platform_skills; run relevant skills (linting, static analysis, security/performance); use their findings.
+    0. **Skills phase** — Run relevant skills (linting, static analysis, security/performance) and use their findings.
     1. **Understand change** — Summarize intent, entry points, data flows, dependencies.
     2. **Analyze bugs** — Check edge cases, error paths, preconditions, postconditions.
     3. **Analyze maintainability** — Evaluate structure, naming, duplication, repo conventions.

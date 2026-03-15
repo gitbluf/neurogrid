@@ -186,10 +186,6 @@ Completed swarms are automatically recorded to `.ai/.swarm-records.json` with fu
 ## 🔧 Platform Tools
 
 - `platform_agents` — List available agents
-- `platform_skills` — Discover skills from SKILL.md
-- `platform_info` — Summarize platform setup
-- `platform_createAgent` — Create/update agent definitions
-- `platform_cortexAgent` — Get the fully configured cortex orchestrator
 - `platform_swarm_dispatch` — Dispatch concurrent agent sessions with configurable concurrency and timeout
 - `platform_swarm_status` — Get current status and results of a running or completed swarm
 - `platform_swarm_abort` — Cancel all running tasks in a swarm

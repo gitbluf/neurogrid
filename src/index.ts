@@ -10,10 +10,6 @@ import {
 } from "./hooks";
 import {
 	createPlatformAgentsTool,
-	createPlatformCortexAgentTool,
-	createPlatformCreateAgentTool,
-	createPlatformInfoTool,
-	createPlatformSkillsTool,
 	createPlatformSwarmAbortTool,
 	createPlatformSwarmDispatchTool,
 	createPlatformSwarmStatusTool,
@@ -23,10 +19,6 @@ import {
 
 const PlatformPlugin: Plugin = async ({ client, directory }) => {
 	const platformAgents = createPlatformAgentsTool(client);
-	const platformSkills = createPlatformSkillsTool(directory);
-	const platformInfo = createPlatformInfoTool(client, directory);
-	const platformCreateAgent = createPlatformCreateAgentTool(directory);
-	const platformCortexAgent = createPlatformCortexAgentTool(client);
 	const platformSwarmDispatch = createPlatformSwarmDispatchTool(
 		client,
 		directory,
@@ -39,10 +31,6 @@ const PlatformPlugin: Plugin = async ({ client, directory }) => {
 	return {
 		tool: {
 			platform_agents: platformAgents,
-			platform_skills: platformSkills,
-			platform_info: platformInfo,
-			platform_createAgent: platformCreateAgent,
-			platform_cortexAgent: platformCortexAgent,
 			platform_swarm_dispatch: platformSwarmDispatch,
 			platform_swarm_status: platformSwarmStatus,
 			platform_swarm_abort: platformSwarmAbort,
