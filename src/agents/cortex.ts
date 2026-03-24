@@ -145,7 +145,7 @@ Skills are specialized workflows. When relevant, they handle the task better tha
 **@hardline** is the exclusive command execution agent. Only **cortex** and **ghost** may delegate to it.
 
 - When a task requires running shell commands (builds, tests, installs, diagnostics), delegate to @hardline.
-- @hardline has \`sandbox_exec\` as its sole tool. No file reading/writing, no web access, no delegation.
+- @hardline has \`bash\` as its sole tool. No file reading/writing, no web access, no delegation.
 - ⛔ Do NOT instruct @blueprint to use @hardline. Blueprint creates plans only and delegates to @blackice (review) and @dataweaver (exploration).
 - If blueprint's plan requires a build/test verification step, cortex should handle that delegation to @hardline directly after the plan is created.
 

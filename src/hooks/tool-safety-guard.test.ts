@@ -8,7 +8,7 @@ describe("tool-safety-guard", () => {
 
 	describe("destructive pattern blocking", () => {
 		it("blocks rm -rf with relative path", async () => {
-			const input = { tool: "sandbox_exec", sessionID: "s1", callID: "c1" };
+			const input = { tool: "bash", sessionID: "s1", callID: "c1" };
 			const output = { args: { command: "rm -rf src" } };
 			await expect(hook(input, output)).rejects.toThrow(
 				"Blocked destructive command",
@@ -24,7 +24,7 @@ describe("tool-safety-guard", () => {
 		});
 
 		it("blocks DROP TABLE", async () => {
-			const input = { tool: "sandbox_exec", sessionID: "s1", callID: "c1" };
+			const input = { tool: "bash", sessionID: "s1", callID: "c1" };
 			const output = { args: { command: "psql -c 'DROP TABLE users'" } };
 			await expect(hook(input, output)).rejects.toThrow(
 				"Blocked destructive command",
@@ -40,7 +40,7 @@ describe("tool-safety-guard", () => {
 		});
 
 		it("blocks su commands", async () => {
-			const input = { tool: "sandbox_exec", sessionID: "s1", callID: "c1" };
+			const input = { tool: "bash", sessionID: "s1", callID: "c1" };
 			const output = { args: { command: "su - root" } };
 			await expect(hook(input, output)).rejects.toThrow(
 				"Blocked destructive command",
@@ -56,7 +56,7 @@ describe("tool-safety-guard", () => {
 		});
 
 		it("blocks pkexec commands", async () => {
-			const input = { tool: "sandbox_exec", sessionID: "s1", callID: "c1" };
+			const input = { tool: "bash", sessionID: "s1", callID: "c1" };
 			const output = { args: { command: "pkexec systemctl restart nginx" } };
 			await expect(hook(input, output)).rejects.toThrow(
 				"Blocked destructive command",
@@ -90,7 +90,7 @@ describe("tool-safety-guard", () => {
 		});
 
 		it("allows safe commands", async () => {
-			const input = { tool: "sandbox_exec", sessionID: "s1", callID: "c1" };
+			const input = { tool: "bash", sessionID: "s1", callID: "c1" };
 			const output = { args: { command: "ls -la" } };
 			await expect(hook(input, output)).resolves.toBeUndefined();
 		});

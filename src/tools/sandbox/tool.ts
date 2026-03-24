@@ -32,7 +32,7 @@ function sandboxError(
 export function createSandboxExecTool(directory: string) {
 	return tool({
 		description:
-			"Execute a shell command inside an OS-level sandbox with restricted filesystem/network access.",
+			"Execute a shell command inside an OS-level sandbox with restricted filesystem/network access (overrides bash).",
 		args: {
 			command: tool.schema
 				.string()
@@ -57,7 +57,7 @@ export function createSandboxExecTool(directory: string) {
 				.describe("Additional environment variables to set inside the sandbox"),
 		},
 		async execute(args, context) {
-			const denied = enforceAgent(context, "hardline", "sandbox_exec");
+			const denied = enforceAgent(context, "hardline", "bash");
 			if (denied) return denied;
 
 			const profile = resolveProfile();

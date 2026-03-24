@@ -85,7 +85,7 @@ function buildDataweaverPrompt(): string {
 
     You CANNOT:
     - Modify files (no write, edit)
-    - Execute commands (no bash, no sandbox_exec)
+    - Execute commands (no bash)
     - Call other agents (no task)
     - Fetch web content (no webfetch)
 

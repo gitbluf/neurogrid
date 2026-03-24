@@ -58,7 +58,7 @@ export function createMyAgentAgent(
       read: "allow",
       glob: "allow",
       grep: "allow",
-      // write, edit, bash, webfetch, task, skill, sandbox_exec, todowrite, todoread, platform_swarm_*
+      // write, edit, bash, webfetch, task, skill, todowrite, todoread, platform_swarm_*
       // are all "deny" by default. Only override what you need.
     }),
     prompt: `
@@ -129,11 +129,7 @@ permission: withPermissions({
 | `grep` | `"allow"` / `"deny"` | Search file contents |
 | `write` | `"allow"` / `"deny"` / `{ pattern: value }` | Write new files |
 | `edit` | `"allow"` / `"deny"` / `{ pattern: value }` | Edit existing files |
-| `bash` | `{ pattern: "allow" / "deny" / "ask" }` | Run shell commands |
-| `webfetch` | `"allow"` / `"deny"` | Fetch URLs |
-| `task` | `"allow"` / `"deny"` | Delegate to other agents |
-| `skill` | `"allow"` / `"deny"` | Invoke a discovered skill |
-| `sandbox_exec` | `"allow"` / `"deny"` | Execute sandboxed commands |
+| `bash` | `{ pattern: "allow" / "deny" / "ask" }` / `"allow"` / `"deny"` | Run shell commands (sandboxed) |
 | `todowrite` / `todoread` | `"allow"` / `"deny"` | Manage TODO items |
 | `platform_swarm_*` | `"allow"` / `"deny"` | Swarm dispatch tools |
 

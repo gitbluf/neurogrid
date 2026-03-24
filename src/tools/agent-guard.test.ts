@@ -16,26 +16,16 @@ function mockContext(agent: string) {
 
 describe("enforceAgent", () => {
 	it("returns null when agent is allowed", () => {
-		const result = enforceAgent(
-			mockContext("hardline"),
-			"hardline",
-			"sandbox_exec",
-		);
+		const result = enforceAgent(mockContext("hardline"), "hardline", "bash");
 		expect(result).toBeNull();
 	});
 
 	it("returns error JSON when agent is not allowed", () => {
-		const result = enforceAgent(
-			mockContext("cortex"),
-			"hardline",
-			"sandbox_exec",
-		);
+		const result = enforceAgent(mockContext("cortex"), "hardline", "bash");
 		expect(result).not.toBeNull();
 		if (result === null) throw new Error("unreachable");
 		const parsed = JSON.parse(result);
-		expect(parsed.error).toBe(
-			"sandbox_exec is restricted to the hardline agent",
-		);
+		expect(parsed.error).toBe("bash is restricted to the hardline agent");
 		expect(parsed.agent).toBe("cortex");
 	});
 
@@ -53,11 +43,7 @@ describe("enforceAgent", () => {
 	});
 
 	it("includes calling agent name in error response", () => {
-		const result = enforceAgent(
-			mockContext("dataweaver"),
-			"hardline",
-			"sandbox_exec",
-		);
+		const result = enforceAgent(mockContext("dataweaver"), "hardline", "bash");
 		expect(result).not.toBeNull();
 		if (result === null) throw new Error("unreachable");
 		const parsed = JSON.parse(result);

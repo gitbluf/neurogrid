@@ -12,7 +12,6 @@ describe("DEFAULT_PERMISSIONS", () => {
 		expect(keys).toContain("webfetch");
 		expect(keys).toContain("task");
 		expect(keys).toContain("skill");
-		expect(keys).toContain("sandbox_exec");
 		expect(keys).toContain("todowrite");
 		expect(keys).toContain("todoread");
 		expect(keys).toContain("platform_swarm_*");
@@ -34,7 +33,6 @@ describe("DEFAULT_PERMISSIONS", () => {
 			"webfetch",
 			"task",
 			"skill",
-			"sandbox_exec",
 			"todowrite",
 			"todoread",
 			"platform_swarm_*",
@@ -62,7 +60,7 @@ describe("withPermissions", () => {
 		const perms = result as unknown as Record<string, unknown>;
 		expect(perms.read).toBe("deny");
 		expect(perms.task).toBe("deny");
-		expect(perms.sandbox_exec).toBe("deny");
+		expect(perms.bash).toEqual({ "*": "deny" });
 	});
 
 	it("overrides specific keys while keeping others denied", () => {
@@ -70,7 +68,7 @@ describe("withPermissions", () => {
 		const perms = result as unknown as Record<string, unknown>;
 		expect(perms.read).toBe("allow");
 		expect(perms.task).toBe("allow");
-		expect(perms.sandbox_exec).toBe("deny");
+		expect(perms.bash).toEqual({ "*": "deny" });
 	});
 
 	it("supports pattern objects for edit", () => {

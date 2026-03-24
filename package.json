@@ -1,63 +1,62 @@
 {
-	"name": "@gitbluf/neurogrid",
-	"version": "0.1.0-alpha.8",
-	"description": "Neurogrid – OpenCode plugin providing AI agent orchestration system with specialized agents for planning, code review, reconnaissance, and execution.",
-	"license": "AGPL-3.0-only",
-	"type": "module",
-	"main": "dist/index.js",
-	"types": "dist/index.d.ts",
-	"keywords": [
-		"opencode",
-		"opencode-extension",
-		"neurogrid"
-	],
-	"exports": {
-		".": {
-			"bun": "./src/index.ts",
-			"import": "./dist/index.js",
-			"types": "./dist/index.d.ts"
-		}
-	},
-	"files": [
-		"dist",
-		"src",
-		"README.md",
-		"LICENSE"
-	],
-	"scripts": {
-		"build": "tsc",
-		"clean": "rm -rf dist",
-		"release": "bun ./scripts/release",
-		"ci:tag": "./scripts/auto-tag",
-		"ci:publish": "./scripts/publish",
-		"ci:dependabot-lockfile": "./scripts/dependabot-lockfile",
-		"lint": "biome lint .",
-		"format": "biome format --write .",
-		"test:all": "bun run lint && bun run format && bun test",
-		"validate:agent": "bun install && bun build --target=node . && bun run lint && bun run format && bun test"
-	},
-	"publishConfig": {
-		"registry": "https://npm.pkg.github.com"
-	},
-	"dependencies": {
-		"@anthropic-ai/sandbox-runtime": "0.0.39",
-		"@opencode-ai/plugin": "1.2.16",
-		"@opencode-ai/sdk": "1.2.16",
-		"zod": "4.3.6"
-	},
-	"devDependencies": {
-		"@biomejs/biome": "^2.4.4",
-		"bun-types": "latest",
-		"typescript": "^5.0.0"
-	},
-	"peerDependencies": {
-		"@opencode-ai/sdk": "1.2.10"
-	},
-	"repository": {
-		"type": "git",
-		"url": "https://github.com/gitbluf/neurogrid"
-	},
-	"overrides": {
-		"zod": "4.1.8"
-	}
+  "name": "@gitbluf/neurogrid",
+  "version": "0.1.0-alpha.9",
+  "description": "Neurogrid – OpenCode plugin providing AI agent orchestration system with specialized agents for planning, code review, reconnaissance, and execution.",
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "keywords": [
+    "opencode",
+    "opencode-extension",
+    "neurogrid"
+  ],
+  "exports": {
+    ".": {
+      "bun": "./src/index.ts",
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist",
+    "release": "bun ./scripts/release",
+    "ci:tag": "./scripts/auto-tag",
+    "ci:publish": "./scripts/publish",
+    "ci:dependabot-lockfile": "./scripts/dependabot-lockfile",
+    "lint": "biome lint .",
+    "format": "biome format --write .",
+    "test:all": "bun run lint && bun run format && bun test"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "dependencies": {
+    "@anthropic-ai/sandbox-runtime": "0.0.39",
+    "@opencode-ai/plugin": "1.2.16",
+    "@opencode-ai/sdk": "1.2.16",
+    "zod": "4.3.6"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.4.4",
+    "bun-types": "latest",
+    "typescript": "^5.0.0"
+  },
+  "peerDependencies": {
+    "@opencode-ai/sdk": "1.2.10"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/gitbluf/neurogrid"
+  },
+  "overrides": {
+    "zod": "4.1.8"
+  }
 }

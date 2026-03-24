@@ -15,7 +15,7 @@ function mockToolContext(agent: string): ToolContext {
 	} as ToolContext;
 }
 
-describe("sandbox_exec — agent enforcement", () => {
+describe("bash — agent enforcement", () => {
 	it("denies non-hardline agent", async () => {
 		const tool = createSandboxExecTool("/tmp/test");
 		const result = await tool.execute(
@@ -23,9 +23,7 @@ describe("sandbox_exec — agent enforcement", () => {
 			mockToolContext("cortex"),
 		);
 		const parsed = JSON.parse(result);
-		expect(parsed.error).toBe(
-			"sandbox_exec is restricted to the hardline agent",
-		);
+		expect(parsed.error).toBe("bash is restricted to the hardline agent");
 		expect(parsed.agent).toBe("cortex");
 	});
 
