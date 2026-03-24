@@ -31,7 +31,7 @@ export function createToolSafetyGuardHook(): NonNullable<
 		const args = output.args as Record<string, unknown>;
 
 		// Guard: block destructive shell patterns
-		if (input.tool === "bash" || input.tool === "sandbox_exec") {
+		if (input.tool === "bash") {
 			const command = (args.command as string) ?? (args.cmd as string) ?? "";
 			for (const pattern of DESTRUCTIVE_PATTERNS) {
 				if (pattern.test(command)) {

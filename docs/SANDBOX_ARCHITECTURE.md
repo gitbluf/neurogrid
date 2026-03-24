@@ -16,7 +16,6 @@ src/tools/sandbox/
 
 src/hooks/
 ├── tool-safety-guard.ts # Defense-in-depth: destructive command patterns
-└── tool-bash-redirect.ts# Redirects bash → sandbox_exec
 
 src/tools/
 └── agent-guard.ts       # enforceAgent — per-tool agent restriction
@@ -27,21 +26,18 @@ src/tools/
 ```mermaid
 sequenceDiagram
 	participant Agent as Agent (hardline)
-	participant Hook1 as tool-bash-redirect
 	participant Hook2 as tool-safety-guard
-	participant Tool as createSandboxExecTool
+	participant Tool as createSandboxExecTool (registered as bash)
 	participant Guard as enforceAgent
 	participant SRT as executeSrt
 	participant Loader as loadSrt
 	participant Manager as SandboxManager
 	participant Run as runCommand
 
-	Agent->>Hook1: tool call (sandbox_exec)
-	Hook1-->>Agent: pass (not bash)
 	Agent->>Hook2: check destructive patterns
 	Hook2-->>Agent: pass
 	Agent->>Tool: execute(args, context)
-	Tool->>Guard: enforceAgent(context, "hardline")
+	Tool->>Guard: enforceAgent(context, "hardline", "bash")
 	Guard-->>Tool: null (allowed)
 	Tool->>Tool: resolveProfile()
 	Tool->>Loader: loadSrt()
@@ -145,10 +141,8 @@ graph TB
 	
 	subgraph "Defense-in-Depth Hooks"
 		J[tool-safety-guard]
-		K[tool-bash-redirect]
 	end
 
-	K --> A
 	J --> A
 	F --> G
 	G --> H
@@ -286,11 +280,6 @@ The env sanitization rejects keys with invalid characters and values with null b
 
 ## Hook Layer
 
-### tool-bash-redirect
-- Intercepts `bash` tool calls and throws error directing model to use `sandbox_exec`
-- Necessary because SDK v2 deprecated `tools: { bash: false }` config
-- Provides immediate feedback so the model learns on the first attempt
-
 ### tool-safety-guard
 - Blocks destructive patterns: `rm -rf`, `git push --force`, `git reset --hard`, `DROP TABLE`, raw device writes, privilege escalation (`sudo`/`su`/`doas`/`pkexec`/`runuser`)
 - Blocks reading secret files: `.env`, `.pem`, `.key`, `.p12`, `.pfx`, `.secret`, `.credentials`
@@ -300,7 +289,7 @@ The env sanitization rejects keys with invalid characters and values with null b
 The hooks run before tool execution and can reject calls based on pattern matching. However, they should not be relied upon as a security boundary — a determined attacker can trivially bypass regex patterns. The real security comes from the OS-level sandbox policies enforced by srt (which internally uses SBPL on macOS and bubblewrap on Linux), intercepting syscalls at the kernel level.
 
 ### agent-guard
-- `enforceAgent()` restricts `sandbox_exec` to the "hardline" agent only
+- `enforceAgent()` restricts `bash` to the "hardline" agent only
 - Returns JSON error if unauthorized agent calls the tool
 - Prevents accidental sandbox usage from agents not designed for it
 
@@ -372,7 +361,7 @@ z.object({
 })
 ```
 
-The tool enforces agent restriction via `enforceAgent(context, "hardline", "sandbox_exec")`, ensuring only the hardline agent can call it.
+The tool enforces agent restriction via `enforceAgent(context, "hardline", "bash")`, ensuring only the hardline agent can call it.
 
 The tool handler flow:
 

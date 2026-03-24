@@ -430,40 +430,40 @@ describe("permission tests", () => {
 		expect(permission["platform_swarm_*"]).toBe("deny");
 	});
 
-	it("hardline permission allows sandbox_exec", () => {
+	it("hardline permission allows bash", () => {
 		const agent = createHardlineAgent("model");
 		const permission = agent.permission as Record<string, unknown>;
-		expect(permission.sandbox_exec).toBe("allow");
+		expect(permission.bash).toBe("allow");
 	});
 
-	it("cortex permission denies sandbox_exec", () => {
+	it("cortex permission denies bash", () => {
 		const agent = createCortexOrchestratorAgent();
 		const permission = agent.permission as Record<string, unknown>;
-		expect(permission.sandbox_exec).toBe("deny");
+		expect(permission.bash).toEqual({ "*": "deny" });
 	});
 
-	it("ghost permission denies sandbox_exec", () => {
+	it("ghost permission denies bash", () => {
 		const agent = createGhostAgent("model");
 		const permission = agent.permission as Record<string, unknown>;
-		expect(permission.sandbox_exec).toBe("deny");
+		expect(permission.bash).toEqual({ "*": "deny" });
 	});
 
-	it("blueprint permission denies sandbox_exec", () => {
+	it("blueprint permission denies bash", () => {
 		const agent = createBlueprintAgent("model");
 		const permission = agent.permission as Record<string, unknown>;
-		expect(permission.sandbox_exec).toBe("deny");
+		expect(permission.bash).toEqual({ "*": "deny" });
 	});
 
-	it("blackice permission denies sandbox_exec", () => {
+	it("blackice permission denies bash", () => {
 		const agent = createBlackiceAgent("model");
 		const permission = agent.permission as Record<string, unknown>;
-		expect(permission.sandbox_exec).toBe("deny");
+		expect(permission.bash).toEqual({ "*": "deny" });
 	});
 
-	it("dataweaver permission denies sandbox_exec", () => {
+	it("dataweaver permission denies bash", () => {
 		const agent = createDataweaverAgent("model");
 		const permission = agent.permission as Record<string, unknown>;
-		expect(permission.sandbox_exec).toBe("deny");
+		expect(permission.bash).toEqual({ "*": "deny" });
 	});
 });
 

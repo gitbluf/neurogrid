@@ -34,11 +34,10 @@ describe("netweaver agent", () => {
 		expect(perms.grep).toBe("deny");
 	});
 
-	it("should deny edit, bash, sandbox_exec", () => {
+	it("should deny edit, bash", () => {
 		const perms = agent.permission as Record<string, unknown>;
 		expect(perms.edit).toBe("deny");
 		expect(perms.bash).toEqual({ "*": "deny" });
-		expect(perms.sandbox_exec).toBe("deny");
 	});
 
 	it("should deny webfetch", () => {

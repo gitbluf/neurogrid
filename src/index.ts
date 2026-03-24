@@ -47,7 +47,7 @@ const PlatformPlugin: Plugin = async ({ client, directory }) => {
 			platform_swarm_status: platformSwarmStatus,
 			platform_swarm_abort: platformSwarmAbort,
 			platform_swarm_wait: platformSwarmWait,
-			sandbox_exec: sandboxExec,
+			bash: sandboxExec,
 		},
 
 		// Simple config mutation following starter plugin pattern

@@ -13,7 +13,6 @@ export const DEFAULT_PERMISSIONS = {
 	webfetch: "deny",
 	task: "deny",
 	skill: "deny",
-	sandbox_exec: "deny",
 	todowrite: "deny",
 	todoread: "deny",
 	"platform_swarm_*": "deny",

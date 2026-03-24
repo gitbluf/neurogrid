@@ -5,7 +5,7 @@
 Plan-first Neurogrid agent orchestration for OpenCode.
 **@gitbluf/neurogrid** ships a full, safety-focused agent system with built-in commands, skills, and platform tools—ready to use out of the box.
 
-> Version: **0.2.0** · License: **AGPL-3.0** · Repo: https://github.com/gitbluf/neurogrid
+> Version: **0.1.0-alpha.8** · License: **AGPL-3.0** · Repo: <https://github.com/gitbluf/neurogrid>
 
 > ⚠️ **GitHub Packages auth required:** add an `.npmrc` in `~/.npmrc` or `.opencode/.npmrc` with `@gitbluf:registry=https://npm.pkg.github.com` and `//npm.pkg.github.com/:_authToken=YOUR_GITHUB_PAT` (PAT needs `read:packages`).
 
@@ -27,6 +27,7 @@ That’s it—OpenCode will load the plugin on next run.
 All commands are executed inside an OS-level sandbox powered by **@anthropic-ai/sandbox-runtime** (srt). The design is **fail-closed**: if the sandbox cannot be initialized, commands are never executed.
 
 **Security profiles** (set via `OPENCODE_SANDBOX_PROFILE`):
+
 - **`default`** — no network access, read all files, write to project + `/tmp` only
 - **`network-allow`** — GitHub/GitLab domains only (`github.com`, `*.github.com`, `api.github.com`, `raw.githubusercontent.com`, `gitlab.com`, `*.gitlab.com`, `*.gitlab-static.net`), read all, write project + `/tmp`
 - **`readonly`** — no network, read-only everywhere
@@ -158,7 +159,6 @@ Completed swarms are automatically recorded to `.ai/.swarm-records.json` with fu
 4. **@blackice** reviews the plan
 5. You run **`/synth <request>`** → **@ghost** implements the plan
 
-
 > **Quick edit?** Skip the plan workflow entirely — run **`/apply <what to change>`** for small, surgical edits.
 
 > **Need to run a command?** Use **@hardline** — it handles builds, installs, diagnostics, and any shell operation.
@@ -232,4 +232,3 @@ bun run clean      # Remove dist/
 bun run test:all   # Run lint, format and tests
 npm pack --dry-run # Preview npm package contents
 ```
-

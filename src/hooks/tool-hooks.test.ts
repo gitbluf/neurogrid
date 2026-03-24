@@ -1,9 +1,8 @@
-import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import { mkdtemp, rm, readFile } from "node:fs/promises";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createToolPlanRegisterHook } from "./tool-plan-register";
-import { createToolBashRedirectHook } from "./tool-bash-redirect";
 
 describe("createToolPlanRegisterHook", () => {
 	let dir: string;
@@ -93,31 +92,5 @@ describe("createToolPlanRegisterHook", () => {
 				),
 			).resolves.toBeUndefined();
 		});
-	});
-});
-
-describe("createToolBashRedirectHook", () => {
-	it("skips non-bash tool calls", async () => {
-		const hook = createToolBashRedirectHook();
-		await hook({ tool: "write", sessionID: "s", callID: "c" }, { args: {} });
-	});
-
-	it("throws with sandbox_exec message for bash calls", async () => {
-		const hook = createToolBashRedirectHook();
-		await expect(
-			hook({ tool: "bash", sessionID: "s", callID: "c" }, { args: {} }),
-		).rejects.toThrow(/sandbox_exec/);
-	});
-
-	it("error message contains 'sandbox_exec' and 'Example'", async () => {
-		const hook = createToolBashRedirectHook();
-		try {
-			await hook({ tool: "bash", sessionID: "s", callID: "c" }, { args: {} });
-			expect(true).toBe(false);
-		} catch (err) {
-			const message = (err as Error).message;
-			expect(message).toContain("sandbox_exec");
-			expect(message).toContain("Example");
-		}
 	});
 });

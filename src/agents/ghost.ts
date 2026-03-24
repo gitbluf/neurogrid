@@ -93,7 +93,7 @@ function buildGhostPrompt(): string {
 
     **Allowed**: \`read\`, \`glob\`, \`grep\` (inspect), \`write\`, \`edit\` (modify), \`task\` (delegate to @hardline only), \`skill\`, \`platform_skills\`.
 
-    **Forbidden**: Run commands directly (no \`sandbox_exec\` or \`bash\`). Delegate to agents other than @hardline. Install tools/deps unless plan states it. Create/modify \`plan-*.md\` files.
+    **Forbidden**: Run commands directly (use @hardline for commands). Delegate to agents other than @hardline. Install tools/deps unless plan states it. Create/modify \`plan-*.md\` files.
 
     **Command execution**: Delegate ALL commands to @hardline via \`task(subagent_type="hardline", description="...", prompt="Run: <cmd>")\`. Wait for response before next step.
     \`\`\`

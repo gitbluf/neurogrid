@@ -208,7 +208,7 @@ The netweaver agent should have **minimal permissions**. The test file `src/agen
 - ✅ `platform_swarm_*` is allowed
 - ❌ `task` is denied (cannot delegate to other agents directly)
 - ❌ `read`, `glob`, `grep` are denied (no filesystem access)
-- ❌ `edit`, `bash`, `sandbox_exec` are denied (no code changes or commands)
+- ❌ `edit`, `bash` are denied (no code changes or commands)
 - ❌ `webfetch` is denied (no network access)
 - ❌ `skill`, `todowrite`, `todoread` are denied
 
