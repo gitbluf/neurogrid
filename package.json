@@ -2,7 +2,7 @@
   "name": "@gitbluf/neurogrid",
   "version": "0.1.0-alpha.9",
   "description": "Neurogrid – OpenCode plugin providing AI agent orchestration system with specialized agents for planning, code review, reconnaissance, and execution.",
-  "license": "AGPL-3.0-only",
+  "license": "MIT",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
